@@ -164,7 +164,7 @@ private fun PlayingScreen(viewModel: GameViewModel) {
                 dragState = dragState,
                 onDragEnd = { viewModel.handleDragEnd() },
                 onTapPiece = { pieceId -> dragState.tapSelect(pieceId) },
-                modifier = Modifier.fillMaxWidth().height(100.dp)
+                modifier = Modifier.fillMaxWidth().height(170.dp)
             )
 
             if (showDebug.value) {

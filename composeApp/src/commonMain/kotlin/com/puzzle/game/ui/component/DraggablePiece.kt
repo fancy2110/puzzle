@@ -78,7 +78,7 @@ fun PieceTray(
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 70.dp),
+        columns = GridCells.Adaptive(minSize = 100.dp),
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -93,7 +93,7 @@ fun PieceTray(
 
             Box(
                 modifier = Modifier
-                    .size(70.dp)
+                    .size(100.dp)
                     .onGloballyPositioned { coords ->
                         pieceWindowPos = coords.positionInWindow()
                         pieceIntSize = coords.size
@@ -152,7 +152,7 @@ fun PieceTray(
                     PieceImageContent(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
-                        cardSize = 70,
+                        cardSize = 100,
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp))
                     )
                 }
@@ -173,7 +173,7 @@ fun FloatingDraggedPiece(
     Box(
         modifier = Modifier
             .offset { IntOffset(dragState.dragOffset.x.toInt(), dragState.dragOffset.y.toInt()) }
-            .size(80.dp)
+            .size(110.dp)
             .shadow(8.dp, RoundedCornerShape(12.dp))
             .clip(RoundedCornerShape(12.dp))
             .background(Color.White),
@@ -182,7 +182,7 @@ fun FloatingDraggedPiece(
         PieceImageContent(
             piece = piece,
             puzzleBitmap = puzzleBitmap,
-            cardSize = 80,
+            cardSize = 110,
             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
         )
     }

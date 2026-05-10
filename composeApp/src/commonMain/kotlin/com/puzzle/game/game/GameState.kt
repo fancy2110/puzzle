@@ -2,6 +2,7 @@ package com.puzzle.game.game
 
 import androidx.compose.ui.graphics.ImageBitmap
 import com.puzzle.game.data.ThemeData
+import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.engine.model.PuzzlePiece
 
 enum class GameDifficulty(val pieceCount: Int, val label: String) {
@@ -21,7 +22,7 @@ enum class GamePhase {
 data class GameState(
     val phase: GamePhase = GamePhase.MENU,
     val difficulty: GameDifficulty = GameDifficulty.EASY,
-    val selectedTheme: ThemeData? = null,
+    val selectedTheme: ThemeData? = ThemePresets.themes.first(),
     val pieces: List<PuzzlePiece> = emptyList(),
     val puzzleBitmap: ImageBitmap? = null,
     val isImageLoading: Boolean = false,

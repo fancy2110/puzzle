@@ -102,7 +102,6 @@ fun MenuScreen(viewModel: GameViewModel) {
         Button(
             onClick = { viewModel.startGame() },
             modifier = Modifier.fillMaxWidth().height(56.dp),
-            enabled = state.selectedTheme != null,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary
             ),

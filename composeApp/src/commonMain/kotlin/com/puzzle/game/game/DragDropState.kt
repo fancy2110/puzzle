@@ -12,11 +12,33 @@ class DragDropState {
     var isDragging by mutableStateOf(false)
     var dropTargetCell: Pair<Int, Int>? by mutableStateOf(null)
 
+    /** Tap-to-select mode: simpler interaction for kids */
+    var selectedPieceId: String? by mutableStateOf(null)
+
+    fun tapSelect(pieceId: String) {
+        if (selectedPieceId == pieceId) {
+            selectedPieceId = null
+        } else {
+            selectedPieceId = pieceId
+        }
+    }
+
+    fun tapTarget(row: Int, col: Int): DragResult? {
+        val pieceId = selectedPieceId ?: return null
+        selectedPieceId = null
+        return DragResult(pieceId, row, col)
+    }
+
+    fun clearSelection() {
+        selectedPieceId = null
+    }
+
     fun startDrag(pieceId: String, startOffset: Offset, pieceSize: Offset) {
         draggedPieceId = pieceId
         dragOffset = startOffset
         dragPieceSize = pieceSize
         isDragging = true
+        selectedPieceId = null
     }
 
     fun updateDrag(offset: Offset) {

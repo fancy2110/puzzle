@@ -1,6 +1,8 @@
 package com.puzzle.game
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,9 +17,9 @@ import com.puzzle.game.ui.theme.PuzzleGameTheme
 fun App() {
     PuzzleGameTheme {
         val viewModel: GameViewModel = viewModel { GameViewModel() }
-        val state = viewModel.state
+        val state by viewModel.state.collectAsState()
 
-        when (state.value.phase) {
+        when (state.phase) {
             GamePhase.MENU -> MenuScreen(viewModel)
             else -> GameScreen(viewModel)
         }

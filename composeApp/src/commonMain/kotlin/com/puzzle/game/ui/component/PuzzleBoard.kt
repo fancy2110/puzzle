@@ -3,6 +3,7 @@ package com.puzzle.game.ui.component
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ fun PuzzleBoard(
     puzzleBitmap: ImageBitmap?,
     placedPieceIds: Set<String>,
     dragState: DragDropState,
+    onCellTap: ((Int, Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val density = LocalDensity.current
@@ -43,11 +45,11 @@ fun PuzzleBoard(
         modifier = modifier
             .clip(RoundedCornerShape(12.dp))
             .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.1f)),
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.08f)),
         contentAlignment = Alignment.Center
     ) {
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier.fillMaxSize().padding(6.dp),
             contentAlignment = Alignment.Center
         ) {
             val boardW = maxWidth
@@ -65,16 +67,14 @@ fun PuzzleBoard(
                 displayW = boardH * aspect
             }
 
-            Box(
-                modifier = Modifier.size(displayW, displayH)
-            ) {
+            Box(modifier = Modifier.size(displayW, displayH)) {
                 if (puzzleBitmap != null) {
                     Image(
                         bitmap = puzzleBitmap,
-                        contentDescription = "拼图参考",
+                        contentDescription = "原图",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
-                        alpha = 0.35f
+                        alpha = 0.5f
                     )
                 }
 
@@ -91,32 +91,40 @@ fun PuzzleBoard(
                                 .fillMaxWidth(1f / gridCols)
                                 .fillMaxHeight(1f / gridRows)
                                 .offset(
-                                    x = (displayW * col / gridCols),
-                                    y = (displayH * row / gridRows)
+                                    x = displayW * col / gridCols,
+                                    y = displayH * row / gridRows
                                 )
                                 .onGloballyPositioned { coords ->
                                     if (dragState.isDragging) {
-                                        val offsetInWindow = coords.positionInWindow()
-                                        val dragCenterX = dragState.dragOffset.x + dragState.dragPieceSize.x / 2
-                                        val dragCenterY = dragState.dragOffset.y + dragState.dragPieceSize.y / 2
-                                        if (dragCenterX in offsetInWindow.x..(offsetInWindow.x + coords.size.width) &&
-                                            dragCenterY in offsetInWindow.y..(offsetInWindow.y + coords.size.height)
+                                        val pos = coords.positionInWindow()
+                                        val cx = dragState.dragOffset.x + dragState.dragPieceSize.x / 2
+                                        val cy = dragState.dragOffset.y + dragState.dragPieceSize.y / 2
+                                        if (cx in pos.x..(pos.x + coords.size.width) &&
+                                            cy in pos.y..(pos.y + coords.size.height)
                                         ) {
                                             dragState.dropTargetCell = Pair(row, col)
                                         }
                                     }
                                 }
+                                .then(
+                                    if (onCellTap != null) {
+                                        Modifier.clickable { onCellTap(row, col) }
+                                    } else Modifier
+                                )
                                 .background(
                                     when {
-                                        isDropTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        isFilled -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                        isDropTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                        isFilled -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
                                         else -> Color.Transparent
                                     }
                                 )
                                 .border(
-                                    width = if (isDropTarget) 1.dp else 0.3.dp,
-                                    color = if (isDropTarget) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.outline.copy(alpha = 0.25f)
+                                    width = if (isDropTarget) 1.5.dp else 0.3.dp,
+                                    color = when {
+                                        isDropTarget -> MaterialTheme.colorScheme.primary
+                                        isFilled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                    }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {

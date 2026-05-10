@@ -2,7 +2,9 @@ package com.puzzle.game.ui.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -24,7 +26,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -32,9 +33,12 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
 
-internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int = 70): Triple<Float, Float, Float> {
-    val scaleX = cardSize.toFloat() / piece.pixels.width
-    val scaleY = cardSize.toFloat() / piece.pixels.height
+internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, Float, Float> {
+    val w = piece.pixels.width
+    val h = piece.pixels.height
+    if (w <= 0 || h <= 0) return Triple(1f, 0f, 0f)
+    val scaleX = cardSize.toFloat() / w
+    val scaleY = cardSize.toFloat() / h
     val scale = minOf(scaleX, scaleY, 3f)
     val offX = -piece.pixels.left.toFloat() * scale
     val offY = -piece.pixels.top.toFloat() * scale
@@ -70,6 +74,7 @@ fun PieceTray(
     placedPieceIds: Set<String>,
     dragState: DragDropState,
     onDragEnd: () -> Unit,
+    onTapPiece: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     LazyVerticalGrid(
@@ -81,6 +86,7 @@ fun PieceTray(
         items(pieces, key = { it.id }) { piece ->
             val isPlaced = placedPieceIds.contains(piece.id)
             val isBeingDragged = dragState.draggedPieceId == piece.id && dragState.isDragging
+            val isSelected = dragState.selectedPieceId == piece.id
 
             var pieceWindowPos by remember { mutableStateOf(Offset.Zero) }
             var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
@@ -95,7 +101,7 @@ fun PieceTray(
                     .then(
                         if (!isPlaced) {
                             Modifier.pointerInput(piece.id) {
-                                detectDragGesturesAfterLongPress(
+                                detectDragGestures(
                                     onDragStart = { localOffset ->
                                         dragState.startDrag(
                                             pieceId = piece.id,
@@ -126,9 +132,17 @@ fun PieceTray(
                     )
                     .alpha(if (isBeingDragged) 0.3f else 1f)
                     .clip(RoundedCornerShape(8.dp))
+                    .then(
+                        if (isSelected) {
+                            Modifier.border(3.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(8.dp))
+                        } else Modifier
+                    )
                     .background(
-                        if (isPlaced) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else MaterialTheme.colorScheme.surface
+                        when {
+                            isPlaced -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                            isSelected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                            else -> MaterialTheme.colorScheme.surface
+                        }
                     ),
                 contentAlignment = Alignment.Center
             ) {

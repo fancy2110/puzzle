@@ -23,11 +23,12 @@ data class GameState(
     val difficulty: GameDifficulty = GameDifficulty.EASY,
     val selectedTheme: ThemeData? = null,
     val pieces: List<PuzzlePiece> = emptyList(),
-    val placedPieces: Set<String> = emptySet(),
     val puzzleBitmap: ImageBitmap? = null,
-    val isImageLoading: Boolean = false
-) {
-    val isComplete: Boolean
-        get() = phase == GamePhase.COMPLETED ||
-                (pieces.isNotEmpty() && placedPieces.size == pieces.size)
-}
+    val isImageLoading: Boolean = false,
+    val gridCols: Int = 0,
+    val gridRows: Int = 0,
+    val correctPositions: Map<String, Pair<Int, Int>> = emptyMap(),
+    val cellFilledBy: Map<String, String> = emptyMap(),
+    val showCelebration: Boolean = false,
+    val wrongDropHint: Boolean = false
+)

@@ -49,6 +49,9 @@ kotlin {
             implementation(libs.ktor.serialization.kotlinx.json)
 
             implementation(libs.uuid)
+
+            implementation(libs.coil.compose)
+            implementation(libs.coil.network.ktor)
         }
 
         androidMain.dependencies {

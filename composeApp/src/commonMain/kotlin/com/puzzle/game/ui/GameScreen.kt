@@ -1,8 +1,8 @@
 package com.puzzle.game.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -13,8 +13,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -32,7 +34,7 @@ fun GameScreen(viewModel: GameViewModel) {
         GamePhase.PLAYING -> PlayingScreen(
             pieces = state.pieces,
             placedPieces = state.placedPieces,
-            isComplete = state.isComplete,
+            puzzleBitmap = state.puzzleBitmap,
             onPlacePiece = { viewModel.placePiece(it) },
             onBackToMenu = { viewModel.goToMenu() },
             onReset = { viewModel.resetGame() }
@@ -53,10 +55,10 @@ private fun GeneratingScreen() {
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            CircularProgressIndicator()
+            CircularProgressIndicator(modifier = Modifier.size(48.dp))
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "正在生成拼图...",
+                text = "正在准备拼图...",
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -68,27 +70,28 @@ private fun GeneratingScreen() {
 private fun PlayingScreen(
     pieces: List<PuzzlePiece>,
     placedPieces: Set<String>,
-    isComplete: Boolean,
+    puzzleBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     onPlacePiece: (String) -> Unit,
     onBackToMenu: () -> Unit,
     onReset: () -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+    Column(modifier = Modifier.fillMaxSize().padding(12.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBackToMenu) {
-                Text("← 返回")
+                Text("← 返回", fontSize = 14.sp)
             }
             Text(
                 text = "已拼好: ${placedPieces.size}/${pieces.size}",
                 fontSize = 16.sp,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.primary
             )
             TextButton(onClick = onReset) {
-                Text("重置")
+                Text("重置", fontSize = 14.sp)
             }
         }
 
@@ -100,22 +103,31 @@ private fun PlayingScreen(
                 .weight(1f)
                 .clip(RoundedCornerShape(12.dp))
                 .border(2.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "拖拽拼图块到这里",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                textAlign = TextAlign.Center
-            )
+            if (puzzleBitmap != null && placedPieces.isNotEmpty()) {
+                Image(
+                    bitmap = puzzleBitmap,
+                    contentDescription = "原图参考",
+                    modifier = Modifier.fillMaxSize().padding(4.dp),
+                    contentScale = ContentScale.Fit
+                )
+            } else {
+                Text(
+                    text = "将下面的碎片拖到这里",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = "拼图碎片",
-            fontSize = 14.sp,
+            fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -124,14 +136,15 @@ private fun PlayingScreen(
 
         LazyVerticalGrid(
             columns = GridCells.Adaptive(minSize = 80.dp),
-            modifier = Modifier.fillMaxWidth().height(200.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth().height(160.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             items(pieces, key = { it.id }) { piece ->
                 val isPlaced = placedPieces.contains(piece.id)
                 PieceCard(
                     piece = piece,
+                    puzzleBitmap = puzzleBitmap,
                     isPlaced = isPlaced,
                     onClick = {
                         if (!isPlaced) {
@@ -147,6 +160,7 @@ private fun PlayingScreen(
 @Composable
 private fun PieceCard(
     piece: PuzzlePiece,
+    puzzleBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     isPlaced: Boolean,
     onClick: () -> Unit
 ) {
@@ -155,7 +169,7 @@ private fun PieceCard(
         modifier = Modifier.size(80.dp),
         shape = RoundedCornerShape(8.dp),
         colors = if (isPlaced) {
-            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f))
         } else {
             CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
         },
@@ -163,32 +177,49 @@ private fun PieceCard(
         else CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxSize().clipToBounds(),
             contentAlignment = Alignment.Center
         ) {
             if (isPlaced) {
                 Text("✓", fontSize = 24.sp, color = MaterialTheme.colorScheme.primary)
-            } else {
-                val randomColor = remember(piece.id) {
-                    val colors = listOf(
-                        Color(0xFFEADDFF), Color(0xFFFFD8E4),
-                        Color(0xFFD0E6FF), Color(0xFFFFF0C8),
-                        Color(0xFFD5F5D0), Color(0xFFFFD9C0),
-                        Color(0xFFC8E6FF), Color(0xFFF0D0FF)
-                    )
-                    colors[piece.id.hashCode().mod(colors.size)]
-                }
-                Box(
+            } else if (puzzleBitmap != null) {
+                val cardSize = 80
+                val scaleX = cardSize.toFloat() / piece.pixels.width
+                val scaleY = cardSize.toFloat() / piece.pixels.height
+                val scale = minOf(scaleX, scaleY, 3f)
+                val offsetX = -piece.pixels.left.toFloat() * scale
+                val offsetY = -piece.pixels.top.toFloat() * scale
+
+                Image(
+                    bitmap = puzzleBitmap,
+                    contentDescription = "碎片 ${piece.id}",
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(randomColor),
+                        .clip(RoundedCornerShape(6.dp))
+                        .graphicsLayer(
+                            scaleX = scale,
+                            scaleY = scale,
+                            translationX = offsetX,
+                            translationY = offsetY
+                        ),
+                    contentScale = ContentScale.None
+                )
+            } else {
+                val colors = listOf(
+                    Color(0xFFEADDFF), Color(0xFFFFD8E4),
+                    Color(0xFFD0E6FF), Color(0xFFFFF0C8),
+                    Color(0xFFD5F5D0), Color(0xFFFFD9C0),
+                    Color(0xFFC8E6FF), Color(0xFFF0D0FF)
+                )
+                val color = colors[piece.id.hashCode().mod(colors.size)]
+                Box(
+                    modifier = Modifier.fillMaxSize().background(color),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "${piece.id.hashCode().mod(100)}",
                         fontSize = 12.sp,
-                        color = Color.Gray,
-                        textAlign = TextAlign.Center
+                        color = Color.Gray
                     )
                 }
             }
@@ -203,14 +234,13 @@ private fun CompletedScreen(
     onBackToMenu: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+        ),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "🎉",
-                fontSize = 64.sp
-            )
+            Text(text = "🎉", fontSize = 64.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "太棒了！",
@@ -227,14 +257,16 @@ private fun CompletedScreen(
             Spacer(modifier = Modifier.height(32.dp))
             Button(
                 onClick = onPlayAgain,
-                modifier = Modifier.fillMaxWidth(0.6f).height(48.dp)
+                modifier = Modifier.fillMaxWidth(0.6f).height(48.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("再来一局", fontSize = 18.sp)
             }
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedButton(
                 onClick = onBackToMenu,
-                modifier = Modifier.fillMaxWidth(0.6f).height(48.dp)
+                modifier = Modifier.fillMaxWidth(0.6f).height(48.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Text("返回菜单", fontSize = 18.sp)
             }

@@ -101,7 +101,7 @@ impl Position {
         if x >= max {
             None
         } else {
-            let data = Self::copy_with_y(self._data, x + 1);
+            let data = Self::copy_with_x(self._data, x + 1);
             Some(Position { _data: data })
         }
     }

@@ -1,0 +1,1261 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Puzzle Game UI Prototype</title>
+  <style>
+    :root {
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d9dee7;
+      --page: #f4f7fb;
+      --panel: #ffffff;
+      --panel-2: #eef6f4;
+      --primary: #286f6c;
+      --primary-2: #1f5b83;
+      --accent: #e56b4f;
+      --amber: #f1b84b;
+      --violet: #7566c9;
+      --success: #34a06b;
+      --danger: #c74343;
+      --shadow: 0 18px 50px rgba(20, 32, 52, .14);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(135deg, rgba(40, 111, 108, .10), transparent 34%),
+        linear-gradient(315deg, rgba(229, 107, 79, .12), transparent 30%),
+        var(--page);
+      color: var(--ink);
+      min-height: 100vh;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+      cursor: pointer;
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(360px, 1fr) 430px;
+      gap: 28px;
+      width: min(1240px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 32px 0;
+      min-height: 100vh;
+      align-items: center;
+    }
+
+    .brief {
+      align-self: stretch;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .title-block {
+      padding: 4px 0 6px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 34px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 12px 0 0;
+      max-width: 660px;
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 15px;
+    }
+
+    .board {
+      background: rgba(255, 255, 255, .76);
+      border: 1px solid rgba(217, 222, 231, .78);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .board h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+      letter-spacing: 0;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow-node {
+      position: relative;
+      min-height: 74px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .flow-node::after {
+      content: "";
+      position: absolute;
+      right: -10px;
+      top: 50%;
+      width: 10px;
+      height: 1px;
+      background: var(--line);
+    }
+
+    .flow-node:nth-child(4)::after,
+    .flow-node:nth-child(8)::after {
+      display: none;
+    }
+
+    .flow-node strong {
+      font-size: 13px;
+    }
+
+    .flow-node span {
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .flow-node.active {
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px rgba(40, 111, 108, .18);
+      background: var(--panel-2);
+    }
+
+    .notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .note {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      min-height: 126px;
+    }
+
+    .note b {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .note p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+    }
+
+    .phone {
+      width: 390px;
+      height: 820px;
+      background: #111827;
+      border-radius: 34px;
+      padding: 12px;
+      box-shadow: 0 34px 70px rgba(17, 24, 39, .24);
+    }
+
+    .screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f7fafc;
+      border-radius: 25px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .status {
+      height: 31px;
+      padding: 0 19px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 750;
+      color: #2b3440;
+      background: rgba(255, 255, 255, .86);
+      backdrop-filter: blur(10px);
+      z-index: 8;
+    }
+
+    .status .dots {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #2b3440;
+      opacity: .82;
+    }
+
+    .app {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .page {
+      position: absolute;
+      inset: 0;
+      display: none;
+      flex-direction: column;
+      padding: 18px;
+      background: #f7fafc;
+    }
+
+    .page.is-visible {
+      display: flex;
+    }
+
+    .topbar {
+      height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex: 0 0 auto;
+    }
+
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius);
+      background: #fff;
+      border: 1px solid var(--line);
+      display: inline-grid;
+      place-items: center;
+      color: var(--ink);
+    }
+
+    .icon-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .page-title {
+      font-size: 17px;
+      font-weight: 800;
+      margin: 0;
+    }
+
+    .soft {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .btn {
+      min-height: 46px;
+      border-radius: var(--radius);
+      padding: 0 16px;
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 10px 22px rgba(40, 111, 108, .22);
+    }
+
+    .btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .btn.secondary {
+      background: #fff;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+
+    .btn.ghost {
+      min-height: 38px;
+      background: transparent;
+      color: var(--primary);
+      box-shadow: none;
+      padding: 0 8px;
+    }
+
+    .preview {
+      position: relative;
+      height: 300px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid rgba(23, 32, 42, .08);
+      background:
+        linear-gradient(135deg, rgba(31, 91, 131, .16), rgba(229, 107, 79, .16)),
+        #d9e9ef;
+    }
+
+    .preview img,
+    .puzzle-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .preview-info {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 12px;
+      background: rgba(255, 255, 255, .88);
+      backdrop-filter: blur(14px);
+      border-radius: var(--radius);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .preview-info b {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 3px;
+    }
+
+    .pill {
+      min-width: max-content;
+      border-radius: 999px;
+      padding: 7px 10px;
+      background: rgba(40, 111, 108, .10);
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .home-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .home-actions .btn:first-child {
+      grid-column: 1 / -1;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin: 18px 0 8px;
+    }
+
+    .section-label b {
+      font-size: 13px;
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      background: #e9eef4;
+      padding: 5px;
+      border-radius: var(--radius);
+    }
+
+    .segment {
+      min-height: 38px;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .segment.selected {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: 0 4px 12px rgba(16, 24, 40, .08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      overflow: auto;
+      padding: 2px 0 12px;
+    }
+
+    .theme-card,
+    .source-card,
+    .setting-row {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+
+    .theme-card {
+      min-height: 158px;
+      padding: 9px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-align: left;
+    }
+
+    .theme-card.selected {
+      border-color: var(--primary);
+      box-shadow: inset 0 0 0 1px rgba(40, 111, 108, .25);
+    }
+
+    .thumb {
+      height: 92px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #dbe8ec;
+    }
+
+    .thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumb.paint {
+      background:
+        radial-gradient(circle at 30% 30%, #f6d46b 0 13%, transparent 14%),
+        radial-gradient(circle at 70% 34%, #58a7d2 0 15%, transparent 16%),
+        radial-gradient(circle at 44% 76%, #e56b4f 0 18%, transparent 19%),
+        linear-gradient(135deg, #bfe7da, #f5f0d9);
+    }
+
+    .thumb.space {
+      background:
+        radial-gradient(circle at 72% 28%, #f1b84b 0 7%, transparent 8%),
+        radial-gradient(circle at 36% 44%, #bfb9ff 0 13%, transparent 14%),
+        linear-gradient(135deg, #22324f, #7566c9);
+    }
+
+    .thumb.ocean {
+      background:
+        radial-gradient(circle at 30% 68%, #f2ad62 0 9%, transparent 10%),
+        radial-gradient(circle at 74% 36%, #fff 0 6%, transparent 7%),
+        linear-gradient(135deg, #1f8db4, #98dccd);
+    }
+
+    .theme-card b {
+      font-size: 13px;
+    }
+
+    .theme-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .source-card {
+      min-height: 88px;
+      padding: 14px;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      text-align: left;
+    }
+
+    .source-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius);
+      background: rgba(31, 91, 131, .12);
+      display: grid;
+      place-items: center;
+      color: var(--primary-2);
+    }
+
+    .source-icon svg {
+      width: 22px;
+      height: 22px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .source-card b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .arrow {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .prompt-box {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    textarea {
+      resize: none;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      min-height: 110px;
+      padding: 13px;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: #fff;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .loading-body {
+      flex: 1;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      gap: 18px;
+      padding: 28px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 5px solid #dce6ef;
+      border-top-color: var(--primary);
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .game-page {
+      padding: 10px;
+      gap: 8px;
+    }
+
+    .game-top {
+      height: 42px;
+      display: grid;
+      grid-template-columns: 42px 1fr auto;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .progress {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .progress b {
+      font-size: 13px;
+    }
+
+    .bar {
+      height: 6px;
+      border-radius: 99px;
+      background: #e0e7ef;
+      overflow: hidden;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 42%;
+      background: linear-gradient(90deg, var(--primary), var(--amber));
+    }
+
+    .timer {
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .board-area {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      border-radius: var(--radius);
+      overflow: hidden;
+      background: #e4edf3;
+      border: 1px solid var(--line);
+    }
+
+    .ghost {
+      position: absolute;
+      inset: 10px;
+      border-radius: 6px;
+      overflow: hidden;
+      opacity: .42;
+    }
+
+    .grid-lines {
+      position: absolute;
+      inset: 10px;
+      border-radius: 6px;
+      background:
+        linear-gradient(to right, rgba(23, 32, 42, .18) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(23, 32, 42, .18) 1px, transparent 1px);
+      background-size: 25% 33.333%;
+      pointer-events: none;
+    }
+
+    .placed {
+      position: absolute;
+      border-radius: 6px;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, .86);
+      box-shadow: 0 8px 18px rgba(23, 32, 42, .18);
+      background-image: url("composeApp/src/commonMain/composeResources/files/demo1.png");
+      background-size: 330px 248px;
+    }
+
+    .piece-a {
+      left: 27px;
+      top: 40px;
+      width: 78px;
+      height: 76px;
+      background-position: -17px -30px;
+    }
+
+    .piece-b {
+      left: 104px;
+      top: 116px;
+      width: 83px;
+      height: 84px;
+      background-position: -94px -106px;
+    }
+
+    .piece-c {
+      right: 36px;
+      top: 52px;
+      width: 91px;
+      height: 84px;
+      background-position: -210px -42px;
+    }
+
+    .drop-hint {
+      position: absolute;
+      left: 44px;
+      bottom: 44px;
+      width: 76px;
+      height: 72px;
+      border-radius: 6px;
+      border: 2px dashed var(--primary);
+      background: rgba(40, 111, 108, .12);
+    }
+
+    .tray {
+      flex: 0 0 122px;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      overflow: hidden;
+    }
+
+    .tray-head {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .tray-head b {
+      font-size: 13px;
+    }
+
+    .pieces {
+      display: flex;
+      gap: 9px;
+      overflow: hidden;
+    }
+
+    .piece {
+      flex: 0 0 74px;
+      height: 74px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background-image: url("composeApp/src/commonMain/composeResources/files/demo1.png");
+      background-size: 270px 203px;
+      box-shadow: 0 6px 12px rgba(23, 32, 42, .08);
+    }
+
+    .piece:nth-child(1) {
+      background-position: -22px -20px;
+    }
+
+    .piece:nth-child(2) {
+      background-position: -94px -48px;
+    }
+
+    .piece:nth-child(3) {
+      background-position: -160px -82px;
+    }
+
+    .piece:nth-child(4) {
+      background-position: -52px -122px;
+    }
+
+    .sheet {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: flex-end;
+      background: rgba(17, 24, 39, .40);
+      z-index: 20;
+      padding: 12px;
+    }
+
+    .sheet.is-visible {
+      display: flex;
+    }
+
+    .dialog {
+      width: 100%;
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: 0 -12px 30px rgba(17, 24, 39, .20);
+    }
+
+    .dialog h3 {
+      margin: 0 0 7px;
+      font-size: 18px;
+    }
+
+    .dialog p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 13px;
+    }
+
+    .dialog-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 9px;
+    }
+
+    .complete-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .complete-image {
+      height: 250px;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      box-shadow: 0 12px 24px rgba(23, 32, 42, .12);
+    }
+
+    .score {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+
+    .score b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 3px;
+    }
+
+    .score span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .setting-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .setting-row {
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .setting-row b {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .switch {
+      width: 48px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--primary);
+      padding: 3px;
+      flex: 0 0 auto;
+    }
+
+    .switch::before {
+      content: "";
+      display: block;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      margin-left: 20px;
+    }
+
+    .range {
+      width: 104px;
+      height: 6px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary) 68%, #dce4ec 68%);
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        grid-template-columns: 1fr;
+        width: min(430px, calc(100vw - 22px));
+        padding: 18px 0 28px;
+      }
+
+      .brief {
+        order: 2;
+      }
+
+      .stage {
+        order: 1;
+      }
+
+      .phone {
+        width: min(390px, 100%);
+        height: 780px;
+      }
+
+      .flow,
+      .notes {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="brief">
+      <div class="title-block">
+        <div class="eyebrow">Interaction Prototype</div>
+        <h1>拼图游戏界面与切换逻辑</h1>
+        <p class="lead">这个原型把核心产品路径收敛为“选图、选难度、开始拼图、完成反馈”。右侧手机界面可点击切换，左侧流程用于对齐工程里的导航和状态拆分。</p>
+      </div>
+
+      <div class="board">
+        <h2>界面流转</h2>
+        <div class="flow" id="flow">
+          <div class="flow-node active" data-screen="home"><strong>首页</strong><span>预览、难度、开始</span></div>
+          <div class="flow-node" data-screen="theme"><strong>主题选择</strong><span>内置主题和缩略图</span></div>
+          <div class="flow-node" data-screen="source"><strong>图片来源</strong><span>内置、相册、AI</span></div>
+          <div class="flow-node" data-screen="settings"><strong>设置</strong><span>声音、参考图、API Key</span></div>
+          <div class="flow-node" data-screen="loading"><strong>准备拼图</strong><span>解码、切图、洗牌</span></div>
+          <div class="flow-node" data-screen="game"><strong>游戏中</strong><span>棋盘、碎片托盘</span></div>
+          <div class="flow-node" data-screen="pause"><strong>暂停弹窗</strong><span>继续、重开、退出</span></div>
+          <div class="flow-node" data-screen="complete"><strong>完成页</strong><span>成绩、再来、换主题</span></div>
+        </div>
+      </div>
+
+      <div class="notes">
+        <div class="note">
+          <b>主界面原则</b>
+          <p>首页直接承载开局配置，避免把开始、主题、难度拆得太散。用户一眼看到当前将要拼的图和片数。</p>
+        </div>
+        <div class="note">
+          <b>游戏中原则</b>
+          <p>放对后把真实碎片贴回棋盘，进度反馈用拼图复原本身完成，不只显示勾选标记。</p>
+        </div>
+        <div class="note">
+          <b>实施优先级</b>
+          <p>先统一棋盘和托盘组件，再补线程、错误、偏好存储，最后接入相册和 AI 生成。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="stage">
+      <div class="phone" aria-label="手机界面原型">
+        <div class="screen">
+          <div class="status">
+            <span>9:41</span>
+            <span class="dots"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
+          </div>
+          <div class="app">
+            <section class="page is-visible" data-page="home">
+              <div class="topbar">
+                <div>
+                  <p class="page-title">Puzzle</p>
+                  <span class="soft">今日推荐 · 6 片</span>
+                </div>
+                <button class="icon-btn" data-go="settings" title="设置">
+                  <svg viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 0 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2a2 2 0 0 1-4 0V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 0 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.6-1H2.8a2 2 0 0 1 0-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7A2 2 0 1 1 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6 1.7 1.7 0 0 0 10 3V2.8a2 2 0 0 1 4 0V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 0 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2a2 2 0 0 1 0 4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg>
+                </button>
+              </div>
+
+              <div class="preview">
+                <img src="composeApp/src/commonMain/composeResources/files/demo1.png" alt="当前拼图预览">
+                <div class="preview-info">
+                  <div>
+                    <b>真实图片</b>
+                    <span class="soft">适合练习形状和颜色</span>
+                  </div>
+                  <span class="pill">简单 · 6片</span>
+                </div>
+              </div>
+
+              <div class="section-label">
+                <b>难度</b>
+                <span class="soft">可随时调整</span>
+              </div>
+              <div class="segmented">
+                <button class="segment">4片</button>
+                <button class="segment selected">6片</button>
+                <button class="segment">12片</button>
+                <button class="segment">20片</button>
+              </div>
+
+              <div class="home-actions">
+                <button class="btn" data-go="loading">
+                  <svg viewBox="0 0 24 24"><path d="m8 5 11 7-11 7V5Z"/></svg>
+                  开始游戏
+                </button>
+                <button class="btn secondary" data-go="theme">换主题</button>
+                <button class="btn secondary" data-go="source">换图片</button>
+              </div>
+            </section>
+
+            <section class="page" data-page="theme">
+              <div class="topbar">
+                <button class="icon-btn" data-go="home" title="返回">
+                  <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <p class="page-title">选择主题</p>
+                <button class="btn ghost" data-go="home">完成</button>
+              </div>
+
+              <div class="grid">
+                <button class="theme-card selected" data-go="home">
+                  <span class="thumb"><img src="composeApp/src/commonMain/composeResources/files/demo1.png" alt="真实图片"></span>
+                  <b>真实图片</b>
+                  <span class="theme-meta"><span>推荐</span><span>6片</span></span>
+                </button>
+                <button class="theme-card" data-go="home">
+                  <span class="thumb paint"></span>
+                  <b>彩色花园</b>
+                  <span class="theme-meta"><span>轻松</span><span>4片</span></span>
+                </button>
+                <button class="theme-card" data-go="home">
+                  <span class="thumb ocean"></span>
+                  <b>海底世界</b>
+                  <span class="theme-meta"><span>鲜明</span><span>6片</span></span>
+                </button>
+                <button class="theme-card" data-go="home">
+                  <span class="thumb space"></span>
+                  <b>太空冒险</b>
+                  <span class="theme-meta"><span>挑战</span><span>12片</span></span>
+                </button>
+              </div>
+            </section>
+
+            <section class="page" data-page="source">
+              <div class="topbar">
+                <button class="icon-btn" data-go="home" title="返回">
+                  <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <p class="page-title">图片来源</p>
+                <span style="width:38px"></span>
+              </div>
+
+              <div class="source-list">
+                <button class="source-card" data-go="theme">
+                  <span class="source-icon"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 2-2 7 7"/></svg></span>
+                  <span><b>内置图片</b><span class="soft">稳定、离线可用</span></span>
+                  <span class="arrow">›</span>
+                </button>
+                <button class="source-card" data-go="home">
+                  <span class="source-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+                  <span><b>相册导入</b><span class="soft">使用自己的照片</span></span>
+                  <span class="arrow">›</span>
+                </button>
+                <button class="source-card" data-go="ai">
+                  <span class="source-icon"><svg viewBox="0 0 24 24"><path d="M12 3 9.8 8.8 4 11l5.8 2.2L12 19l2.2-5.8L20 11l-5.8-2.2L12 3Z"/></svg></span>
+                  <span><b>AI 生成</b><span class="soft">输入一句话生成新图</span></span>
+                  <span class="arrow">›</span>
+                </button>
+              </div>
+            </section>
+
+            <section class="page" data-page="ai">
+              <div class="topbar">
+                <button class="icon-btn" data-go="source" title="返回">
+                  <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <p class="page-title">AI 生成图片</p>
+                <span style="width:38px"></span>
+              </div>
+
+              <div class="prompt-box">
+                <textarea>一张色彩明亮、轮廓清晰、适合儿童拼图的海边小屋插画</textarea>
+                <div class="tag-row">
+                  <button class="tag">动物</button>
+                  <button class="tag">海洋</button>
+                  <button class="tag">太空</button>
+                  <button class="tag">花园</button>
+                </div>
+                <button class="btn" data-go="loading">生成并开始</button>
+              </div>
+            </section>
+
+            <section class="page" data-page="loading">
+              <div class="loading-body">
+                <div>
+                  <div class="spinner"></div>
+                  <h2 style="margin:0 0 8px;font-size:22px;">正在准备拼图</h2>
+                  <p class="soft" style="line-height:1.7;">加载图片、生成碎片、打乱顺序</p>
+                </div>
+                <button class="btn secondary" data-go="game">查看游戏界面</button>
+              </div>
+            </section>
+
+            <section class="page game-page" data-page="game">
+              <div class="game-top">
+                <button class="icon-btn" data-go="pause" title="暂停">
+                  <svg viewBox="0 0 24 24"><path d="M10 4v16M14 4v16"/></svg>
+                </button>
+                <div class="progress">
+                  <b>已拼 3 / 6</b>
+                  <div class="bar"><span></span></div>
+                </div>
+                <span class="timer">01:28</span>
+              </div>
+
+              <div class="board-area">
+                <div class="ghost"><img class="puzzle-image" src="composeApp/src/commonMain/composeResources/files/demo1.png" alt="棋盘参考图"></div>
+                <div class="placed piece-a"></div>
+                <div class="placed piece-b"></div>
+                <div class="placed piece-c"></div>
+                <div class="drop-hint"></div>
+                <div class="grid-lines"></div>
+              </div>
+
+              <div class="tray">
+                <div class="tray-head">
+                  <b>剩余碎片</b>
+                  <span class="soft">点击或拖动</span>
+                </div>
+                <div class="pieces">
+                  <button class="piece" title="碎片 1"></button>
+                  <button class="piece" title="碎片 2"></button>
+                  <button class="piece" title="碎片 3"></button>
+                  <button class="piece" title="碎片 4"></button>
+                </div>
+              </div>
+              <button class="btn" data-go="complete">模拟完成</button>
+            </section>
+
+            <section class="page" data-page="complete">
+              <div class="topbar">
+                <button class="icon-btn" data-go="home" title="返回首页">
+                  <svg viewBox="0 0 24 24"><path d="M3 12 12 4l9 8"/><path d="M5 10v10h14V10"/></svg>
+                </button>
+                <p class="page-title">完成拼图</p>
+                <span style="width:38px"></span>
+              </div>
+              <div class="complete-body">
+                <div class="complete-image"><img class="puzzle-image" src="composeApp/src/commonMain/composeResources/files/demo1.png" alt="完成的拼图"></div>
+                <div>
+                  <h2 style="font-size:26px;margin:0 0 8px;">拼好了</h2>
+                  <p class="soft" style="line-height:1.7;margin:0;">这次用了 1 分 48 秒，简单难度全部放置正确。</p>
+                </div>
+                <div class="score">
+                  <div><b>01:48</b><span>用时</span></div>
+                  <div><b>6</b><span>碎片</span></div>
+                  <div><b>100%</b><span>完成</span></div>
+                </div>
+                <button class="btn" data-go="loading">再来一局</button>
+                <button class="btn secondary" data-go="theme">换个主题</button>
+              </div>
+            </section>
+
+            <section class="page" data-page="settings">
+              <div class="topbar">
+                <button class="icon-btn" data-go="home" title="返回">
+                  <svg viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <p class="page-title">设置</p>
+                <span style="width:38px"></span>
+              </div>
+
+              <div class="setting-list">
+                <div class="setting-row">
+                  <span><b>音效</b><span class="soft">放置、完成反馈</span></span>
+                  <span class="switch"></span>
+                </div>
+                <div class="setting-row">
+                  <span><b>参考图强度</b><span class="soft">游戏中淡化显示</span></span>
+                  <span class="range"></span>
+                </div>
+                <button class="setting-row" data-go="ai">
+                  <span><b>AI API Key</b><span class="soft">用于生成自定义图片</span></span>
+                  <span class="arrow">›</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="sheet" data-sheet="pause">
+              <div class="dialog">
+                <h3>暂停游戏</h3>
+                <p>当前进度会保留。也可以直接重新开始或返回首页。</p>
+                <div class="dialog-actions">
+                  <button class="btn secondary" data-go="game">继续</button>
+                  <button class="btn" data-go="loading">重新开始</button>
+                  <button class="btn secondary" data-go="home" style="grid-column:1 / -1;">返回首页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const pages = Array.from(document.querySelectorAll("[data-page]"));
+    const flowNodes = Array.from(document.querySelectorAll(".flow-node"));
+    const pauseSheet = document.querySelector('[data-sheet="pause"]');
+
+    function showPage(name) {
+      if (name === "pause") {
+        pauseSheet.classList.add("is-visible");
+        setFlow("pause");
+        return;
+      }
+      pauseSheet.classList.remove("is-visible");
+      pages.forEach((page) => {
+        page.classList.toggle("is-visible", page.dataset.page === name);
+      });
+      setFlow(name);
+      if (name === "loading") {
+        window.clearTimeout(window.prototypeLoadingTimer);
+        window.prototypeLoadingTimer = window.setTimeout(() => showPage("game"), 1150);
+      }
+    }
+
+    function setFlow(name) {
+      flowNodes.forEach((node) => {
+        node.classList.toggle("active", node.dataset.screen === name);
+      });
+    }
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-go]");
+      if (!button) return;
+      showPage(button.dataset.go);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+package = puzzle_core
+headers = puzzle_core.h
+headerFilter = puzzle_core.h
+staticLibraries = libpuzzle_core.a
+
+# Development stub (no Rust required):
+libraryPaths = ../native/ios-libs-stub
+
+# Production (after running native/build_ios.sh):
+# libraryPaths = ../native/ios-libs/PuzzleCore.xcframework/ios-arm64

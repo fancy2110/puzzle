@@ -4,24 +4,102 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.navigation.NavigationViewModel
+import com.puzzle.game.navigation.Screen
 import com.puzzle.game.ui.GameScreen
+import com.puzzle.game.ui.ImageSourceScreen
 import com.puzzle.game.ui.MenuScreen
+import com.puzzle.game.ui.SettingsScreen
+import com.puzzle.game.ui.SplashScreen
+import com.puzzle.game.ui.ThemeScreen
 import com.puzzle.game.ui.theme.PuzzleGameTheme
 
 @Composable
 fun App() {
     PuzzleGameTheme {
-        val viewModel: GameViewModel = viewModel { GameViewModel() }
-        val state by viewModel.state.collectAsState()
+        val navViewModel = remember { NavigationViewModel() }
+        val gameViewModel: GameViewModel = viewModel { GameViewModel() }
 
-        when (state.phase) {
-            GamePhase.MENU -> MenuScreen(viewModel)
-            else -> GameScreen(viewModel)
+        val screenStack by navViewModel.screenStack.collectAsState()
+
+        when (screenStack.lastOrNull()) {
+            Screen.Splash -> {
+                SplashScreen(
+                    onFinished = {
+                        navViewModel.replaceWith(Screen.Menu)
+                    }
+                )
+            }
+
+            Screen.Menu -> {
+                MenuScreen(
+                    viewModel = gameViewModel,
+                    onStartGame = {
+                        gameViewModel.startGame()
+                        navViewModel.navigateTo(Screen.Game)
+                    },
+                    onPickTheme = {
+                        navViewModel.navigateTo(Screen.ThemePicker)
+                    },
+                    onPickImage = {
+                        navViewModel.navigateTo(Screen.ImageSource)
+                    },
+                    onOpenSettings = {
+                        navViewModel.navigateTo(Screen.Settings)
+                    }
+                )
+            }
+
+            Screen.ThemePicker -> {
+                ThemeScreen(
+                    viewModel = gameViewModel,
+                    onBack = { navViewModel.goBack() },
+                    onConfirm = { navViewModel.goBack() }
+                )
+            }
+
+            Screen.ImageSource -> {
+                ImageSourceScreen(
+                    onBack = { navViewModel.goBack() },
+                    onPickBuiltIn = { navViewModel.navigateTo(Screen.ThemePicker) },
+                    onUseCurrent = { navViewModel.goBackTo(Screen.Menu) },
+                    onGenerateAi = {
+                        gameViewModel.startGame()
+                        navViewModel.navigateTo(Screen.Game)
+                    }
+                )
+            }
+
+            Screen.Settings -> {
+                SettingsScreen(
+                    onBack = { navViewModel.goBack() },
+                    onOpenImageSource = { navViewModel.navigateTo(Screen.ImageSource) }
+                )
+            }
+
+            Screen.Game -> {
+                GameScreen(
+                    viewModel = gameViewModel,
+                    onGoToMenu = {
+                        gameViewModel.goToMenu()
+                        navViewModel.replaceWith(Screen.Menu)
+                    },
+                    onPlayAgain = {
+                        gameViewModel.startGame()
+                    }
+                )
+            }
+
+            null -> {
+                // Fallback — shouldn't happen
+                SplashScreen(
+                    onFinished = {
+                        navViewModel.replaceWith(Screen.Menu)
+                    }
+                )
+            }
         }
     }
 }

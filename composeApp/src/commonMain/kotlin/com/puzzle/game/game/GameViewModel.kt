@@ -6,21 +6,30 @@ import androidx.lifecycle.viewModelScope
 import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
+import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.engine.PuzzleEngine
+import com.puzzle.game.native.NativeSplitAdapter
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class GameViewModel : ViewModel() {
     private val _state = MutableStateFlow(GameState())
     val state: StateFlow<GameState> = _state
 
     private val engine = PuzzleEngine()
+    private val nativeAdapter = NativeSplitAdapter()
     val dragDropState = DragDropState()
 
     val themes: List<ThemeData> = ThemePresets.themes
+
+    private var timerJob: Job? = null
 
     fun selectTheme(themeId: String) {
         val theme = ThemePresets.getById(themeId)
@@ -31,50 +40,181 @@ class GameViewModel : ViewModel() {
         _state.update { it.copy(difficulty = difficulty) }
     }
 
+    /**
+     * Start a game. If the selected theme has an assetFile (native image),
+     * route to the Rust native splitter. Otherwise use the Kotlin procedural path.
+     * All I/O and computation runs off the main thread to avoid ANR.
+     */
     fun startGame() {
         val currentState = _state.value
         val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
+        val pieceCount = currentState.difficulty.pieceCount
+        val assetFile = theme.assetFile
 
-        _state.update { it.copy(phase = GamePhase.GENERATING, isImageLoading = true) }
+        // Set loading state immediately, then do blocking work in coroutine
+        resetForNewGame()
 
         viewModelScope.launch {
-            val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
-
-            engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-            engine.splitImage(
-                pieceCount = currentState.difficulty.pieceCount,
-                blockSize = 64
-            )
-            val shuffledPieces = engine.shufflePieces()
-
-            val imageWidth = puzzleBitmap.width
-            val imageHeight = puzzleBitmap.height
-            val gridCols = (imageWidth / 64) + 1
-            val gridRows = (imageHeight / 64) + 1
-
-            val correctPositions = mutableMapOf<String, Pair<Int, Int>>()
-            for (piece in shuffledPieces) {
-                if (piece.items.isNotEmpty()) {
-                    val center = piece.items[piece.items.size / 2]
-                    correctPositions[piece.id] = Pair(center.y, center.x)
+            // If theme has a built-in asset image, try native Rust splitter first
+            if (assetFile != null) {
+                val bytes = withContext(Dispatchers.Default) {
+                    com.puzzle.game.data.AssetLoader.readBytes(assetFile)
+                }
+                if (bytes != null) {
+                    startGameWithImageInternal(bytes, pieceCount)
+                    return@launch
                 }
             }
 
-            _state.update {
-                it.copy(
-                    phase = GamePhase.PLAYING,
-                    pieces = shuffledPieces,
-                    puzzleBitmap = puzzleBitmap,
-                    gridCols = gridCols,
-                    gridRows = gridRows,
-                    correctPositions = correctPositions,
-                    cellFilledBy = mutableMapOf(),
-                    isImageLoading = false,
-                    showCelebration = false
+            // Kotlin procedural path
+            val gameData = withContext(Dispatchers.Default) {
+                val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
+                engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
+                engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                GeneratedGameData(
+                    pieces = engine.shufflePieces(),
+                    bitmap = puzzleBitmap,
+                    imageWidth = puzzleBitmap.width,
+                    imageHeight = puzzleBitmap.height
                 )
             }
+
+            applyNewGame(
+                pieces = gameData.pieces,
+                bitmap = gameData.bitmap,
+                imageWidth = gameData.imageWidth,
+                imageHeight = gameData.imageHeight,
+                blockSize = 64
+            )
+            startTimer()
         }
     }
+
+    /**
+     * Start a game with raw image bytes (Native/Rust path).
+     * Use this for AI-generated images, photos, or any PNG/JPEG data.
+     * Safe to call from main thread — runs I/O in coroutine.
+     *
+     * @param imageBytes Raw PNG or JPEG bytes
+     */
+    fun startGameWithImage(imageBytes: ByteArray) {
+        val pieceCount = _state.value.difficulty.pieceCount
+        resetForNewGame()
+        viewModelScope.launch {
+            startGameWithImageInternal(imageBytes, pieceCount)
+        }
+    }
+
+    /**
+     * Internal: assumes already running in a coroutine.
+     * Called from startGame() and startGameWithImage().
+     */
+    private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
+        val success = withContext(Dispatchers.Default) {
+            nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64)
+        }
+        if (!success) {
+            // Fallback to Kotlin path
+            println("Native split failed, falling back to Kotlin engine")
+            val theme = _state.value.selectedTheme ?: ThemePresets.themes.first()
+            val gameData = withContext(Dispatchers.Default) {
+                val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
+                engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
+                engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                GeneratedGameData(
+                    pieces = engine.shufflePieces(),
+                    bitmap = puzzleBitmap,
+                    imageWidth = puzzleBitmap.width,
+                    imageHeight = puzzleBitmap.height
+                )
+            }
+            applyNewGame(
+                pieces = gameData.pieces,
+                bitmap = gameData.bitmap,
+                imageWidth = gameData.imageWidth,
+                imageHeight = gameData.imageHeight,
+                blockSize = 64
+            )
+            startTimer()
+            return
+        }
+
+        val bitmap = decodeToImageBitmap(imageBytes)
+            ?: PuzzlePictureGenerator.generate(
+                _state.value.selectedTheme ?: ThemePresets.themes.first(),
+                800, 600
+            )
+
+        val (imgW, imgH) = nativeAdapter.imageSize
+        applyNewGame(
+            pieces = nativeAdapter.pieces,
+            bitmap = bitmap,
+            imageWidth = imgW,
+            imageHeight = imgH,
+            blockSize = 64,
+            customPositions = nativeAdapter.correctPositions
+        )
+        startTimer()
+    }
+
+    // ── Shared game setup ────────────────────────────────
+
+    private fun resetForNewGame() {
+        nativeAdapter.close()
+        dragDropState.cancelDrag()
+        dragDropState.clearSelection()
+        stopTimer()
+        _state.update {
+            it.copy(
+                phase = GamePhase.GENERATING,
+                isImageLoading = true,
+                elapsedSeconds = 0,
+                isPaused = false,
+                wrongDropHint = false,
+                showCelebration = false,
+                cellFilledBy = emptyMap()
+            )
+        }
+    }
+
+    private fun applyNewGame(
+        pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
+        bitmap: ImageBitmap,
+        imageWidth: Int,
+        imageHeight: Int,
+        blockSize: Int,
+        customPositions: Map<String, Pair<Int, Int>>? = null
+    ) {
+        val gridCols = (imageWidth / blockSize) + 1
+        val gridRows = (imageHeight / blockSize) + 1
+
+        val correctPositions = customPositions ?: run {
+            val map = mutableMapOf<String, Pair<Int, Int>>()
+            for (piece in pieces) {
+                if (piece.items.isNotEmpty()) {
+                    val center = piece.items[piece.items.size / 2]
+                    map[piece.id] = Pair(center.y, center.x)
+                }
+            }
+            map
+        }
+
+        _state.update {
+            it.copy(
+                phase = GamePhase.PLAYING,
+                pieces = pieces,
+                puzzleBitmap = bitmap,
+                gridCols = gridCols,
+                gridRows = gridRows,
+                correctPositions = correctPositions,
+                cellFilledBy = mutableMapOf(),
+                isImageLoading = false,
+                showCelebration = false
+            )
+        }
+    }
+
+    // ── Gameplay ─────────────────────────────────────────
 
     fun tryPlacePiece(pieceId: String, row: Int, col: Int) {
         val currentState = _state.value
@@ -95,6 +235,7 @@ class GameViewModel : ViewModel() {
                 }
 
                 if (allPlaced) {
+                    stopTimer()
                     current.copy(
                         cellFilledBy = newCellFilled,
                         phase = GamePhase.COMPLETED,
@@ -122,40 +263,21 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    fun placePiece(pieceId: String) {
-        _state.update { current ->
-            val piece = current.pieces.firstOrNull { it.id == pieceId }
-            val pos = piece?.items?.firstOrNull()
-            val newCellFilled = current.cellFilledBy.toMutableMap()
-            if (pos != null) {
-                newCellFilled["${pos.y}_${pos.x}"] = pieceId
-            }
-
-            val allPlaced = current.correctPositions.values.all { p ->
-                newCellFilled["${p.first}_${p.second}"] != null
-            }
-
-            if (allPlaced) {
-                current.copy(
-                    cellFilledBy = newCellFilled,
-                    phase = GamePhase.COMPLETED,
-                    showCelebration = true
-                )
-            } else {
-                current.copy(cellFilledBy = newCellFilled)
-            }
-        }
-    }
-
     fun dismissCelebration() {
         _state.update { it.copy(showCelebration = false) }
     }
 
     fun resetGame() {
+        stopTimer()
+        nativeAdapter.close()
         _state.update { GameState() }
     }
 
     fun goToMenu() {
+        stopTimer()
+        nativeAdapter.close()
+        dragDropState.cancelDrag()
+        dragDropState.clearSelection()
         _state.update {
             it.copy(
                 phase = GamePhase.MENU,
@@ -166,4 +288,40 @@ class GameViewModel : ViewModel() {
             )
         }
     }
+
+    // ── Timer ────────────────────────────────────────────
+
+    private fun startTimer() {
+        timerJob?.cancel()
+        timerJob = viewModelScope.launch {
+            while (isActive) {
+                delay(1000)
+                _state.update { it.copy(elapsedSeconds = it.elapsedSeconds + 1) }
+            }
+        }
+    }
+
+    private fun stopTimer() {
+        timerJob?.cancel()
+        timerJob = null
+    }
+
+    // ── Pause / Resume ───────────────────────────────────
+
+    fun pause() {
+        stopTimer()
+        _state.update { it.copy(isPaused = true) }
+    }
+
+    fun resume() {
+        _state.update { it.copy(isPaused = false) }
+        startTimer()
+    }
+
+    private data class GeneratedGameData(
+        val pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
+        val bitmap: ImageBitmap,
+        val imageWidth: Int,
+        val imageHeight: Int
+    )
 }

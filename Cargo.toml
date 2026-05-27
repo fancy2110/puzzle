@@ -2,7 +2,7 @@
 name = "puzzle"
 version = "0.1.0"
 edition = "2024"
-description = "A simple command-line todo list manager"
+description = "Image puzzle splitter — decompose an image into irregular jigsaw-style pieces using random-seed BFS expansion"
 license = "MIT"
 
 # [[bin]]

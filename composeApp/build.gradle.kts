@@ -14,6 +14,7 @@ kotlin {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_17)
+            freeCompilerArgs.add("-Xexpect-actual-classes")
         }
     }
 
@@ -26,9 +27,30 @@ kotlin {
             baseName = "ComposeApp"
             isStatic = true
         }
+        iosTarget.compilations.all {
+            compileTaskProvider.configure {
+                compilerOptions {
+                    freeCompilerArgs.add("-Xexpect-actual-classes")
+                }
+            }
+        }
+        // CInterop for puzzle-core native library
+        iosTarget.compilations.getByName("main").cinterops {
+            val puzzleCore by creating {
+                defFile(project.file("../native/puzzle_core.def"))
+                packageName("puzzle_core")
+                includeDirs(
+                    project.file("../native/puzzle-core/include")
+                )
+            }
+        }
     }
 
+    // JNI libs directory for Android
     sourceSets {
+        androidMain {
+            resources.srcDirs("src/androidMain/jniLibs")
+        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -90,4 +112,13 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+// Copy demo resources into iOS framework bundle
+tasks.register<Copy>("copyIosResources") {
+    from("src/commonMain/composeResources/files")
+    into("${buildDir}/ios-framework-resources")
+}
+tasks.matching { it.name.startsWith("link") && it.name.contains("FrameworkIos") }.configureEach {
+    dependsOn("copyIosResources")
 }

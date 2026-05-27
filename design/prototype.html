@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Puzzle Game — GUI 交互原型</title>
+<style>
+  :root {
+    --bg: #1a1a2e;
+    --card: #16213e;
+    --accent: #e94560;
+    --accent2: #0f3460;
+    --text: #eee;
+    --muted: #8892b0;
+    --green: #4ecca3;
+    --gold: #f0c040;
+    --page-w: 320px;
+    --page-h: 580px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ============================================ */
+  /* OVERVIEW MAP                                  */
+  /* ============================================ */
+  .map-section {
+    padding: 40px 20px 20px;
+    text-align: center;
+  }
+  .map-section h1 {
+    font-size: 28px;
+    margin-bottom: 4px;
+  }
+  .map-section .subtitle {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 30px;
+  }
+
+  .flow-map {
+    position: relative;
+    width: 1000px;
+    height: 780px;
+    margin: 0 auto 50px;
+  }
+
+  .map-node {
+    position: absolute;
+    width: 140px;
+    padding: 12px 8px;
+    background: var(--card);
+    border: 2px solid var(--accent2);
+    border-radius: 12px;
+    text-align: center;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.25s;
+    z-index: 2;
+  }
+  .map-node:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 18px rgba(233,69,96,0.35);
+    transform: scale(1.05);
+  }
+  .map-node .icon { font-size: 24px; display: block; margin-bottom: 4px; }
+  .map-node .label { font-weight: 600; }
+  .map-node .tag {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .map-node.new { border-color: var(--green); }
+  .map-node.new::after {
+    content: "NEW";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--green);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+  .map-node.refactor { border-color: var(--gold); }
+  .map-node.refactor::after {
+    content: "改";
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--gold);
+    color: #000;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 8px;
+  }
+
+  /* positioning */
+  .n-splash  { left: 430px; top: 10px; }
+  .n-menu    { left: 430px; top: 130px; }
+  .n-theme   { left: 220px; top: 260px; }
+  .n-game    { left: 430px; top: 390px; }
+  .n-complete{ left: 640px; top: 510px; }
+  .n-pause   { left: 220px; top: 510px; }
+
+  /* arrows SVG */
+  .arrows-svg {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+  .legend .dot {
+    width: 12px; height: 12px;
+    border-radius: 3px; display: inline-block;
+  }
+  .dot-new { background: var(--green); }
+  .dot-refactor { background: var(--gold); }
+  .dot-exist { background: var(--accent2); }
+
+  /* ============================================ */
+  /* PAGE SIMULATOR                               */
+  /* ============================================ */
+  .sim-section {
+    padding: 20px;
+    text-align: center;
+  }
+  .sim-section h2 {
+    margin-bottom: 8px;
+    font-size: 20px;
+  }
+  .sim-section .hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 20px;
+  }
+
+  .phone-frame {
+    width: var(--page-w);
+    height: var(--page-h);
+    margin: 0 auto;
+    border: 3px solid #333;
+    border-radius: 32px;
+    overflow: hidden;
+    background: #fff;
+    color: #111;
+    position: relative;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  }
+  .phone-frame .status-bar {
+    height: 28px;
+    background: #f8f8f8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 11px;
+    color: #333;
+    font-weight: 600;
+  }
+  .phone-frame .page-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #333;
+    padding: 4px 0;
+  }
+
+  /* shared phone page styles */
+  .p-page {
+    height: calc(100% - 28px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .p-btn {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 10px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .p-btn:hover { opacity: 0.85; }
+  .p-btn.outline {
+    background: transparent;
+    border: 2px solid var(--accent);
+    color: var(--accent);
+  }
+  .p-btn.small { padding: 6px 16px; font-size: 12px; border-radius: 14px; }
+
+  /* SPLASH */
+  .p-splash {
+    background: linear-gradient(135deg, #e94560, #16213e);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+  }
+  .p-splash .logo { font-size: 56px; margin-bottom: 12px; }
+  .p-splash .name { font-size: 26px; font-weight: 800; }
+  .p-splash .tagline {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 6px;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 0.5; }
+    50% { opacity: 0.9; }
+  }
+
+  /* MENU */
+  .p-menu {
+    background: #f8f9fa;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 30px;
+  }
+  .p-menu .title { font-size: 28px; font-weight: 800; color: #e94560; }
+  .p-menu .info-row {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: #666;
+  }
+  .p-menu .info-row .tag {
+    background: #e8e8e8;
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+  }
+  .p-menu .info-row .tag.active {
+    background: #e94560;
+    color: #fff;
+  }
+
+  /* THEME */
+  .p-theme {
+    background: #f8f9fa;
+    padding: 16px;
+  }
+  .p-theme .topbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .p-theme .back { font-size: 18px; cursor: pointer; margin-right: 10px; }
+  .p-theme .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    flex: 1;
+  }
+  .p-theme .tcard {
+    background: #fff;
+    border-radius: 12px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: 0.2s;
+  }
+  .p-theme .tcard:hover { border-color: #e94560; }
+  .p-theme .tcard.sel { border-color: #e94560; background: #fff0f3; }
+  .p-theme .tcard .eicon { font-size: 32px; }
+  .p-theme .tcard .tname { font-size: 13px; font-weight: 600; margin-top: 2px; }
+  .p-theme .tcard .preview {
+    width: 60px; height: 45px;
+    border-radius: 6px;
+    margin: 6px auto 0;
+  }
+  .p-theme .confirm {
+    margin-top: 12px;
+    text-align: center;
+  }
+
+  /* GAME - GENERATING */
+  .p-generating {
+    background: #f8f9fa;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .spinner {
+    width: 40px; height: 40px;
+    border: 4px solid #e0e0e0;
+    border-top-color: #e94560;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .p-generating .tip {
+    font-size: 11px;
+    color: #999;
+    animation: fadeSwap 3s infinite;
+  }
+  @keyframes fadeSwap {
+    0%,40% { opacity: 1; }
+    50%,90% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+
+  /* GAME - PLAYING */
+  .p-playing {
+    background: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+  }
+  .p-playing .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+  }
+  .p-playing .top .progress {
+    background: #e94560;
+    color: #fff;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .p-playing .board-wrap {
+    flex: 1;
+    margin: 6px 12px;
+    background: #fff;
+    border-radius: 12px;
+    border: 2px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+  .p-playing .board-wrap .grid-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(13, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    opacity: 0.15;
+  }
+  .p-playing .board-wrap .grid-overlay div {
+    border: 0.5px solid #999;
+  }
+  .p-playing .board-wrap .img-ghost {
+    position: absolute;
+    inset: 10px;
+    background: linear-gradient(135deg, #ffb74d, #ffcc80, #ff8a65);
+    border-radius: 8px;
+    opacity: 0.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 50px;
+  }
+  .p-playing .tray {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 10px 12px 14px;
+  }
+  .p-playing .tray .piece {
+    min-width: 72px;
+    height: 72px;
+    border-radius: 10px;
+    background: #fff;
+    border: 1.5px solid #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .p-playing .tray .piece.done {
+    opacity: 0.3;
+    background: #4ecca3;
+    color: #fff;
+  }
+  .p-playing .tray .piece.sel {
+    border-color: #e94560;
+    box-shadow: 0 0 10px rgba(233,69,96,0.3);
+  }
+  .p-playing .bottom-hint {
+    text-align: center;
+    font-size: 11px;
+    color: #999;
+    padding: 0 12px 8px;
+  }
+
+  /* COMPLETED */
+  .p-complete {
+    background: linear-gradient(135deg, #4ecca3, #0f3460);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #fff;
+    gap: 10px;
+    padding: 30px;
+  }
+  .p-complete .big-emoji { font-size: 56px; }
+  .p-complete .msg { font-size: 20px; font-weight: 700; }
+  .p-complete .stats { font-size: 13px; opacity: 0.8; }
+
+  /* PAUSE DIALOG */
+  .p-pause-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+  }
+  .p-pause-overlay .dialog {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 28px;
+    text-align: center;
+    color: #333;
+    width: 240px;
+  }
+  .p-pause-overlay .dialog .q { font-size: 15px; margin-bottom: 16px; }
+
+  /* NAV BUTTONS below phone */
+  .sim-nav {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  .sim-nav button {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--accent2);
+    border-radius: 8px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .sim-nav button:hover {
+    border-color: var(--accent);
+    background: var(--accent2);
+  }
+  .sim-nav button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  /* ============================================ */
+  /* RESPONSIVE                                   */
+  /* ============================================ */
+  @media (max-width: 1050px) {
+    .flow-map { width: 100%; height: auto; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .map-node { position: static; flex: 0 0 auto; }
+    .arrows-svg { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================ -->
+<!-- OVERVIEW MAP                                 -->
+<!-- ============================================ -->
+<section class="map-section">
+  <h1>🧩 Puzzle Game</h1>
+  <p class="subtitle">页面流转关系图 · 点击节点跳转到对应模拟页面</p>
+
+  <div class="flow-map">
+    <!-- SVG ARROWS -->
+    <svg class="arrows-svg" viewBox="0 0 1000 780">
+      <!-- Splash → Menu (auto) -->
+      <defs>
+        <marker id="ah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#8892b0"/>
+        </marker>
+        <marker id="ah2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#4ecca3"/>
+        </marker>
+      </defs>
+
+      <!-- Splash → Menu -->
+      <line x1="500" y1="70" x2="500" y2="125" stroke="#8892b0" stroke-width="2" marker-end="url(#ah)" stroke-dasharray="6,3"/>
+      <text x="510" y="102" font-size="10" fill="#8892b0" font-family="sans-serif">1.5s auto</text>
+
+      <!-- Menu → Theme -->
+      <path d="M430,210 C380,220 340,230 320,250" stroke="#8892b0" stroke-width="2" fill="none" marker-end="url(#ah)"/>
+      <text x="345" y="225" font-size="10" fill="#8892b0" font-family="sans-serif">选择主题</text>
+
+      <!-- Theme → Menu (back) -->
+      <path d="M290,300 C310,290 350,260 410,220" stroke="#8892b0" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+      <text x="310" y="270" font-size="9" fill="#8892b0" font-family="sans-serif">确认/返回</text>
+
+      <!-- Menu → Game -->
+      <line x1="500" y1="260" x2="500" y2="383" stroke="#8892b0" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="510" y="330" font-size="10" fill="#8892b0" font-family="sans-serif">开始游戏</text>
+
+      <!-- Game → Completed -->
+      <path d="M510,460 C570,470 600,480 630,500" stroke="#4ecca3" stroke-width="2" fill="none" marker-end="url(#ah2)"/>
+      <text x="580" y="475" font-size="10" fill="#4ecca3" font-family="sans-serif">拼完</text>
+
+      <!-- Game → Pause -->
+      <path d="M430,440 C380,460 330,490 300,505" stroke="#8892b0" stroke-width="1.5" fill="none" marker-end="url(#ah)"/>
+      <text x="320" y="468" font-size="10" fill="#8892b0" font-family="sans-serif">按返回</text>
+
+      <!-- Pause → Game (continue) -->
+      <path d="M330,530 C370,520 380,490 420,460" stroke="#8892b0" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+      <text x="350" y="510" font-size="9" fill="#8892b0" font-family="sans-serif">继续</text>
+
+      <!-- Completed → Menu -->
+      <path d="M710,540 C750,520 770,470 700,300 C660,200 600,190 550,180" stroke="#8892b0" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="660" y="360" font-size="9" fill="#8892b0" font-family="sans-serif">返回菜单</text>
+
+      <!-- Completed → Game (replay) -->
+      <path d="M630,550 C600,550 550,520 510,460" stroke="#8892b0" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+      <text x="540" y="525" font-size="9" fill="#8892b0" font-family="sans-serif">再来一局</text>
+
+      <!-- Pause → Menu (quit) -->
+      <path d="M210,530 C180,520 150,480 180,350 C200,260 300,230 410,230" stroke="#8892b0" stroke-width="1.2" fill="none" stroke-dasharray="4,3"/>
+    </svg>
+
+    <!-- NODES -->
+    <div class="map-node n-splash" onclick="showPage('splash')">
+      <span class="icon">🚀</span>
+      <span class="label">启动页</span>
+      <span class="tag">SplashScreen</span>
+    </div>
+
+    <div class="map-node n-menu refactor" onclick="showPage('menu')">
+      <span class="icon">🏠</span>
+      <span class="label">主菜单</span>
+      <span class="tag">MenuScreen</span>
+    </div>
+
+    <div class="map-node n-theme new" onclick="showPage('theme')">
+      <span class="icon">🎨</span>
+      <span class="label">主题选择</span>
+      <span class="tag">ThemeScreen</span>
+    </div>
+
+    <div class="map-node n-game refactor" onclick="showPage('game')">
+      <span class="icon">🧩</span>
+      <span class="label">游戏页</span>
+      <span class="tag">GameScreen</span>
+    </div>
+
+    <div class="map-node n-complete" onclick="showPage('complete')">
+      <span class="icon">🎉</span>
+      <span class="label">完成页</span>
+      <span class="tag">Completed</span>
+    </div>
+
+    <div class="map-node n-pause new" onclick="showPage('pause')">
+      <span class="icon">⏸️</span>
+      <span class="label">暂停弹窗</span>
+      <span class="tag">PauseDialog</span>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot dot-new"></span> 新增页面</span>
+    <span><span class="dot dot-refactor"></span> 重构页面</span>
+    <span><span class="dot dot-exist"></span> 保留现有</span>
+    <span style="color:#4ecca3">── 成功路径</span>
+    <span style="color:#8892b0">- - 返回/取消</span>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- PAGE SIMULATOR                               -->
+<!-- ============================================ -->
+<section class="sim-section">
+  <h2>📱 页面模拟器</h2>
+  <p class="hint">在流程图点击节点，或点击下方按钮，切换查看各页面效果</p>
+
+  <div class="phone-frame" id="phoneFrame">
+    <!-- dynamic content -->
+  </div>
+
+  <div class="sim-nav" id="simNav">
+    <button onclick="showPage('splash')">🚀 启动页</button>
+    <button onclick="showPage('menu')">🏠 主菜单</button>
+    <button onclick="showPage('theme')">🎨 主题选择</button>
+    <button onclick="showPage('game')">🧩 游戏中</button>
+    <button onclick="showPage('generating')">⏳ 生成中</button>
+    <button onclick="showPage('complete')">🎉 完成</button>
+    <button onclick="showPage('pause')">⏸️ 暂停</button>
+  </div>
+</section>
+
+<script>
+function showPage(name) {
+  const frame = document.getElementById('phoneFrame');
+  frame.innerHTML = getPageHTML(name);
+
+  // highlight active nav button
+  document.querySelectorAll('#simNav button').forEach(b => {
+    b.classList.toggle('active', b.textContent.includes(getNavLabel(name)));
+  });
+}
+
+function getNavLabel(name) {
+  const map = { splash:'启动', menu:'主菜单', theme:'主题选择', game:'游戏中', generating:'生成中', complete:'完成', pause:'暂停' };
+  return map[name] || '';
+}
+
+function statusBar() {
+  return '<div class="status-bar"><span>9:41</span><span>🔋 📶</span></div>';
+}
+
+function getPageHTML(name) {
+  switch(name) {
+
+    case 'splash':
+      return statusBar() + `
+        <div class="p-page p-splash" onclick="showPage('menu')">
+          <div class="logo">🧩</div>
+          <div class="name">Puzzle</div>
+          <div class="tagline">把碎片拼成美好</div>
+          <div style="margin-top:48px;font-size:10px;opacity:0.4">点击任意位置 → 菜单</div>
+        </div>`;
+
+    case 'menu':
+      return statusBar() + `
+        <div class="p-page p-menu">
+          <div class="title">🧩 Puzzle</div>
+          <div class="p-btn" onclick="showPage('game')" style="width:200px;text-align:center;">▶ 开始游戏</div>
+          <div class="p-btn outline" onclick="showPage('theme')" style="width:200px;text-align:center;">🎨 选择主题</div>
+          <div style="margin-top:16px;font-size:13px;color:#666;">
+            <div>当前主题: 🐱 可爱猫咪</div>
+            <div class="info-row" style="margin-top:8px;">
+              <span class="tag" style="font-size:11px">超简单</span>
+              <span class="tag active" style="font-size:11px">中等</span>
+              <span class="tag" style="font-size:11px">困难</span>
+            </div>
+          </div>
+          <div style="margin-top:auto;font-size:10px;color:#bbb;padding-top:40px;">
+            点击「开始游戏」或选择主题
+          </div>
+        </div>`;
+
+    case 'theme':
+      return statusBar() + `
+        <div class="p-page p-theme">
+          <div class="topbar">
+            <span class="back" onclick="showPage('menu')">←</span>
+            <span class="page-title">选择主题</span>
+          </div>
+          <div class="grid">
+            ${['🐱 可爱猫咪','🎈 彩虹热气球','🐠 海底世界','🦊 森林动物','🚀 太空冒险','🌸 美丽花朵'].map((t,i) => `
+              <div class="tcard ${i===0?'sel':''}" onclick="this.parentElement.querySelectorAll('.tcard').forEach(c=>c.classList.remove('sel'));this.classList.add('sel')">
+                <div class="eicon">${t.split(' ')[0]}</div>
+                <div class="tname">${t.split(' ')[1]}</div>
+                <div class="preview" style="background:${['#ffb74d','#81d4fa','#4fc3f7','#a5d6a7','#7e57c2','#f48fb1'][i]}"></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="confirm">
+            <div class="p-btn" onclick="showPage('menu')" style="width:180px;">确认选择</div>
+          </div>
+        </div>`;
+
+    case 'generating':
+      return statusBar() + `
+        <div class="p-page p-generating">
+          <div style="font-size:48px;">🎨</div>
+          <div class="spinner"></div>
+          <div style="font-size:14px;font-weight:600;">正在生成拼图...</div>
+          <div style="width:180px;height:6px;background:#e0e0e0;border-radius:3px;overflow:hidden;">
+            <div style="width:65%;height:100%;background:#e94560;border-radius:3px;animation:barAnim 2s infinite;"></div>
+          </div>
+          <div class="tip">正在用AI绘画...</div>
+          <div style="margin-top:auto;font-size:10px;color:#bbb;padding-bottom:20px;" onclick="showPage('game')">
+            模拟完成 → 点击进入游戏
+          </div>
+        </div>
+        <style>@keyframes barAnim{0%{width:20%}50%{width:80%}100%{width:20%}}</style>`;
+
+    case 'game':
+      return statusBar() + `
+        <div class="p-page p-playing" id="playingPage">
+          <div class="top">
+            <span style="color:#e94560;cursor:pointer" onclick="showPage('pause')">← 返回</span>
+            <span class="progress">已拼: 3/12</span>
+            <span style="color:#999">⏱ 0:42</span>
+          </div>
+          <div class="board-wrap">
+            <div class="grid-overlay">${'<div></div>'.repeat(130)}</div>
+            <div class="img-ghost">🐱</div>
+          </div>
+          <div style="font-size:11px;color:#e94560;text-align:center;padding:4px;background:#fff0f3;margin:0 12px;border-radius:6px;">
+            ✅ 已选中碎片，点击棋盘格子放置
+          </div>
+          <div class="tray">
+            ${['🧩','🧩','🧩','✓','✓','✓','🧩','🧩','🧩','🧩','🧩','🧩'].map((v,i) => `
+              <div class="piece ${v==='✓'?'done':''} ${i===0?'sel':''}" onclick="this.parentElement.querySelectorAll('.piece').forEach(p=>p.classList.remove('sel'));this.classList.toggle('sel')">
+                ${v}
+              </div>
+            `).join('')}
+          </div>
+          <div class="bottom-hint">👆 点击碎片选中，拖拽或点击棋盘放置</div>
+        </div>`;
+
+    case 'complete':
+      return statusBar() + `
+        <div class="p-page p-complete">
+          <div class="big-emoji">🎉</div>
+          <div class="msg">太棒了！</div>
+          <div style="font-size:14px;">你成功完成了拼图！</div>
+          <div class="stats">🐱 可爱猫咪 · ⏱ 1:23 · 📐 12片</div>
+          <div class="p-btn" onclick="showPage('generating')" style="background:#fff;color:#333;">再来一局</div>
+          <div class="p-btn outline" onclick="showPage('menu')" style="border-color:#fff;color:#fff;">返回菜单</div>
+          <div class="p-btn outline" onclick="showPage('theme')" style="border-color:#fff;color:#fff;font-size:12px;">🎨 换主题再玩</div>
+        </div>`;
+
+    case 'pause':
+      // show playing + pause overlay
+      return statusBar() + `
+        <div class="p-page p-playing" style="position:relative;">
+          <div class="top">
+            <span style="color:#e94560">← 返回</span>
+            <span class="progress">已拼: 3/12</span>
+            <span style="color:#999">⏱ 0:42</span>
+          </div>
+          <div class="board-wrap">
+            <div class="grid-overlay">${'<div></div>'.repeat(130)}</div>
+            <div class="img-ghost">🐱</div>
+          </div>
+          <div class="tray">
+            ${['🧩','🧩','✓','✓','🧩','🧩','🧩'].map(v => `
+              <div class="piece ${v==='✓'?'done':''}">${v}</div>
+            `).join('')}
+          </div>
+          <div class="p-pause-overlay">
+            <div class="dialog">
+              <div style="font-size:32px;margin-bottom:8px;">⏸️</div>
+              <div class="q">确定要退出吗？<br>当前进度将丢失</div>
+              <div style="display:flex;gap:10px;justify-content:center;margin-top:4px;">
+                <div class="p-btn small outline" onclick="showPage('game')">继续游戏</div>
+                <div class="p-btn small" onclick="showPage('menu')">确定退出</div>
+              </div>
+            </div>
+          </div>
+        </div>`;
+
+    default:
+      return statusBar() + '<div class="p-page" style="align-items:center;justify-content:center;">Select a page</div>';
+  }
+}
+
+// init
+showPage('splash');
+</script>
+</body>
+</html>

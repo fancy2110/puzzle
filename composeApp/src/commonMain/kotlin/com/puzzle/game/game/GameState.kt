@@ -31,5 +31,7 @@ data class GameState(
     val correctPositions: Map<String, Pair<Int, Int>> = emptyMap(),
     val cellFilledBy: Map<String, String> = emptyMap(),
     val showCelebration: Boolean = false,
-    val wrongDropHint: Boolean = false
+    val wrongDropHint: Boolean = false,
+    val elapsedSeconds: Long = 0,
+    val isPaused: Boolean = false
 )

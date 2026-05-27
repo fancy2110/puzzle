@@ -14,6 +14,7 @@ object PuzzlePictureGenerator {
         drawBackground(canvas, width, height, theme)
 
         when (theme.id) {
+            "demo" -> drawDemoPicture(canvas, width, height, theme, rng)
             "cat" -> drawFriendlyCat(canvas, width, height, theme, rng)
             "balloon" -> drawBalloons(canvas, width, height, theme, rng)
             "ocean" -> drawOcean(canvas, width, height, theme, rng)
@@ -23,6 +24,43 @@ object PuzzlePictureGenerator {
         }
 
         return bitmap
+    }
+
+    private fun drawDemoPicture(canvas: Canvas, w: Int, h: Int, theme: ThemeData, rng: Random) {
+        val sky = Paint().apply { color = Color(0xFFBFE3F2) }
+        val hill = Paint().apply { color = Color(0xFF8BC39A) }
+        val roof = Paint().apply { color = theme.accent }
+        val house = Paint().apply { color = Color(0xFFFFF2D6) }
+        val door = Paint().apply { color = theme.primary }
+
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), sky)
+        canvas.drawOval(-80f, h * 0.55f, w * 0.7f, h * 1.1f, hill)
+        canvas.drawOval(w * 0.35f, h * 0.5f, w + 80f, h * 1.05f, Paint().apply { color = Color(0xFFA8D5A3) })
+        drawSunAt(canvas, w - 105f, 88f, 42f)
+
+        val cx = w * 0.52f
+        val cy = h * 0.56f
+        canvas.drawRect(cx - 95f, cy - 20f, cx + 95f, cy + 115f, house)
+        val roofPath = Path().apply {
+            moveTo(cx - 120f, cy - 20f)
+            lineTo(cx, cy - 115f)
+            lineTo(cx + 120f, cy - 20f)
+            close()
+        }
+        canvas.drawPath(roofPath, roof)
+        canvas.drawRect(cx - 22f, cy + 42f, cx + 22f, cy + 115f, door)
+        canvas.drawRect(cx - 72f, cy + 18f, cx - 35f, cy + 54f, Paint().apply { color = Color.White })
+        canvas.drawRect(cx + 38f, cy + 18f, cx + 75f, cy + 54f, Paint().apply { color = Color.White })
+
+        repeat(14) {
+            val fx = 40f + rng.nextFloat() * (w - 80f)
+            val fy = h * 0.70f + rng.nextFloat() * h * 0.22f
+            canvas.drawCircle(
+                Offset(fx, fy),
+                7f + rng.nextFloat() * 5f,
+                Paint().apply { color = listOf(theme.accent, Color(0xFFFFD166), Color.White).random(rng) }
+            )
+        }
     }
 
     private fun drawBackground(canvas: Canvas, w: Int, h: Int, theme: ThemeData) {

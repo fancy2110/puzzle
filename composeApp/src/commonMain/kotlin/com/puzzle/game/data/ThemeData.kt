@@ -9,11 +9,23 @@ data class ThemeData(
     val primary: Color,
     val secondary: Color,
     val accent: Color,
-    val prompt: String
+    val prompt: String,
+    /** If non-null, load this asset file and use native Rust splitting */
+    val assetFile: String? = null
 )
 
 object ThemePresets {
     val themes = listOf(
+        ThemeData(
+            id = "demo",
+            name = "真实图片",
+            emoji = "🖼️",
+            primary = Color(0xFF607D8B),
+            secondary = Color(0xFFCFD8DC),
+            accent = Color(0xFFFF7043),
+            prompt = "demo1.png — Rust native splitter",
+            assetFile = "demo1.png"
+        ),
         ThemeData(
             id = "cat",
             name = "可爱猫咪",

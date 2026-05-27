@@ -1,177 +1,237 @@
 package com.puzzle.game.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.game.GameDifficulty
 import com.puzzle.game.game.GameViewModel
 
 @Composable
-fun MenuScreen(viewModel: GameViewModel) {
+fun MenuScreen(
+    viewModel: GameViewModel,
+    onStartGame: () -> Unit,
+    onPickTheme: () -> Unit,
+    onPickImage: () -> Unit,
+    onOpenSettings: () -> Unit
+) {
     val state by viewModel.state.collectAsState()
+    val theme = state.selectedTheme ?: viewModel.themes.first()
+    val preview = remember(theme.id) { PuzzlePictureGenerator.generate(theme, 800, 600) }
 
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(18.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text(
-            text = "🧩 趣味拼图",
-            fontSize = 36.sp,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center
+        HomeTopBar(onOpenSettings = onOpenSettings)
+
+        PuzzlePreviewCard(
+            theme = theme,
+            difficulty = state.difficulty,
+            preview = preview,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f)
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Text(
-            text = "小朋友，选一个喜欢的图案吧！",
-            fontSize = 16.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center
+        DifficultySelector(
+            selected = state.difficulty,
+            onSelect = viewModel::selectDifficulty
         )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxWidth().weight(1f, fill = false),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(viewModel.themes, key = { it.id }) { theme ->
-                val isSelected = state.selectedTheme?.id == theme.id
-                ThemeCard(
-                    theme = theme,
-                    isSelected = isSelected,
-                    onClick = { viewModel.selectTheme(theme.id) }
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "选择难度",
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        Spacer(modifier = Modifier.height(6.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            GameDifficulty.entries.forEach { difficulty ->
-                val isSelected = state.difficulty == difficulty
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { viewModel.selectDifficulty(difficulty) },
-                    label = {
-                        Text(
-                            text = difficulty.label.replace(" ", "\n"),
-                            fontSize = 11.sp,
-                            textAlign = TextAlign.Center,
-                            maxLines = 2
-                        )
-                    },
-                    modifier = Modifier.weight(1f).height(48.dp)
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         Button(
-            onClick = { viewModel.startGame() },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            ),
-            shape = RoundedCornerShape(16.dp)
+            onClick = onStartGame,
+            modifier = Modifier.fillMaxWidth().height(54.dp),
+            shape = RoundedCornerShape(8.dp)
         ) {
-            Text(
-                text = "🎮 开始游戏",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold
-            )
+            Text("开始游戏", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+        }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            OutlinedButton(
+                onClick = onPickTheme,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("换主题")
+            }
+            OutlinedButton(
+                onClick = onPickImage,
+                modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("换图片")
+            }
         }
     }
 }
 
 @Composable
-private fun ThemeCard(
-    theme: ThemeData,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth().aspectRatio(1f),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isSelected) theme.primary.copy(alpha = 0.25f)
-            else MaterialTheme.colorScheme.surface
-        ),
-        border = if (isSelected) {
-            CardDefaults.outlinedCardBorder(enabled = true).let {
-                androidx.compose.foundation.BorderStroke(3.dp, theme.primary)
-            }
-        } else null,
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 6.dp else 2.dp
-        )
+private fun HomeTopBar(onOpenSettings: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(56.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(theme.primary.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = theme.emoji,
-                    fontSize = 28.sp
-                )
-            }
-            Spacer(modifier = Modifier.height(8.dp))
+        Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = theme.name,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
+                text = "Puzzle",
+                fontSize = 30.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
             )
-            if (isSelected) {
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "✓ 已选",
-                    fontSize = 12.sp,
-                    color = theme.primary,
-                    fontWeight = FontWeight.Bold
+            Text(
+                text = "选一张图，拼出完整画面",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        OutlinedButton(
+            onClick = onOpenSettings,
+            shape = RoundedCornerShape(8.dp),
+            contentPadding = PaddingValues(horizontal = 12.dp)
+        ) {
+            Text("设置")
+        }
+    }
+}
+
+@Composable
+private fun PuzzlePreviewCard(
+    theme: ThemeData,
+    difficulty: GameDifficulty,
+    preview: ImageBitmap,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+    ) {
+        Image(
+            bitmap = preview,
+            contentDescription = theme.name,
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f))
+                    )
                 )
+                .padding(top = 56.dp, start = 14.dp, end = 14.dp, bottom = 14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = theme.name,
+                        color = Color.White,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = theme.prompt,
+                        color = Color.White.copy(alpha = 0.82f),
+                        fontSize = 12.sp,
+                        maxLines = 1
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = Color.White.copy(alpha = 0.9f)
+                ) {
+                    Text(
+                        text = "${difficulty.pieceCount} 片",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DifficultySelector(
+    selected: GameDifficulty,
+    onSelect: (GameDifficulty) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "难度",
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = selected.label,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp
+            )
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            GameDifficulty.entries.forEach { difficulty ->
+                val isSelected = difficulty == selected
+                Button(
+                    onClick = { onSelect(difficulty) },
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    shape = RoundedCornerShape(6.dp),
+                    elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    contentPadding = PaddingValues(horizontal = 4.dp)
+                ) {
+                    Text(
+                        text = "${difficulty.pieceCount}片",
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
             }
         }
     }

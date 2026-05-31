@@ -74,6 +74,8 @@ kotlin {
 
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
+
+            implementation(project(":logger"))
         }
 
         androidMain.dependencies {

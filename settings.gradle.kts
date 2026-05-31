@@ -29,3 +29,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "PuzzleGame"
 include(":composeApp")
+include(":logger")

@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.puzzle.game.ai.AIImageGenerator
+import com.puzzle.logger.PuzzleLog
 import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
@@ -170,7 +171,7 @@ class GameViewModel : ViewModel() {
     private suspend fun startGuardedProcedural(theme: ThemeData, pieceCount: Int, fallbackReason: String? = null) {
         try {
             fallbackReason?.let { reason ->
-                // Log: AI generation failed: $reason, falling back to procedural
+                PuzzleLog.w("GameVM", "AI generation failed, falling back to procedural: $reason")
             }
             startProceduralGame(theme, pieceCount)
         } catch (e: Exception) {
@@ -268,7 +269,7 @@ class GameViewModel : ViewModel() {
                 client.get(url).body<ByteArray>()
             }
         } catch (e: Exception) {
-            // Log: Failed to download image from URL, fallback to procedural
+            PuzzleLog.w("GameVM", "Image download failed, falling back to procedural", e)
             null
         }
     }

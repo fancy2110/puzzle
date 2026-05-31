@@ -19,4 +19,30 @@ expect class Preferences {
 
     fun isFirstLaunch(): Boolean
     fun setFirstLaunchDone()
+
+    fun isSoundEnabled(): Boolean
+    fun setSoundEnabled(enabled: Boolean)
+
+    fun isReferenceEnabled(): Boolean
+    fun setReferenceEnabled(enabled: Boolean)
 }
+
+/**
+ * Platform-specific factory for Preferences.
+ * Android: requires a Context (call PreferencesFactory.init(context) in MainActivity first)
+ * iOS: no initialization needed
+ */
+object PreferencesFactory {
+    private var androidContext: Any? = null
+
+    fun init(context: Any) {
+        androidContext = context
+    }
+
+    fun create(): Preferences {
+        @Suppress("UNCHECKED_CAST")
+        return createPreferences(androidContext)
+    }
+}
+
+internal expect fun createPreferences(androidContext: Any?): Preferences

@@ -4,6 +4,12 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.puzzle.game.game.GameDifficulty
 
+internal actual fun createPreferences(androidContext: Any?): Preferences {
+    val ctx = androidContext as? Context
+        ?: throw IllegalStateException("PreferencesFactory.init(context) must be called before create()")
+    return Preferences(ctx)
+}
+
 actual class Preferences(context: Context) {
     private val prefs: SharedPreferences =
         context.getSharedPreferences("puzzle_prefs", Context.MODE_PRIVATE)
@@ -34,5 +40,19 @@ actual class Preferences(context: Context) {
 
     actual fun setFirstLaunchDone() {
         prefs.edit().putBoolean("first_launch", false).apply()
+    }
+
+    actual fun isSoundEnabled(): Boolean =
+        prefs.getBoolean("sound_enabled", true)
+
+    actual fun setSoundEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("sound_enabled", enabled).apply()
+    }
+
+    actual fun isReferenceEnabled(): Boolean =
+        prefs.getBoolean("reference_enabled", true)
+
+    actual fun setReferenceEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean("reference_enabled", enabled).apply()
     }
 }

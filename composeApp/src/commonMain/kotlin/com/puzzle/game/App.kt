@@ -5,6 +5,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.puzzle.game.data.PreferencesFactory
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.navigation.NavigationViewModel
 import com.puzzle.game.navigation.Screen
@@ -21,6 +22,7 @@ fun App() {
     PuzzleGameTheme {
         val navViewModel = remember { NavigationViewModel() }
         val gameViewModel: GameViewModel = viewModel { GameViewModel() }
+        val preferences = remember { PreferencesFactory.create() }
 
         val screenStack by navViewModel.screenStack.collectAsState()
 
@@ -74,6 +76,7 @@ fun App() {
 
             Screen.Settings -> {
                 SettingsScreen(
+                    preferences = preferences,
                     onBack = { navViewModel.goBack() },
                     onOpenImageSource = { navViewModel.navigateTo(Screen.ImageSource) }
                 )

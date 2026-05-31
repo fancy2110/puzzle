@@ -19,13 +19,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.puzzle.game.data.Preferences
+
 @Composable
 fun SettingsScreen(
+    preferences: Preferences,
     onBack: () -> Unit,
     onOpenImageSource: () -> Unit
 ) {
-    var soundEnabled by remember { mutableStateOf(true) }
-    var referenceEnabled by remember { mutableStateOf(true) }
+    var soundEnabled by remember { mutableStateOf(preferences.isSoundEnabled()) }
+    var referenceEnabled by remember { mutableStateOf(preferences.isReferenceEnabled()) }
 
     Column(
         modifier = Modifier
@@ -42,7 +45,10 @@ fun SettingsScreen(
             trailing = {
                 Switch(
                     checked = soundEnabled,
-                    onCheckedChange = { soundEnabled = it }
+                    onCheckedChange = {
+                        soundEnabled = it
+                        preferences.setSoundEnabled(it)
+                    }
                 )
             }
         )
@@ -53,7 +59,10 @@ fun SettingsScreen(
             trailing = {
                 Switch(
                     checked = referenceEnabled,
-                    onCheckedChange = { referenceEnabled = it }
+                    onCheckedChange = {
+                        referenceEnabled = it
+                        preferences.setReferenceEnabled(it)
+                    }
                 )
             }
         )

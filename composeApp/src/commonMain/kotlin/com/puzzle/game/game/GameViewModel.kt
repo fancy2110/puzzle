@@ -60,38 +60,42 @@ class GameViewModel : ViewModel() {
         resetForNewGame()
 
         viewModelScope.launch {
-            // If theme has a built-in asset image, try native Rust splitter first
-            if (assetFile != null) {
-                val bytes = withContext(Dispatchers.Default) {
-                    com.puzzle.game.data.AssetLoader.readBytes(assetFile)
+            try {
+                // If theme has a built-in asset image, try native Rust splitter first
+                if (assetFile != null) {
+                    val bytes = withContext(Dispatchers.Default) {
+                        com.puzzle.game.data.AssetLoader.readBytes(assetFile)
+                    }
+                    if (bytes != null) {
+                        startGameWithImageInternal(bytes, pieceCount)
+                        return@launch
+                    }
                 }
-                if (bytes != null) {
-                    startGameWithImageInternal(bytes, pieceCount)
-                    return@launch
-                }
-            }
 
-            // Kotlin procedural path
-            val gameData = withContext(Dispatchers.Default) {
-                val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
-                engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-                engine.splitImage(pieceCount = pieceCount, blockSize = 64)
-                GeneratedGameData(
-                    pieces = engine.shufflePieces(),
-                    bitmap = puzzleBitmap,
-                    imageWidth = puzzleBitmap.width,
-                    imageHeight = puzzleBitmap.height
+                // Kotlin procedural path
+                val gameData = withContext(Dispatchers.Default) {
+                    val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
+                    engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
+                    engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                    GeneratedGameData(
+                        pieces = engine.shufflePieces(),
+                        bitmap = puzzleBitmap,
+                        imageWidth = puzzleBitmap.width,
+                        imageHeight = puzzleBitmap.height
+                    )
+                }
+
+                applyNewGame(
+                    pieces = gameData.pieces,
+                    bitmap = gameData.bitmap,
+                    imageWidth = gameData.imageWidth,
+                    imageHeight = gameData.imageHeight,
+                    blockSize = 64
                 )
+                startTimer()
+            } catch (e: Exception) {
+                setError("生成拼图失败: ${e.message ?: "未知错误"}")
             }
-
-            applyNewGame(
-                pieces = gameData.pieces,
-                bitmap = gameData.bitmap,
-                imageWidth = gameData.imageWidth,
-                imageHeight = gameData.imageHeight,
-                blockSize = 64
-            )
-            startTimer()
         }
     }
 
@@ -376,7 +380,17 @@ class GameViewModel : ViewModel() {
         }
     }
 
-    // ── Timer ────────────────────────────────────────────
+    // ── Error ─────────────────────────────────────────────
+
+    private fun setError(message: String) {
+        stopTimer()
+        _state.update { it.copy(phase = GamePhase.ERROR, errorMessage = message, isImageLoading = false) }
+    }
+
+    fun retryGame() {
+        _state.update { it.copy(phase = GamePhase.MENU, errorMessage = null) }
+        startGame()
+    }
 
     private fun startTimer() {
         timerJob?.cancel()

@@ -16,7 +16,8 @@ enum class GamePhase {
     MENU,
     GENERATING,
     PLAYING,
-    COMPLETED
+    COMPLETED,
+    ERROR
 }
 
 data class GameState(
@@ -33,5 +34,6 @@ data class GameState(
     val showCelebration: Boolean = false,
     val wrongDropHint: Boolean = false,
     val elapsedSeconds: Long = 0,
-    val isPaused: Boolean = false
+    val isPaused: Boolean = false,
+    val errorMessage: String? = null
 )

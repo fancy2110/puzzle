@@ -60,6 +60,11 @@ fun GameScreen(
             onPlayAgain = onPlayAgain,
             onGoToMenu = onGoToMenu
         )
+        GamePhase.ERROR -> ErrorScreen(
+            message = state.errorMessage ?: "出了点问题",
+            onRetry = { viewModel.retryGame() },
+            onGoToMenu = onGoToMenu
+        )
         else -> {}
     }
 
@@ -673,6 +678,49 @@ private fun CompletedScreen(
             ) {
                 Text("返回菜单", fontSize = 18.sp)
             }
+        }
+    }
+}
+
+// ── Error Screen ────────────────────────────────────────
+
+@Composable
+private fun ErrorScreen(
+    message: String,
+    onRetry: () -> Unit,
+    onGoToMenu: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = "😵", fontSize = 64.sp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = message,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth(0.6f).height(48.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("重试", fontSize = 18.sp)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        OutlinedButton(
+            onClick = onGoToMenu,
+            modifier = Modifier.fillMaxWidth(0.6f).height(48.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Text("返回菜单", fontSize = 18.sp)
         }
     }
 }

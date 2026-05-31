@@ -165,8 +165,8 @@ impl PuzzleEngine {
     /// - `piece_count`: desired number of pieces
     /// - `block_size`: size of each grid cell in pixels (default 64)
     pub fn split(&self, piece_count: usize, block_size: u16) -> SplitResult {
-        let cols = (self.img_width / block_size).max(1) as usize;
-        let rows = (self.img_height / block_size).max(1) as usize;
+        let cols = ((self.img_width as u32 + block_size as u32 - 1) / block_size as u32).max(1) as usize;
+        let rows = ((self.img_height as u32 + block_size as u32 - 1) / block_size as u32).max(1) as usize;
 
         // 1. Build grid
         let mut grid: Vec<Vec<Block>> = Vec::with_capacity(rows);
@@ -359,6 +359,107 @@ mod tests {
             for bp in &piece.block_positions {
                 assert!(seen.insert((bp.y, bp.x)), "Overlap at ({}, {})", bp.y, bp.x);
             }
+        }
+    }
+
+    #[test]
+    fn test_grid_coverage() {
+        // Verify that grid blocks cover the entire image.
+        // Bug: cols/rows used floor division, missing rightmost/bottommost edge blocks.
+        let png = make_test_image(800, 600);
+        let engine = PuzzleEngine::from_bytes(&png).unwrap();
+        let result = engine.split(6, 64);
+
+        let expected_cols = (800u32 + 64 - 1) / 64; // ceiling division
+        let expected_rows = (600u32 + 64 - 1) / 64;
+        println!("Expected grid: {}x{}", expected_cols, expected_rows);
+        println!("Actual grid:   {}x{}", result.grid_cols, result.grid_rows);
+
+        // The current bug: grid_cols = 12, but should be 13 (800/64 = 12.5 → 13)
+        // This means 32px of width and 24px of height are excluded from the puzzle
+        assert_eq!(result.grid_cols, expected_cols,
+            "grid_cols should cover full image width (ceiling division)");
+        assert_eq!(result.grid_rows, expected_rows,
+            "grid_rows should cover full image height (ceiling division)");
+    }
+
+    #[test]
+    fn test_split_demo1_png() {
+        // Integration test with the actual demo image
+        let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../demo1.png");
+        let data = match std::fs::read(path) {
+            Ok(d) => d,
+            Err(e) => {
+                println!("Skipping demo1 test: {}", e);
+                return;
+            }
+        };
+        let engine = PuzzleEngine::from_bytes(&data).unwrap();
+        let (w, h) = (engine.img_width, engine.img_height);
+        println!("demo1.png: {}x{} pixels", w, h);
+
+        let result = engine.split(12, 64);
+        println!("Grid: {}x{} ({} blocks)", result.grid_cols, result.grid_rows,
+            result.grid_cols * result.grid_rows);
+        println!("Pieces: {}", result.pieces.len());
+
+        // Verify full coverage
+        let expected_cols = (w as u32 + 64 - 1) / 64;
+        let expected_rows = (h as u32 + 64 - 1) / 64;
+        assert_eq!(result.grid_cols, expected_cols,
+            "Grid cols {} != expected {}", result.grid_cols, expected_cols);
+        assert_eq!(result.grid_rows, expected_rows,
+            "Grid rows {} != expected {}", result.grid_rows, expected_rows);
+
+        // Verify all blocks covered
+        let total: usize = result.pieces.iter().map(|p| p.block_positions.len()).sum();
+        assert_eq!(total, (result.grid_cols * result.grid_rows) as usize,
+            "Block coverage: {} vs {}", total, result.grid_cols * result.grid_rows);
+
+        // Verify no overlap
+        let mut seen = std::collections::HashSet::new();
+        for p in &result.pieces {
+            for bp in &p.block_positions {
+                assert!(seen.insert((bp.y, bp.x)),
+                    "Overlap at ({}, {})", bp.y, bp.x);
+            }
+        }
+
+        // Verify pieces are non-empty
+        for (i, p) in result.pieces.iter().enumerate() {
+            assert!(!p.block_positions.is_empty(),
+                "Piece {} has no blocks", i);
+            assert!(p.pixel_width > 0, "Piece {} has zero width", i);
+            assert!(p.pixel_height > 0, "Piece {} has zero height", i);
+        }
+
+        // Print piece summary
+        for (i, p) in result.pieces.iter().enumerate() {
+            println!("  piece_{}: {}x{}px at ({},{}), {} blocks",
+                i, p.pixel_width, p.pixel_height,
+                p.pixel_left, p.pixel_top,
+                p.block_positions.len());
+        }
+    }
+
+    #[test]
+    fn test_grid_coverage_various_sizes() {
+        for (w, h, bs) in [
+            (800, 600, 64),
+            (1024, 1024, 128),
+            (750, 500, 64),
+            (100, 100, 33),
+        ] {
+            let png = make_test_image(w, h);
+            let engine = PuzzleEngine::from_bytes(&png).unwrap();
+            let result = engine.split(4, bs as u16);
+
+            let expected_cols = (w + bs - 1) / bs;
+            let expected_rows = (h + bs - 1) / bs;
+            assert_eq!(result.grid_cols, expected_cols,
+                "{}x{} @ bs={}: col mismatch", w, h, bs);
+            assert_eq!(result.grid_rows, expected_rows,
+                "{}x{} @ bs={}: row mismatch", w, h, bs);
         }
     }
 

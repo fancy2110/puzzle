@@ -31,7 +31,7 @@ import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.ui.component.CelebrationOverlay
 import com.puzzle.game.ui.component.FloatingDraggedPiece
-import com.puzzle.game.ui.component.PieceBlockContent
+import com.puzzle.game.ui.component.PieceImageContent
 
 @Composable
 fun GameScreen(
@@ -547,22 +547,15 @@ private fun PieceTrayHorizontal(
             var pieceWindowPos by remember { mutableStateOf(Offset.Zero) }
             var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
 
-            // Card sized to fit all blocks (14dp each + padding)
-            val blockDp = 14
-            val blocks = piece.items
-            val minBlockY = blocks.minOfOrNull { it.y } ?: 0
-            val maxBlockY = blocks.maxOfOrNull { it.y } ?: 0
-            val minBlockX = blocks.minOfOrNull { it.x } ?: 0
-            val maxBlockX = blocks.maxOfOrNull { it.x } ?: 0
-            val gridW = (maxBlockX - minBlockX + 1).coerceAtLeast(1)
-            val gridH = (maxBlockY - minBlockY + 1).coerceAtLeast(1)
-            val cardW = (gridW * blockDp + 8).coerceIn(60, 360)
-            val cardH = (gridH * blockDp + 8).coerceIn(60, 140)
+            val pieceW = piece.pixels.width.coerceAtLeast(1)
+            val pieceH = piece.pixels.height.coerceAtLeast(1)
+            val trayCardSize = 120
+            val cardWidth = ((trayCardSize * pieceW) / pieceH).coerceIn(60, trayCardSize * 3)
 
             Box(
                 modifier = Modifier
-                    .width(cardW.dp)
-                    .height(cardH.dp)
+                    .width(cardWidth.dp)
+                    .height(trayCardSize.dp)
                     .onGloballyPositioned { coords ->
                         pieceWindowPos = coords.positionInWindow()
                         pieceIntSize = coords.size
@@ -620,10 +613,10 @@ private fun PieceTrayHorizontal(
                 if (isPlaced) {
                     Text("✓", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
                 } else {
-                    PieceBlockContent(
+                    PieceImageContent(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
-                        blockDp = blockDp,
+                        cardSize = trayCardSize,
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(8.dp))

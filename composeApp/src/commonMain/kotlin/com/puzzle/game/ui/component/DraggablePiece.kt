@@ -17,10 +17,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -33,7 +37,7 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
 
-// ── Legacy bounding-box scaler (kept for FloatingDraggedPiece) ──
+// ── Scale helpers ────────────────────────────────────────
 
 internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, Float, Float> {
     val w = piece.pixels.width
@@ -47,15 +51,65 @@ internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, F
     return Triple(scale, offX, offY)
 }
 
-// ── Block-based piece renderer — shows only actual content ──
+// ── Piece image — bounding box crop + block mask ─────────
 
 /**
- * Renders a puzzle piece by drawing each of its grid blocks individually,
- * arranged in their relative positions. This avoids the huge transparent
- * margins that come from using the rectangular bounding box.
+ * Renders a puzzle piece as a single image cropped from the source bitmap
+ * using the piece's bounding box, with a clip mask that hides pixels
+ * belonging to other pieces. Only the piece's own grid blocks are visible.
  *
- * Each source block (64×64 px) is displayed at [blockDp] dp.
+ * @param blockSizePx  the grid cell size used during splitting (default 64)
  */
+@Composable
+internal fun PieceImageContent(
+    piece: PuzzlePiece,
+    puzzleBitmap: ImageBitmap?,
+    cardSize: Int = 70,
+    blockSizePx: Int = 64,
+    modifier: Modifier = Modifier
+) {
+    if (puzzleBitmap == null || piece.items.isEmpty()) return
+
+    val (scale, offX, offY) = pieceImageScale(piece, cardSize)
+
+    // Precompute clip rects (scaled to card coordinates)
+    val clipRects = remember(piece.id, cardSize) {
+        val s = minOf(cardSize.toFloat() / piece.pixels.width.coerceAtLeast(1),
+                       cardSize.toFloat() / piece.pixels.height.coerceAtLeast(1), 8f)
+        val originX = -piece.pixels.left.toFloat() * s
+        val originY = -piece.pixels.top.toFloat() * s
+        piece.items.map { (y, x) ->
+            Rect(
+                left = originX + x * blockSizePx * s,
+                top = originY + y * blockSizePx * s,
+                right = originX + (x + 1) * blockSizePx * s,
+                bottom = originY + (y + 1) * blockSizePx * s
+            )
+        }
+    }
+
+    Image(
+        bitmap = puzzleBitmap,
+        contentDescription = "碎片",
+        modifier = modifier
+            .drawWithContent {
+                // Intersect with each block's rect — only draw within them
+                for (rect in clipRects) {
+                    clipRect(left = rect.left, top = rect.top, right = rect.right, bottom = rect.bottom) {
+                        this@drawWithContent.drawContent()
+                    }
+                }
+            }
+            .graphicsLayer(
+                scaleX = scale, scaleY = scale,
+                translationX = offX, translationY = offY
+            ),
+        contentScale = ContentScale.None
+    )
+}
+
+// ── PieceBlockContent (legacy, kept for compat) ──────────
+
 @Composable
 internal fun PieceBlockContent(
     piece: PuzzlePiece,
@@ -66,7 +120,7 @@ internal fun PieceBlockContent(
 ) {
     if (puzzleBitmap == null || piece.items.isEmpty()) return
 
-    val blocks = piece.items // List<Position> — (y, x) grid coordinates
+    val blocks = piece.items
     val minY = blocks.minOf { it.y }
     val minX = blocks.minOf { it.x }
 
@@ -84,40 +138,14 @@ internal fun PieceBlockContent(
                     .offset(x = (relX * blockDp).dp, y = (relY * blockDp).dp)
                     .size(blockDp.dp)
                     .graphicsLayer {
-                        // Scale the 64px source block to blockDp dp
                         val s = blockDp.toFloat() / blockSizePx.toFloat()
-                        scaleX = s
-                        scaleY = s
+                        scaleX = s; scaleY = s
                         translationX = -srcLeft.toFloat() * s
                         translationY = -srcTop.toFloat() * s
                     },
                 contentScale = ContentScale.None
             )
         }
-    }
-}
-
-// ── Legacy bounding-box renderer (for floating drag overlay) ──
-
-@Composable
-internal fun PieceImageContent(
-    piece: PuzzlePiece,
-    puzzleBitmap: ImageBitmap?,
-    cardSize: Int = 70,
-    modifier: Modifier = Modifier
-) {
-    if (puzzleBitmap != null) {
-        val (scale, offX, offY) = pieceImageScale(piece, cardSize)
-        Image(
-            bitmap = puzzleBitmap,
-            contentDescription = "碎片",
-            modifier = modifier
-                .graphicsLayer(
-                    scaleX = scale, scaleY = scale,
-                    translationX = offX, translationY = offY
-                ),
-            contentScale = ContentScale.None
-        )
     }
 }
 
@@ -203,10 +231,10 @@ fun PieceTray(
                 if (isPlaced) {
                     Text("✓", fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
                 } else {
-                    PieceBlockContent(
+                    PieceImageContent(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
-                        blockDp = 14,
+                        cardSize = 100,
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp))
                     )
                 }

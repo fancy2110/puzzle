@@ -2,6 +2,7 @@ package com.puzzle.game.native
 
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.native.NativePuzzleEngine
+import com.puzzle.logger.PuzzleLog
 
 /**
  * Adapter that converts NativePuzzleEngine output into the existing
@@ -55,14 +56,14 @@ class NativeSplitAdapter {
 
         val eng = NativePuzzleEngine()
         if (!eng.isAvailable) {
-            println("NativeSplitAdapter: native library not available")
+            PuzzleLog.w("NativeSplit", "Native library not available")
             return false
         }
 
         if (!eng.loadImage(imageBytes)) {
             val err = eng.lastError() ?: "unknown error"
             eng.close()
-            println("NativeSplitAdapter: loadImage failed: $err")
+            PuzzleLog.e("NativeSplit", "loadImage failed: $err")
             return false
         }
 
@@ -70,7 +71,7 @@ class NativeSplitAdapter {
         if (result == null) {
             val err = eng.lastError() ?: "unknown error"
             eng.close()
-            println("NativeSplitAdapter: split failed: $err")
+            PuzzleLog.e("NativeSplit", "Split failed: $err (image=${imageBytes.size/1024}KB pieces=$pieceCount)")
             return false
         }
 
@@ -122,6 +123,10 @@ class NativeSplitAdapter {
         imageSize = Pair(result.image_width, result.image_height)
         correctPositions = positions
         engine = eng
+
+        PuzzleLog.i("NativeSplit", "Split OK: ${result.image_width}×${result.image_height}px " +
+            "grid=${result.grid_cols}×${result.grid_rows} bs=${result.block_size} " +
+            "pieces=${puzzlePieces.size} totalBlocks=${result.grid_cols * result.grid_rows}")
 
         return true
     }

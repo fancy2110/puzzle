@@ -57,6 +57,8 @@ class GameViewModel : ViewModel() {
         val pieceCount = currentState.difficulty.pieceCount
         val assetFile = theme.assetFile
 
+        PuzzleLog.i("GameVM", "Starting game: theme=${theme.id} difficulty=${currentState.difficulty.name} pieces=$pieceCount asset=${assetFile ?: "procedural"}")
+
         // Set loading state immediately, then do blocking work in coroutine
         resetForNewGame()
 
@@ -68,9 +70,11 @@ class GameViewModel : ViewModel() {
                         com.puzzle.game.data.AssetLoader.readBytes(assetFile)
                     }
                     if (bytes != null) {
+                        PuzzleLog.d("GameVM", "Loaded asset: $assetFile (${bytes.size} bytes)")
                         startGameWithImageInternal(bytes, pieceCount)
                         return@launch
                     }
+                    PuzzleLog.w("GameVM", "Asset $assetFile not found, falling back to procedural")
                 }
 
                 // Kotlin procedural path
@@ -125,6 +129,8 @@ class GameViewModel : ViewModel() {
         val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
         val pieceCount = currentState.difficulty.pieceCount
         val prompt = theme.description
+
+        PuzzleLog.i("GameVM", "Starting AI game: theme=${theme.id} prompt='$prompt' pieces=$pieceCount")
 
         resetForNewGame()
 
@@ -184,10 +190,12 @@ class GameViewModel : ViewModel() {
      * Called from startGame() and startGameWithImage().
      */
     private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
+        val imgSize = "${imageBytes.size / 1024}KB"
         val success = withContext(Dispatchers.Default) {
             nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64)
         }
         if (!success) {
+            PuzzleLog.w("GameVM", "Native split failed ($imgSize), falling back to Kotlin engine")
             // Fallback to Kotlin path — native library unavailable or failed
             val theme = _state.value.selectedTheme ?: ThemePresets.themes.first()
             val gameData = withContext(Dispatchers.Default) {
@@ -237,6 +245,7 @@ class GameViewModel : ViewModel() {
      * and splits it with the Kotlin puzzle engine.
      */
     private suspend fun startProceduralGame(theme: ThemeData, pieceCount: Int) {
+        PuzzleLog.d("GameVM", "Procedural generation: theme=${theme.id} pieces=$pieceCount")
         val gameData = withContext(Dispatchers.Default) {
             val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
             engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
@@ -314,6 +323,15 @@ class GameViewModel : ViewModel() {
             map
         }
 
+        // Log piece dimensions summary
+        if (pieces.isNotEmpty()) {
+            val dims = pieces.joinToString(", ") { p ->
+                "${p.id}: ${p.pixels.width}×${p.pixels.height}px@(${p.pixels.left},${p.pixels.top}) [${p.items.size}b]"
+            }
+            PuzzleLog.i("GameVM", "New game ready: ${imageWidth}×${imageHeight}px grid=${gridCols}×${gridRows} bs=$blockSize pieces=${pieces.size}")
+            PuzzleLog.d("GameVM", "Piece dimensions: $dims")
+        }
+
         _state.update {
             it.copy(
                 phase = GamePhase.PLAYING,
@@ -351,6 +369,7 @@ class GameViewModel : ViewModel() {
 
                 if (allPlaced) {
                     stopTimer()
+                    PuzzleLog.i("GameVM", "Puzzle completed! pieces=${currentState.pieces.size} time=${currentState.elapsedSeconds}s")
                     current.copy(
                         cellFilledBy = newCellFilled,
                         phase = GamePhase.COMPLETED,
@@ -407,6 +426,7 @@ class GameViewModel : ViewModel() {
     // ── Error ─────────────────────────────────────────────
 
     private fun setError(message: String) {
+        PuzzleLog.e("GameVM", "Error: $message")
         stopTimer()
         _state.update { it.copy(phase = GamePhase.ERROR, errorMessage = message, isImageLoading = false) }
     }

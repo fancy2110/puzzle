@@ -9,6 +9,7 @@ import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
+import com.puzzle.game.platformCacheDir
 import com.puzzle.game.engine.PuzzleEngine
 import com.puzzle.game.native.NativeSplitAdapter
 import kotlinx.coroutines.Job
@@ -192,7 +193,7 @@ class GameViewModel : ViewModel() {
     private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
         val imgSize = "${imageBytes.size / 1024}KB"
         val success = withContext(Dispatchers.Default) {
-            nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64)
+            nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64, platformCacheDir())
         }
         if (!success) {
             PuzzleLog.w("GameVM", "Native split failed ($imgSize), falling back to Kotlin engine")

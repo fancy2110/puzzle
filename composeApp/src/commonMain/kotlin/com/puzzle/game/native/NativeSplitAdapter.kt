@@ -13,7 +13,7 @@ class NativeSplitAdapter {
 
     private var engine: NativePuzzleEngine? = null
 
-    fun loadAndSplit(imageBytes: ByteArray, pieceCount: Int, blockSize: Int = 64): Boolean {
+    fun loadAndSplit(imageBytes: ByteArray, pieceCount: Int, blockSize: Int = 64, tempDir: String? = null): Boolean {
         close()
 
         val eng = NativePuzzleEngine()
@@ -54,6 +54,17 @@ class NativeSplitAdapter {
 
         PuzzleLog.i("NativeSplit", "Split OK: ${result.image_width}×${result.image_height}px " +
             "grid=${result.grid_cols}×${result.grid_rows} bs=${result.block_size} pieces=${pieces.size}")
+
+        // Save pieces as PNGs and log the output directory
+        if (tempDir != null) {
+            val jsonStr = eng.savePieces(tempDir, blockSize)
+            if (jsonStr != null) {
+                PuzzleLog.i("NativeSplit", "Pieces saved to: $tempDir ($jsonStr)")
+            } else {
+                PuzzleLog.w("NativeSplit", "savePieces failed to: $tempDir — ${eng.lastError() ?: "unknown"}")
+            }
+        }
+
         return true
     }
 

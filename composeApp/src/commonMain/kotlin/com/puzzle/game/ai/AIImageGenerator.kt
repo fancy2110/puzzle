@@ -1,5 +1,7 @@
 package com.puzzle.game.ai
 
+import com.puzzle.game.data.ThemeData
+import com.puzzle.game.data.ThemePresets
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.random.Random
@@ -9,8 +11,27 @@ data class GeneratedImage(
     val id: String,
     val prompt: String,
     val imageUrl: String? = null,
-    val localPath: String? = null
-)
+    val localPath: String? = null,
+    /** Raw image bytes when available directly (mock provider, cache hit) */
+    val imageBytes: ByteArray? = null
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is GeneratedImage) return false
+        return id == other.id && prompt == other.prompt &&
+                imageUrl == other.imageUrl && localPath == other.localPath &&
+                imageBytes.contentEquals(other.imageBytes)
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + prompt.hashCode()
+        result = 31 * result + (imageUrl?.hashCode() ?: 0)
+        result = 31 * result + (localPath?.hashCode() ?: 0)
+        result = 31 * result + (imageBytes?.contentHashCode() ?: 0)
+        return result
+    }
+}
 
 interface AIImageProvider {
     suspend fun generateImage(prompt: String): GeneratedImage
@@ -27,10 +48,12 @@ class MockAIImageProvider : AIImageProvider {
     )
 
     override suspend fun generateImage(prompt: String): GeneratedImage {
-        val theme = if (prompt.isBlank()) themes.random(Random) else prompt
+        val themePrompt = if (prompt.isBlank()) themes.random(kotlin.random.Random) else prompt
+        // Generate a procedurally varied image — simulates AI generation
+        val id = "mock_ai_${kotlin.random.Random.nextInt(10000, 99999)}"
         return GeneratedImage(
-            id = "img_${Random.nextInt(10000, 99999)}",
-            prompt = theme,
+            id = id,
+            prompt = themePrompt,
             imageUrl = null,
             localPath = null
         )

@@ -3,6 +3,7 @@ package com.puzzle.game.game
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.puzzle.game.ai.AIImageGenerator
 import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
@@ -18,6 +19,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 
 class GameViewModel : ViewModel() {
     private val _state = MutableStateFlow(GameState())
@@ -25,6 +29,7 @@ class GameViewModel : ViewModel() {
 
     private val engine = PuzzleEngine()
     private val nativeAdapter = NativeSplitAdapter()
+    private val aiGenerator = AIImageGenerator()
     val dragDropState = DragDropState()
 
     val themes: List<ThemeData> = ThemePresets.themes
@@ -106,6 +111,46 @@ class GameViewModel : ViewModel() {
     }
 
     /**
+     * Start a game using AI image generation.
+     * Attempts to generate via the configured AI provider,
+     * falling back to procedural generation if AI is unavailable.
+     */
+    fun startAIGame() {
+        val currentState = _state.value
+        val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
+        val pieceCount = currentState.difficulty.pieceCount
+        val prompt = theme.prompt
+
+        resetForNewGame()
+
+        viewModelScope.launch {
+            try {
+                val generated = withContext(Dispatchers.Default) {
+                    aiGenerator.generate(prompt)
+                }
+
+                // If AI returned an image URL, download and split
+                if (generated.imageUrl != null) {
+                    val imageBytes = withContext(Dispatchers.Default) {
+                        downloadImage(generated.imageUrl)
+                    }
+                    if (imageBytes != null) {
+                        startGameWithImageInternal(imageBytes, pieceCount)
+                        return@launch
+                    }
+                }
+
+                // AI returned no usable image — fall back to procedural
+                println("AI generation returned no image, falling back to procedural")
+                startProceduralGame(theme, pieceCount)
+            } catch (e: Exception) {
+                println("AI generation failed: ${e.message}, falling back to procedural")
+                startProceduralGame(theme, pieceCount)
+            }
+        }
+    }
+
+    /**
      * Internal: assumes already running in a coroutine.
      * Called from startGame() and startGameWithImage().
      */
@@ -158,6 +203,48 @@ class GameViewModel : ViewModel() {
     }
 
     // ── Shared game setup ────────────────────────────────
+
+    /**
+     * Procedural fallback: generates an image with PuzzlePictureGenerator
+     * and splits it with the Kotlin puzzle engine.
+     */
+    private suspend fun startProceduralGame(theme: ThemeData, pieceCount: Int) {
+        val gameData = withContext(Dispatchers.Default) {
+            val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
+            engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
+            engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+            GeneratedGameData(
+                pieces = engine.shufflePieces(),
+                bitmap = puzzleBitmap,
+                imageWidth = puzzleBitmap.width,
+                imageHeight = puzzleBitmap.height
+            )
+        }
+
+        applyNewGame(
+            pieces = gameData.pieces,
+            bitmap = gameData.bitmap,
+            imageWidth = gameData.imageWidth,
+            imageHeight = gameData.imageHeight,
+            blockSize = 64
+        )
+        startTimer()
+    }
+
+    /**
+     * Download image bytes from a URL.
+     * Returns null on failure — caller should fall back to procedural generation.
+     */
+    private suspend fun downloadImage(url: String): ByteArray? {
+        return try {
+            HttpClient().use { client ->
+                client.get(url).body<ByteArray>()
+            }
+        } catch (e: Exception) {
+            println("Failed to download image from $url: ${e.message}")
+            null
+        }
+    }
 
     private fun resetForNewGame() {
         nativeAdapter.close()

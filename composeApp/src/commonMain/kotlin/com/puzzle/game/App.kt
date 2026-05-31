@@ -68,7 +68,7 @@ fun App() {
                     onPickBuiltIn = { navViewModel.navigateTo(Screen.ThemePicker) },
                     onUseCurrent = { navViewModel.goBackTo(Screen.Menu) },
                     onGenerateAi = {
-                        gameViewModel.startGame()
+                        gameViewModel.startAIGame()
                         navViewModel.navigateTo(Screen.Game)
                     }
                 )

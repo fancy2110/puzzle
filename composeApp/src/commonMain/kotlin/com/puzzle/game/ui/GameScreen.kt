@@ -536,7 +536,7 @@ private fun PieceTrayHorizontal(
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(140.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(horizontal = 4.dp)
     ) {
@@ -547,9 +547,15 @@ private fun PieceTrayHorizontal(
             var pieceWindowPos by remember { mutableStateOf(Offset.Zero) }
             var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
 
+            val pieceW = piece.pixels.width.coerceAtLeast(1)
+            val pieceH = piece.pixels.height.coerceAtLeast(1)
+            val trayCardSize = 120
+            val cardWidth = ((trayCardSize * pieceW) / pieceH).coerceIn(60, trayCardSize * 3)
+
             Box(
                 modifier = Modifier
-                    .size(90.dp)
+                    .width(cardWidth.dp)
+                    .height(trayCardSize.dp)
                     .onGloballyPositioned { coords ->
                         pieceWindowPos = coords.positionInWindow()
                         pieceIntSize = coords.size
@@ -610,7 +616,7 @@ private fun PieceTrayHorizontal(
                     PieceImageContent(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
-                        cardSize = 90,
+                        cardSize = trayCardSize,
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(RoundedCornerShape(8.dp))

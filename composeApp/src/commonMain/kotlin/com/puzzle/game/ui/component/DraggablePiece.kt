@@ -39,7 +39,7 @@ internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, F
     if (w <= 0 || h <= 0) return Triple(1f, 0f, 0f)
     val scaleX = cardSize.toFloat() / w
     val scaleY = cardSize.toFloat() / h
-    val scale = minOf(scaleX, scaleY, 3f)
+    val scale = minOf(scaleX, scaleY, 8f)
     val offX = -piece.pixels.left.toFloat() * scale
     val offY = -piece.pixels.top.toFloat() * scale
     return Triple(scale, offX, offY)

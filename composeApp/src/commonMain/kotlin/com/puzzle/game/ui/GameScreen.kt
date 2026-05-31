@@ -6,7 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -551,15 +551,15 @@ private fun PieceTrayHorizontal(
             var pieceWindowPos by remember { mutableStateOf(Offset.Zero) }
             var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
 
-            val pieceW = piece.pixels.width.coerceAtLeast(1)
-            val pieceH = piece.pixels.height.coerceAtLeast(1)
-            val trayCardSize = 120
-            val cardWidth = ((trayCardSize * pieceW) / pieceH).coerceIn(60, trayCardSize * 3)
+            val pieceBitmap = pieceBitmaps[piece.id]
+            val cardAspect = pieceBitmap?.let {
+                it.width.toFloat() / it.height.coerceAtLeast(1)
+            } ?: (piece.pixels.width.toFloat() / piece.pixels.height.coerceAtLeast(1).toFloat())
 
             Box(
                 modifier = Modifier
-                    .width(cardWidth.dp)
-                    .height(trayCardSize.dp)
+                    .fillMaxHeight()
+                    .aspectRatio(cardAspect)
                     .onGloballyPositioned { coords ->
                         pieceWindowPos = coords.positionInWindow()
                         pieceIntSize = coords.size
@@ -567,7 +567,7 @@ private fun PieceTrayHorizontal(
                     .then(
                         if (!isPlaced) {
                             Modifier.pointerInput(piece.id) {
-                                detectDragGestures(
+                                detectDragGesturesAfterLongPress(
                                     onDragStart = { localOffset ->
                                         dragState.startDrag(
                                             pieceId = piece.id,
@@ -616,28 +616,13 @@ private fun PieceTrayHorizontal(
             ) {
                 if (isPlaced) {
                     Text("✓", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
-                } else {
-                    val pieceBitmap = pieceBitmaps[piece.id]
-                    if (pieceBitmap != null) {
-                        // Show the actual piece image from Rust engine
-                        Image(
-                            bitmap = pieceBitmap,
-                            contentDescription = "碎片",
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
-                            contentScale = ContentScale.Fit
-                        )
-                    } else {
-                        // Fallback: crop from source bitmap
-                        PieceImageContent(
-                            piece = piece,
-                            puzzleBitmap = puzzleBitmap,
-                            cardSize = trayCardSize,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(RoundedCornerShape(8.dp))
-                                .then(if (isBeingDragged) Modifier.background(Color.White.copy(alpha = 0.35f)) else Modifier)
-                        )
-                    }
+                } else if (pieceBitmap != null) {
+                    Image(
+                        bitmap = pieceBitmap,
+                        contentDescription = "碎片",
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Fit
+                    )
                 }
             }
         }

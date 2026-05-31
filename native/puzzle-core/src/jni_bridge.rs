@@ -7,8 +7,8 @@ use jni::sys::{jbyteArray, jint, jintArray, jlong, jstring};
 
 use crate::ffi::{
     puzzle_engine_extract_pixels, puzzle_engine_free, puzzle_engine_new,
-    puzzle_engine_piece_count, puzzle_engine_split, puzzle_last_error,
-    puzzle_string_free,
+    puzzle_engine_piece_count, puzzle_engine_save_pieces, puzzle_engine_split,
+    puzzle_last_error, puzzle_string_free,
 };
 
 // ── nativeNew(byte[] data) → long ────────────────────────
@@ -132,4 +132,32 @@ pub extern "system" fn Java_com_puzzle_game_native_NativePuzzleEngine_nativeFree
     handle: jlong,
 ) {
     puzzle_engine_free(handle as _);
+}
+
+// ── nativeSavePieces(long handle, String outputDir, int blockSize) → String ──
+
+#[no_mangle]
+pub extern "system" fn Java_com_puzzle_game_native_NativePuzzleEngine_nativeSavePieces<'local>(
+    mut env: JNIEnv<'local>,
+    _class: JClass<'local>,
+    handle: jlong,
+    output_dir: JString<'local>,
+    block_size: jint,
+) -> jstring {
+    let dir: String = match env.get_string(&output_dir) {
+        Ok(s) => s.into(),
+        Err(_) => return std::ptr::null_mut(),
+    };
+
+    let c_dir = std::ffi::CString::new(dir).unwrap_or_default();
+    let json_ptr = puzzle_engine_save_pieces(handle as _, c_dir.as_ptr(), block_size as u32);
+
+    if json_ptr.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    let c_str = unsafe { std::ffi::CStr::from_ptr(json_ptr) };
+    let result = env.new_string(c_str.to_str().unwrap_or("[]")).ok();
+    unsafe { puzzle_string_free(json_ptr) };
+    result.map(|s| s.into_raw()).unwrap_or(std::ptr::null_mut())
 }

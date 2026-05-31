@@ -280,6 +280,64 @@ impl PuzzleEngine {
     }
 
     /// Extract a piece's pixel data from the source image as raw RGBA bytes.
+    /// Save pieces as individual PNG files to the given directory.
+    /// Returns the list of saved file paths (relative to output_dir).
+    /// Each piece image is masked — only the piece's own blocks are visible,
+    /// the rest of the bounding box is transparent.
+    pub fn save_pieces(
+        &self,
+        pieces: &[PuzzlePieceData],
+        block_size: u32,
+        output_dir: &std::path::Path,
+    ) -> Result<Vec<String>, String> {
+        use image::{ImageBuffer, Rgba, RgbaImage};
+
+        std::fs::create_dir_all(output_dir)
+            .map_err(|e| format!("Failed to create output dir: {}", e))?;
+
+        let mut saved = Vec::with_capacity(pieces.len());
+
+        for piece in pieces {
+            let w = piece.pixel_width;
+            let h = piece.pixel_height;
+            let left = piece.pixel_left;
+            let top = piece.pixel_top;
+
+            // Build a block-ownership mask for fast lookup
+            let mut owned = std::collections::HashSet::new();
+            for bp in &piece.block_positions {
+                owned.insert((bp.y as u32, bp.x as u32));
+            }
+
+            // Create transparent RGBA buffer
+            let mut img: RgbaImage = ImageBuffer::new(w, h);
+
+            for py in 0..h {
+                for px in 0..w {
+                    let gx = (left + px) / block_size;
+                    let gy = (top + py) / block_size;
+
+                    if owned.contains(&(gy, gx)) {
+                        let pixel = self.img.get_pixel(left + px, top + py);
+                        img.put_pixel(px, py, Rgba([pixel[0], pixel[1], pixel[2], 255]));
+                    } else {
+                        img.put_pixel(px, py, Rgba([0, 0, 0, 0])); // transparent
+                    }
+                }
+            }
+
+            let filename = format!("{}.png", piece.id);
+            let filepath = output_dir.join(&filename);
+            img.save(&filepath)
+                .map_err(|e| format!("Failed to save {}: {}", filename, e))?;
+
+            saved.push(filename);
+        }
+
+        Ok(saved)
+    }
+
+    /// Extract raw RGBA pixel data for a single piece (legacy FFI).
     pub fn extract_piece_pixels(
         &self,
         piece: &PuzzlePieceData,
@@ -288,19 +346,16 @@ impl PuzzleEngine {
         let h = piece.pixel_height;
         let left = piece.pixel_left;
         let top = piece.pixel_top;
-
         let mut buf = Vec::with_capacity((w * h * 4) as usize);
-
         for py in top..top + h {
             for px in left..left + w {
                 let pixel = self.img.get_pixel(px, py);
-                buf.push(pixel[0]); // R
-                buf.push(pixel[1]); // G
-                buf.push(pixel[2]); // B
-                buf.push(pixel[3]); // A
+                buf.push(pixel[0]);
+                buf.push(pixel[1]);
+                buf.push(pixel[2]);
+                buf.push(pixel[3]);
             }
         }
-
         buf
     }
 }

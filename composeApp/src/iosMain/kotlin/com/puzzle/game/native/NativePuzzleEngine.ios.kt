@@ -68,4 +68,9 @@ actual class NativePuzzleEngine actual constructor() {
             nativeHandle = null
         }
     }
+
+    actual fun savePieces(outputDir: String, blockSize: Int): String? {
+        val h = nativeHandle ?: return null
+        return puzzle_engine_save_pieces(h, outputDir, blockSize.toUInt())?.toKString()
+    }
 }

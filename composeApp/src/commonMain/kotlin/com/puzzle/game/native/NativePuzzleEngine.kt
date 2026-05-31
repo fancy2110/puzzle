@@ -45,4 +45,12 @@ expect class NativePuzzleEngine() {
     fun pieceCount(): Int
     fun lastError(): String?
     fun close()
+
+    /**
+     * Save all pieces from the last split as individual PNG files.
+     * @param outputDir absolute path to the output directory
+     * @param blockSize the block size used during splitting (must match)
+     * @return JSON array of saved filenames, or null on error
+     */
+    fun savePieces(outputDir: String, blockSize: Int = 64): String?
 }

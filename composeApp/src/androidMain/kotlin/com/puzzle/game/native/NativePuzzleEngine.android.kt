@@ -59,6 +59,11 @@ actual class NativePuzzleEngine actual constructor() {
         }
     }
 
+    actual fun savePieces(outputDir: String, blockSize: Int): String? {
+        if (!isAvailable || nativeHandle == 0L) return null
+        return nativeSavePieces(nativeHandle, outputDir, blockSize)
+    }
+
     protected fun finalize() {
         close()
     }
@@ -72,5 +77,6 @@ actual class NativePuzzleEngine actual constructor() {
         @JvmStatic private external fun nativePieceCount(handle: Long): Int
         @JvmStatic private external fun nativeLastError(): String?
         @JvmStatic private external fun nativeFree(handle: Long)
+        @JvmStatic private external fun nativeSavePieces(handle: Long, outputDir: String, blockSize: Int): String?
     }
 }

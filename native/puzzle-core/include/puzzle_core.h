@@ -44,6 +44,17 @@ void puzzle_string_free(char* s);
 /** Get the last error message. Valid until the next library call. */
 const char* puzzle_last_error(void);
 
+/**
+ * Save all pieces from the last split as individual PNG files.
+ * output_dir: absolute path to the output directory (will be created)
+ * block_size: the block_size used during splitting (must match)
+ * Returns a JSON array of saved filenames, or NULL on error.
+ * Caller must free the string with puzzle_string_free().
+ */
+char* puzzle_engine_save_pieces(
+    void* handle, const char* output_dir, uint32_t block_size
+);
+
 #ifdef __cplusplus
 }
 #endif

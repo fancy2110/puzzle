@@ -164,6 +164,51 @@ pub extern "C" fn puzzle_string_free(s: *mut c_char) {
     }
 }
 
+/// Save pieces from the last split as PNG files.
+/// Returns a JSON array of filenames (caller must puzzle_string_free).
+#[no_mangle]
+pub extern "C" fn puzzle_engine_save_pieces(
+    handle: *mut PuzzleEngineHandle,
+    output_dir: *const c_char,
+    block_size: u32,
+) -> *mut c_char {
+    let h = match unsafe { handle.as_mut() } {
+        Some(h) => h,
+        None => {
+            set_error("null handle");
+            return std::ptr::null_mut();
+        }
+    };
+
+    let result = match &h.result {
+        Some(r) => r,
+        None => {
+            set_error("no split result — call puzzle_engine_split first");
+            return std::ptr::null_mut();
+        }
+    };
+
+    let dir_str = match unsafe { std::ffi::CStr::from_ptr(output_dir) }.to_str() {
+        Ok(s) => s,
+        Err(_) => {
+            set_error("invalid UTF-8 in output_dir");
+            return std::ptr::null_mut();
+        }
+    };
+
+    let path = std::path::Path::new(dir_str);
+    match h.engine.save_pieces(&result.pieces, block_size, path) {
+        Ok(filenames) => {
+            let json = serde_json::to_string(&filenames).unwrap_or_else(|_| "[]".to_string());
+            CString::new(json).ok().map(|cs| cs.into_raw()).unwrap_or(std::ptr::null_mut())
+        }
+        Err(e) => {
+            set_error(&e);
+            std::ptr::null_mut()
+        }
+    }
+}
+
 /// Get the last error message. Returns null if no error.
 /// The returned pointer is valid until the next call into the library.
 #[no_mangle]

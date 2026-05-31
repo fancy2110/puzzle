@@ -9,7 +9,7 @@ data class ThemeData(
     val primary: Color,
     val secondary: Color,
     val accent: Color,
-    val prompt: String,
+    val description: String,
     /** If non-null, load this asset file and use native Rust splitting */
     val assetFile: String? = null
 )
@@ -23,7 +23,7 @@ object ThemePresets {
             primary = Color(0xFF607D8B),
             secondary = Color(0xFFCFD8DC),
             accent = Color(0xFFFF7043),
-            prompt = "demo1.png — Rust native splitter",
+            description = "demo1.png — Rust native splitter",
             assetFile = "demo1.png"
         ),
         ThemeData(
@@ -33,7 +33,7 @@ object ThemePresets {
             primary = Color(0xFFFFB74D),
             secondary = Color(0xFFFFCC80),
             accent = Color(0xFFFF8A65),
-            prompt = "可爱的小猫咪在草地上玩耍"
+            description = "可爱的小猫咪在草地上玩耍"
         ),
         ThemeData(
             id = "balloon",
@@ -42,7 +42,7 @@ object ThemePresets {
             primary = Color(0xFF81D4FA),
             secondary = Color(0xFFB3E5FC),
             accent = Color(0xFFFFF176),
-            prompt = "五彩缤纷的热气球在蓝天飞翔"
+            description = "五彩缤纷的热气球在蓝天飞翔"
         ),
         ThemeData(
             id = "ocean",
@@ -51,7 +51,7 @@ object ThemePresets {
             primary = Color(0xFF4FC3F7),
             secondary = Color(0xFF80DEEA),
             accent = Color(0xFFFFAB91),
-            prompt = "海底世界的彩色小鱼和珊瑚"
+            description = "海底世界的彩色小鱼和珊瑚"
         ),
         ThemeData(
             id = "forest",
@@ -60,7 +60,7 @@ object ThemePresets {
             primary = Color(0xFFA5D6A7),
             secondary = Color(0xFFC8E6C9),
             accent = Color(0xFFFFCC80),
-            prompt = "森林里的小动物们在开派对"
+            description = "森林里的小动物们在开派对"
         ),
         ThemeData(
             id = "space",
@@ -69,7 +69,7 @@ object ThemePresets {
             primary = Color(0xFF7E57C2),
             secondary = Color(0xFFB39DDB),
             accent = Color(0xFFFFEB3B),
-            prompt = "太空中的火箭和闪亮的星星"
+            description = "太空中的火箭和闪亮的星星"
         ),
         ThemeData(
             id = "flower",
@@ -78,7 +78,7 @@ object ThemePresets {
             primary = Color(0xFFF48FB1),
             secondary = Color(0xFFF8BBD0),
             accent = Color(0xFF80D8FF),
-            prompt = "花园里的蝴蝶和美丽的花朵"
+            description = "花园里的蝴蝶和美丽的花朵"
         )
     )
 

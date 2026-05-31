@@ -12,7 +12,7 @@ class AssetImageProvider(
     override suspend fun generateImage(prompt: String): GeneratedImage {
         return GeneratedImage(
             id = "asset_${theme.id}",
-            prompt = theme.prompt,
+            prompt = theme.description,
             imageUrl = null,
             localPath = null
         )

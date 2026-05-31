@@ -1,8 +1,8 @@
 package com.puzzle.game.audio
 
 actual class SoundManager {
-    // iOS implementation — would use AVAudioPlayer.
-    // For now these are no-ops.
+    /** TODO(v1.1): Implement with AVAudioPlayer — load .caf/.m4a from bundle.
+     *  @see SoundManager.android.kt for Android SoundPool plan. */
     actual fun playPieceSelect() = Unit
     actual fun playPiecePlace() = Unit
     actual fun playPieceWrong() = Unit

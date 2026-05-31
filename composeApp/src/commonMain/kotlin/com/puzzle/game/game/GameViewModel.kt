@@ -123,7 +123,7 @@ class GameViewModel : ViewModel() {
         val currentState = _state.value
         val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
         val pieceCount = currentState.difficulty.pieceCount
-        val prompt = theme.prompt
+        val prompt = theme.description
 
         resetForNewGame()
 

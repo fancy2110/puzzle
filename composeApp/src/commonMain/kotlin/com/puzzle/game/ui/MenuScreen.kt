@@ -160,7 +160,7 @@ private fun PuzzlePreviewCard(
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = theme.prompt,
+                        text = theme.description,
                         color = Color.White.copy(alpha = 0.82f),
                         fontSize = 12.sp,
                         maxLines = 1

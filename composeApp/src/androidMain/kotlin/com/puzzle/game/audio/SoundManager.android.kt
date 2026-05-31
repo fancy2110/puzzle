@@ -20,8 +20,8 @@ actual class SoundManager(context: Context) {
             .build()
     }
 
-    // In a production app, load from res/raw/.
-    // For now these are no-ops — real sound files would be added as assets.
+    /** TODO(v1.1): Implement with SoundPool — load .ogg/.wav from res/raw/.
+     *  @see SoundManager.ios.kt for iOS AVAudioPlayer plan. */
     actual fun playPieceSelect() = Unit
     actual fun playPiecePlace() = Unit
     actual fun playPieceWrong() = Unit

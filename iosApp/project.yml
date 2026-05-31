@@ -1,0 +1,36 @@
+name: iosApp
+options:
+  bundleIdPrefix: com.puzzle.game
+  deploymentTarget:
+    iOS: "26.0"
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: 1
+
+targets:
+  iosApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: iosApp
+    settings:
+      base:
+        INFOPLIST_FILE: iosApp/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.puzzle.game
+        FRAMEWORK_SEARCH_PATHS:
+          - "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework"
+          - "$(SRCROOT)/../composeApp/build/bin/iosArm64/debugFramework"
+        OTHER_LINKER_FLAGS:
+          - "$(inherited)"
+          - "-framework"
+          - "ComposeApp"
+    preBuildScripts:
+      - name: "Build Kotlin Framework"
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+        basedOnDependencyAnalysis: false
+        inputFiles: []
+        outputFiles: []

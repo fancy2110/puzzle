@@ -122,3 +122,46 @@ tasks.register<Copy>("copyIosResources") {
 tasks.matching { it.name.startsWith("link") && it.name.contains("FrameworkIos") }.configureEach {
     dependsOn("copyIosResources")
 }
+
+// ── iOS Simulator Run ────────────────────────────────────
+
+tasks.register("iosSimulatorArm64Run") {
+    group = "ios"
+    description = "Build framework and launch iOS simulator"
+    dependsOn("linkDebugFrameworkIosSimulatorArm64")
+    doLast {
+        val xcrun = "/usr/bin/xcrun"
+        val appPath = "${rootProject.projectDir}/iosApp/iosApp.xcodeproj"
+
+        // Boot simulator if not running
+        exec {
+            commandLine(xcrun, "simctl", "boot", "iPhone 17 Pro")
+            isIgnoreExitValue = true
+        }
+        // Open simulator
+        exec {
+            commandLine("open", "-a", "Simulator")
+        }
+        // Build and run via xcodebuild
+        exec {
+            workingDir = file("${rootProject.projectDir}/iosApp")
+            commandLine(
+                xcrun, "xcodebuild",
+                "-project", "iosApp.xcodeproj",
+                "-scheme", "iosApp",
+                "-configuration", "Debug",
+                "-destination", "platform=iOS Simulator,name=iPhone 17 Pro",
+                "build"
+            )
+        }
+        // Install and launch
+        exec {
+            commandLine(xcrun, "simctl", "install", "booted",
+                "${rootProject.projectDir}/iosApp/build/Debug-iphonesimulator/iosApp.app"
+            )
+        }
+        exec {
+            commandLine(xcrun, "simctl", "launch", "booted", "com.puzzle.game")
+        }
+    }
+}

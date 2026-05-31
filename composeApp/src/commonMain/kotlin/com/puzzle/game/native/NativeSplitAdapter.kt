@@ -1,7 +1,13 @@
 package com.puzzle.game.native
 
+import androidx.compose.ui.graphics.ImageBitmap
+import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.engine.model.PuzzlePiece
+import com.puzzle.game.readFileBytes
 import com.puzzle.logger.PuzzleLog
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
 
 class NativeSplitAdapter {
 
@@ -11,7 +17,11 @@ class NativeSplitAdapter {
     var imageSize: Pair<Int, Int> = Pair(0, 0); private set
     var correctPositions: Map<String, Pair<Int, Int>> = emptyMap(); private set
 
+    /** Loaded piece images keyed by piece id. */
+    var pieceBitmaps: Map<String, ImageBitmap> = emptyMap(); private set
+
     private var engine: NativePuzzleEngine? = null
+    private val json = Json { ignoreUnknownKeys = true }
 
     fun loadAndSplit(imageBytes: ByteArray, pieceCount: Int, blockSize: Int = 64, tempDir: String? = null): Boolean {
         close()
@@ -55,18 +65,38 @@ class NativeSplitAdapter {
         PuzzleLog.i("NativeSplit", "Split OK: ${result.image_width}×${result.image_height}px " +
             "grid=${result.grid_cols}×${result.grid_rows} bs=${result.block_size} pieces=${pieces.size}")
 
-        // Save pieces as PNGs and log the output directory
+        // Save PNGs to cache and load them back as bitmaps
         if (tempDir != null) {
             val jsonStr = eng.savePieces(tempDir, blockSize)
             if (jsonStr != null) {
                 PuzzleLog.i("NativeSplit", "Pieces saved to: $tempDir ($jsonStr)")
+                pieceBitmaps = loadBitmapsFromCache(tempDir, jsonStr)
+                PuzzleLog.i("NativeSplit", "Loaded ${pieceBitmaps.size} piece bitmaps")
             } else {
-                PuzzleLog.w("NativeSplit", "savePieces failed to: $tempDir — ${eng.lastError() ?: "unknown"}")
+                PuzzleLog.w("NativeSplit", "savePieces failed: ${eng.lastError() ?: "unknown"}")
             }
         }
 
         return true
     }
 
-    fun close() { engine?.close(); engine = null; pieces = emptyList() }
+    private fun loadBitmapsFromCache(dir: String, jsonStr: String): Map<String, ImageBitmap> {
+        return try {
+            val filenames = json.parseToJsonElement(jsonStr).jsonArray
+            filenames.mapNotNull { el ->
+                val name = el.jsonPrimitive.content
+                val path = "$dir/$name"
+                val bytes = readFileBytes(path)
+                if (bytes != null) {
+                    val bmp = decodeToImageBitmap(bytes)
+                    if (bmp != null) name.removeSuffix(".png") to bmp else null
+                } else null
+            }.toMap()
+        } catch (e: Exception) {
+            PuzzleLog.w("NativeSplit", "Failed to load bitmaps: ${e.message}")
+            emptyMap()
+        }
+    }
+
+    fun close() { engine?.close(); engine = null; pieces = emptyList(); pieceBitmaps = emptyMap() }
 }

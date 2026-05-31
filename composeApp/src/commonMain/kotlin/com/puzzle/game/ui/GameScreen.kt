@@ -2,6 +2,7 @@ package com.puzzle.game.ui
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -222,6 +223,7 @@ private fun PlayingScreen(
                     PieceTrayHorizontal(
                         pieces = state.pieces,
                         puzzleBitmap = state.puzzleBitmap,
+                        pieceBitmaps = state.pieceBitmaps,
                         placedPieceIds = filledSet,
                         dragState = dragState,
                         onDragEnd = { viewModel.handleDragEnd() }
@@ -258,6 +260,7 @@ private fun PlayingScreen(
                 PieceTrayHorizontal(
                     pieces = state.pieces,
                     puzzleBitmap = state.puzzleBitmap,
+                    pieceBitmaps = state.pieceBitmaps,
                     placedPieceIds = filledSet,
                     dragState = dragState,
                     onDragEnd = { viewModel.handleDragEnd() }
@@ -529,6 +532,7 @@ private fun GameBoardArea(
 private fun PieceTrayHorizontal(
     pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
     puzzleBitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    pieceBitmaps: Map<String, androidx.compose.ui.graphics.ImageBitmap> = emptyMap(),
     placedPieceIds: Set<String>,
     dragState: com.puzzle.game.game.DragDropState,
     onDragEnd: () -> Unit
@@ -613,15 +617,27 @@ private fun PieceTrayHorizontal(
                 if (isPlaced) {
                     Text("✓", fontSize = 20.sp, color = MaterialTheme.colorScheme.primary)
                 } else {
-                    PieceImageContent(
-                        piece = piece,
-                        puzzleBitmap = puzzleBitmap,
-                        cardSize = trayCardSize,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(8.dp))
-                            .then(if (isBeingDragged) Modifier.background(Color.White.copy(alpha = 0.35f)) else Modifier)
-                    )
+                    val pieceBitmap = pieceBitmaps[piece.id]
+                    if (pieceBitmap != null) {
+                        // Show the actual piece image from Rust engine
+                        Image(
+                            bitmap = pieceBitmap,
+                            contentDescription = "碎片",
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
+                            contentScale = ContentScale.Fit
+                        )
+                    } else {
+                        // Fallback: crop from source bitmap
+                        PieceImageContent(
+                            piece = piece,
+                            puzzleBitmap = puzzleBitmap,
+                            cardSize = trayCardSize,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(8.dp))
+                                .then(if (isBeingDragged) Modifier.background(Color.White.copy(alpha = 0.35f)) else Modifier)
+                        )
+                    }
                 }
             }
         }

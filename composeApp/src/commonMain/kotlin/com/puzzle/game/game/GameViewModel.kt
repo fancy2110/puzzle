@@ -231,6 +231,7 @@ class GameViewModel : ViewModel() {
         applyNewGame(
             pieces = nativeAdapter.pieces,
             bitmap = bitmap,
+            pieceBitmaps = nativeAdapter.pieceBitmaps,
             imageWidth = imgW,
             imageHeight = imgH,
             blockSize = 64,
@@ -305,6 +306,7 @@ class GameViewModel : ViewModel() {
     private fun applyNewGame(
         pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
         bitmap: ImageBitmap,
+        pieceBitmaps: Map<String, ImageBitmap> = emptyMap(),
         imageWidth: Int,
         imageHeight: Int,
         blockSize: Int,
@@ -338,6 +340,7 @@ class GameViewModel : ViewModel() {
                 phase = GamePhase.PLAYING,
                 pieces = pieces,
                 puzzleBitmap = bitmap,
+                pieceBitmaps = pieceBitmaps,
                 gridCols = gridCols,
                 gridRows = gridRows,
                 correctPositions = correctPositions,

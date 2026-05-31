@@ -26,6 +26,7 @@ data class GameState(
     val selectedTheme: ThemeData? = ThemePresets.themes.first(),
     val pieces: List<PuzzlePiece> = emptyList(),
     val puzzleBitmap: ImageBitmap? = null,
+    val pieceBitmaps: Map<String, ImageBitmap> = emptyMap(),
     val isImageLoading: Boolean = false,
     val gridCols: Int = 0,
     val gridRows: Int = 0,

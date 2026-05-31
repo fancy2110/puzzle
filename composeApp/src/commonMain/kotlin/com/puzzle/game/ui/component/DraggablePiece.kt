@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
 
+// ── Legacy bounding-box scaler (kept for FloatingDraggedPiece) ──
+
 internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, Float, Float> {
     val w = piece.pixels.width
     val h = piece.pixels.height
@@ -44,6 +46,58 @@ internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int): Triple<Float, F
     val offY = -piece.pixels.top.toFloat() * scale
     return Triple(scale, offX, offY)
 }
+
+// ── Block-based piece renderer — shows only actual content ──
+
+/**
+ * Renders a puzzle piece by drawing each of its grid blocks individually,
+ * arranged in their relative positions. This avoids the huge transparent
+ * margins that come from using the rectangular bounding box.
+ *
+ * Each source block (64×64 px) is displayed at [blockDp] dp.
+ */
+@Composable
+internal fun PieceBlockContent(
+    piece: PuzzlePiece,
+    puzzleBitmap: ImageBitmap?,
+    blockSizePx: Int = 64,
+    blockDp: Int = 14,
+    modifier: Modifier = Modifier
+) {
+    if (puzzleBitmap == null || piece.items.isEmpty()) return
+
+    val blocks = piece.items // List<Position> — (y, x) grid coordinates
+    val minY = blocks.minOf { it.y }
+    val minX = blocks.minOf { it.x }
+
+    Box(modifier = modifier) {
+        for ((y, x) in blocks) {
+            val relY = y - minY
+            val relX = x - minX
+            val srcLeft = x * blockSizePx
+            val srcTop = y * blockSizePx
+
+            Image(
+                bitmap = puzzleBitmap,
+                contentDescription = null,
+                modifier = Modifier
+                    .offset(x = (relX * blockDp).dp, y = (relY * blockDp).dp)
+                    .size(blockDp.dp)
+                    .graphicsLayer {
+                        // Scale the 64px source block to blockDp dp
+                        val s = blockDp.toFloat() / blockSizePx.toFloat()
+                        scaleX = s
+                        scaleY = s
+                        translationX = -srcLeft.toFloat() * s
+                        translationY = -srcTop.toFloat() * s
+                    },
+                contentScale = ContentScale.None
+            )
+        }
+    }
+}
+
+// ── Legacy bounding-box renderer (for floating drag overlay) ──
 
 @Composable
 internal fun PieceImageContent(
@@ -149,10 +203,10 @@ fun PieceTray(
                 if (isPlaced) {
                     Text("✓", fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
                 } else {
-                    PieceImageContent(
+                    PieceBlockContent(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
-                        cardSize = 100,
+                        blockDp = 14,
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(6.dp))
                     )
                 }

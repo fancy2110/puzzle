@@ -144,13 +144,37 @@ class GameViewModel : ViewModel() {
                     }
                 }
 
+                // If AI returned a local file path, load and split
+                if (generated.localPath != null) {
+                    val bytes = withContext(Dispatchers.Default) {
+                        com.puzzle.game.data.AssetLoader.readBytes(generated.localPath)
+                    }
+                    if (bytes != null) {
+                        startGameWithImageInternal(bytes, pieceCount)
+                        return@launch
+                    }
+                }
+
                 // AI returned no usable image — fall back to procedural
-                println("AI generation returned no image, falling back to procedural")
-                startProceduralGame(theme, pieceCount)
+                startGuardedProcedural(theme, pieceCount)
             } catch (e: Exception) {
-                println("AI generation failed: ${e.message}, falling back to procedural")
-                startProceduralGame(theme, pieceCount)
+                startGuardedProcedural(theme, pieceCount, e.message)
             }
+        }
+    }
+
+    /**
+     * Start procedural game with error guard.
+     * If even procedural generation fails, sets ERROR phase so user sees a retry button.
+     */
+    private suspend fun startGuardedProcedural(theme: ThemeData, pieceCount: Int, fallbackReason: String? = null) {
+        try {
+            fallbackReason?.let { reason ->
+                // Log: AI generation failed: $reason, falling back to procedural
+            }
+            startProceduralGame(theme, pieceCount)
+        } catch (e: Exception) {
+            setError("拼图生成失败: ${e.message ?: "未知错误"}")
         }
     }
 
@@ -163,8 +187,7 @@ class GameViewModel : ViewModel() {
             nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64)
         }
         if (!success) {
-            // Fallback to Kotlin path
-            println("Native split failed, falling back to Kotlin engine")
+            // Fallback to Kotlin path — native library unavailable or failed
             val theme = _state.value.selectedTheme ?: ThemePresets.themes.first()
             val gameData = withContext(Dispatchers.Default) {
                 val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
@@ -245,7 +268,7 @@ class GameViewModel : ViewModel() {
                 client.get(url).body<ByteArray>()
             }
         } catch (e: Exception) {
-            println("Failed to download image from $url: ${e.message}")
+            // Log: Failed to download image from URL, fallback to procedural
             null
         }
     }
@@ -388,7 +411,7 @@ class GameViewModel : ViewModel() {
     }
 
     fun retryGame() {
-        _state.update { it.copy(phase = GamePhase.MENU, errorMessage = null) }
+        _state.update { it.copy(phase = GamePhase.GENERATING, errorMessage = null, isImageLoading = true) }
         startGame()
     }
 

@@ -33,15 +33,15 @@ expect class Preferences {
  * iOS: no initialization needed
  */
 object PreferencesFactory {
-    private var androidContext: Any? = null
+    private var platformContext: Any? = null
 
     fun init(context: Any) {
-        androidContext = context
+        platformContext = context
     }
 
     fun create(): Preferences {
         @Suppress("UNCHECKED_CAST")
-        return createPreferences(androidContext)
+        return createPreferences(platformContext)
     }
 }
 

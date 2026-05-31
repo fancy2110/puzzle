@@ -4,39 +4,24 @@ import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import kotlin.random.Random
 
 @Serializable
 data class GeneratedImage(
     val id: String,
     val prompt: String,
     val imageUrl: String? = null,
-    val localPath: String? = null,
-    /** Raw image bytes when available directly (mock provider, cache hit) */
-    val imageBytes: ByteArray? = null
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is GeneratedImage) return false
-        return id == other.id && prompt == other.prompt &&
-                imageUrl == other.imageUrl && localPath == other.localPath &&
-                imageBytes.contentEquals(other.imageBytes)
-    }
-
-    override fun hashCode(): Int {
-        var result = id.hashCode()
-        result = 31 * result + prompt.hashCode()
-        result = 31 * result + (imageUrl?.hashCode() ?: 0)
-        result = 31 * result + (localPath?.hashCode() ?: 0)
-        result = 31 * result + (imageBytes?.contentHashCode() ?: 0)
-        return result
-    }
-}
+    val localPath: String? = null
+)
 
 interface AIImageProvider {
     suspend fun generateImage(prompt: String): GeneratedImage
 }
 
+/**
+ * Mock AI provider that returns a no-op GeneratedImage.
+ * In Cycle 1-2 this triggers procedural fallback in GameViewModel.
+ * Replace with TongyiImageProvider when an API key is configured.
+ */
 class MockAIImageProvider : AIImageProvider {
     private val themes = listOf(
         "可爱的小猫咪在草地上玩耍",

@@ -63,17 +63,30 @@ if [ -n "$NDK" ]; then
 
     TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/$HOST_TAG"
 
-    declare -A TARGETS=(
-        ["aarch64-linux-android"]="arm64-v8a"
-        ["armv7-linux-androideabi"]="armv7-linux-androideabi"
-        ["x86_64-linux-android"]="x86_64"
+    TARGETS=(
+        "aarch64-linux-android"
+        "armv7-linux-androideabi"
+        "x86_64-linux-android"
     )
 
-    for TARGET in "${!TARGETS[@]}"; do
-        ABI="${TARGETS[$TARGET]}"
+    for TARGET in "${TARGETS[@]}"; do
+        case "$TARGET" in
+            aarch64-linux-android)
+                ABI="arm64-v8a"
+                CLANG_PREFIX="aarch64-linux-android"
+                ;;
+            armv7-linux-androideabi)
+                ABI="armeabi-v7a"
+                CLANG_PREFIX="armv7a-linux-androideabi"
+                ;;
+            x86_64-linux-android)
+                ABI="x86_64"
+                CLANG_PREFIX="x86_64-linux-android"
+                ;;
+        esac
         echo "Building for $TARGET ($ABI)..."
 
-        CC="$TOOLCHAIN/bin/${TARGET}26-clang"
+        CC="$TOOLCHAIN/bin/${CLANG_PREFIX}26-clang"
         export CC_${TARGET//-/_}="$CC"
         export AR_${TARGET//-/_}="$TOOLCHAIN/bin/llvm-ar"
         export CARGO_TARGET_$(echo $TARGET | tr '[:lower:]-' '[:upper:]_')_LINKER="$CC"

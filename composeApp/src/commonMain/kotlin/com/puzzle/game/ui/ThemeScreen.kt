@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -20,6 +21,11 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.ui.component.CloudButton
+import com.puzzle.game.ui.component.CoralButton
+import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.ui.theme.PuzzleColors
+import com.puzzle.game.ui.theme.PuzzleDimens
 
 @Composable
 fun ThemeScreen(
@@ -30,36 +36,35 @@ fun ThemeScreen(
     val state by viewModel.state.collectAsState()
     val themes = viewModel.themes
 
-    Column(
-        modifier = Modifier.fillMaxSize().padding(16.dp)
-    ) {
-        // Top bar
+    PuzzleBackground {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(PuzzleDimens.PagePadding)
+        ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
             TextButton(onClick = onBack) {
-                Text("← 返回", fontSize = 15.sp)
+                Text("‹", fontSize = 30.sp, color = PuzzleColors.StoneDark)
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "选择主题",
-                fontSize = 18.sp,
+                text = "选择画面",
+                fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = PuzzleColors.StoneDark
             )
             Spacer(modifier = Modifier.weight(1f))
-            // balance
             Spacer(modifier = Modifier.width(60.dp))
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(20.dp))
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier.fillMaxWidth().weight(1f),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             items(themes, key = { it.id }) { theme ->
                 val isSelected = state.selectedTheme?.id == theme.id
@@ -71,22 +76,19 @@ fun ThemeScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(18.dp))
 
-        // Confirm button
-        Button(
+        CoralButton(
+            text = "开始这张",
             onClick = onConfirm,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Text(
-                text = "确认选择",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        CloudButton(
+            text = "确认选择",
+            onClick = onConfirm,
+            modifier = Modifier.fillMaxWidth()
+        )
         }
     }
 }
@@ -99,23 +101,23 @@ private fun ThemePickerCard(
 ) {
     Card(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().aspectRatio(1.1f),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth().aspectRatio(0.72f),
+        shape = RoundedCornerShape(PuzzleDimens.CardRadius),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected)
-                theme.primary.copy(alpha = 0.15f)
+                PuzzleColors.Cloud
             else
-                MaterialTheme.colorScheme.surface
+                PuzzleColors.Cloud.copy(alpha = 0.80f)
         ),
         border = if (isSelected) {
-            androidx.compose.foundation.BorderStroke(3.dp, theme.primary)
+            androidx.compose.foundation.BorderStroke(2.dp, PuzzleColors.Coral)
         } else null,
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isSelected) 6.dp else 1.dp
+            defaultElevation = if (isSelected) 8.dp else 2.dp
         )
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(14.dp),
+            modifier = Modifier.fillMaxSize().padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -126,7 +128,7 @@ private fun ThemePickerCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(theme.primary.copy(alpha = 0.18f))
             ) {
                 Image(
@@ -139,18 +141,22 @@ private fun ThemePickerCard(
             Spacer(modifier = Modifier.height(10.dp))
             Text(
                 text = theme.name,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Medium,
+                fontSize = 19.sp,
+                fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurface
+                color = PuzzleColors.StoneDark
             )
-            if (isSelected) {
-                Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+            Surface(
+                shape = RoundedCornerShape(50),
+                color = if (isSelected) PuzzleColors.Coral else PuzzleColors.Stone.copy(alpha = 0.45f)
+            ) {
                 Text(
-                    text = "✓ 已选",
-                    fontSize = 12.sp,
-                    color = theme.primary,
-                    fontWeight = FontWeight.Bold
+                    text = if (isSelected) "✓ 6片" else "6片",
+                    fontSize = 13.sp,
+                    color = if (isSelected) Color.White else PuzzleColors.Muted,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
                 )
             }
         }

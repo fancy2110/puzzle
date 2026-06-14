@@ -8,7 +8,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +29,13 @@ import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.game.GameDifficulty
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.ui.component.CloudButton
+import com.puzzle.game.ui.component.CoralButton
+import com.puzzle.game.ui.component.Plaque
+import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.ui.component.StoneSurface
+import com.puzzle.game.ui.theme.PuzzleColors
+import com.puzzle.game.ui.theme.PuzzleDimens
 
 @Composable
 fun MenuScreen(
@@ -43,51 +49,47 @@ fun MenuScreen(
     val theme = state.selectedTheme ?: viewModel.themes.first()
     val preview = remember(theme.id) { PuzzlePictureGenerator.generate(theme, 800, 600) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        HomeTopBar(onOpenSettings = onOpenSettings)
-
-        PuzzlePreviewCard(
-            theme = theme,
-            difficulty = state.difficulty,
-            preview = preview,
+    PuzzleBackground {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)
-        )
-
-        DifficultySelector(
-            selected = state.difficulty,
-            onSelect = viewModel::selectDifficulty
-        )
-
-        Button(
-            onClick = onStartGame,
-            modifier = Modifier.fillMaxWidth().height(54.dp),
-            shape = RoundedCornerShape(8.dp)
+                .fillMaxSize()
+                .padding(PuzzleDimens.PagePadding),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("开始游戏", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-        }
+            HomeTopBar(onOpenSettings = onOpenSettings)
 
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            OutlinedButton(
-                onClick = onPickTheme,
-                modifier = Modifier.weight(1f).height(48.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("换主题")
-            }
-            OutlinedButton(
-                onClick = onPickImage,
-                modifier = Modifier.weight(1f).height(48.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("换图片")
+            PuzzlePreviewCard(
+                theme = theme,
+                difficulty = state.difficulty,
+                preview = preview,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            )
+
+            DifficultySelector(
+                selected = state.difficulty,
+                onSelect = viewModel::selectDifficulty
+            )
+
+            CoralButton(
+                text = "开始游戏",
+                onClick = onStartGame,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                CloudButton(
+                    text = "换主题",
+                    onClick = onPickTheme,
+                    modifier = Modifier.weight(1f)
+                )
+                CloudButton(
+                    text = "换图片",
+                    onClick = onPickImage,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -100,25 +102,14 @@ private fun HomeTopBar(onOpenSettings: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = "Puzzle",
-                fontSize = 30.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = "选一张图，拼出完整画面",
-                fontSize = 13.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            Text("Puzzle", fontSize = 34.sp, fontWeight = FontWeight.Bold, color = PuzzleColors.StoneDark)
+            Text("选一张图，拼出完整画面", fontSize = 13.sp, color = PuzzleColors.Muted)
         }
-        OutlinedButton(
+        CloudButton(
+            text = "设置",
             onClick = onOpenSettings,
-            shape = RoundedCornerShape(8.dp),
-            contentPadding = PaddingValues(horizontal = 12.dp)
-        ) {
-            Text("设置")
-        }
+            modifier = Modifier.width(78.dp).height(44.dp)
+        )
     }
 }
 
@@ -131,51 +122,43 @@ private fun PuzzlePreviewCard(
 ) {
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(PuzzleDimens.CardRadius))
     ) {
-        Image(
-            bitmap = preview,
-            contentDescription = theme.name,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
+        StoneSurface(modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize().padding(10.dp)) {
+                Image(
+                    bitmap = preview,
+                    contentDescription = theme.name,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
         Box(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.82f)
                 .align(Alignment.BottomCenter)
-                .background(
-                    Brush.verticalGradient(
-                        listOf(Color.Transparent, Color.Black.copy(alpha = 0.62f))
-                    )
-                )
-                .padding(top = 56.dp, start = 14.dp, end = 14.dp, bottom = 14.dp)
+                .padding(bottom = 18.dp)
         ) {
-            Row(verticalAlignment = Alignment.Bottom) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = theme.name,
-                        color = Color.White,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+            Plaque(modifier = Modifier.fillMaxWidth()) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(theme.name, color = PuzzleColors.StoneDark, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Surface(shape = RoundedCornerShape(50), color = PuzzleColors.Teal) {
+                        Text(
+                            text = "${difficulty.label.substringBefore(" ")} · ${difficulty.pieceCount}片",
+                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 7.dp),
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                     Text(
                         text = theme.description,
-                        color = Color.White.copy(alpha = 0.82f),
-                        fontSize = 12.sp,
-                        maxLines = 1
-                    )
-                }
-                Surface(
-                    shape = RoundedCornerShape(50),
-                    color = Color.White.copy(alpha = 0.9f)
-                ) {
-                    Text(
-                        text = "${difficulty.pieceCount} 片",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        color = PuzzleColors.Muted,
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 6.dp)
                     )
                 }
             }
@@ -196,32 +179,34 @@ private fun DifficultySelector(
             Text(
                 text = "难度",
                 fontWeight = FontWeight.Bold,
+                color = PuzzleColors.StoneDark,
                 modifier = Modifier.weight(1f)
             )
             Text(
                 text = selected.label,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = PuzzleColors.Muted,
                 fontSize = 12.sp
             )
         }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.52f))
-                .padding(4.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                .clip(RoundedCornerShape(PuzzleDimens.ControlRadius))
+                .background(PuzzleColors.Cloud)
+                .border(1.dp, PuzzleColors.Stone.copy(alpha = 0.65f), RoundedCornerShape(PuzzleDimens.ControlRadius))
+                .padding(6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             GameDifficulty.entries.forEach { difficulty ->
                 val isSelected = difficulty == selected
                 Button(
                     onClick = { onSelect(difficulty) },
                     modifier = Modifier.weight(1f).height(38.dp),
-                    shape = RoundedCornerShape(6.dp),
+                    shape = RoundedCornerShape(18.dp),
                     elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.surface else Color.Transparent,
-                        contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        containerColor = if (isSelected) PuzzleColors.Teal else Color.Transparent,
+                        contentColor = if (isSelected) Color.White else PuzzleColors.Muted
                     ),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {

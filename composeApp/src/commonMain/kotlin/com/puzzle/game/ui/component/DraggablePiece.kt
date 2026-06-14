@@ -181,11 +181,14 @@ fun PieceTray(
 @Composable
 fun FloatingDraggedPiece(
     puzzleBitmap: ImageBitmap?,
+    pieceBitmaps: Map<String, ImageBitmap> = emptyMap(),
     dragState: DragDropState,
     pieces: List<PuzzlePiece>
 ) {
     if (!dragState.isDragging || dragState.draggedPieceId == null) return
-    val piece = pieces.firstOrNull { it.id == dragState.draggedPieceId } ?: return
+    val pieceId = dragState.draggedPieceId ?: return
+    val piece = pieces.firstOrNull { it.id == pieceId } ?: return
+    val pieceBitmap = pieceBitmaps[pieceId]
 
     Box(
         modifier = Modifier
@@ -196,11 +199,20 @@ fun FloatingDraggedPiece(
             .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
-        PieceImageContent(
-            piece = piece,
-            puzzleBitmap = puzzleBitmap,
-            cardSize = 110,
-            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
-        )
+        if (pieceBitmap != null) {
+            Image(
+                bitmap = pieceBitmap,
+                contentDescription = "拖拽碎片",
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+                contentScale = ContentScale.Fit
+            )
+        } else {
+            PieceImageContent(
+                piece = piece,
+                puzzleBitmap = puzzleBitmap,
+                cardSize = 110,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+            )
+        }
     }
 }

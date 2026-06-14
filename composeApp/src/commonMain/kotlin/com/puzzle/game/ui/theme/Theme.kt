@@ -3,29 +3,57 @@ package com.puzzle.game.ui.theme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 
+object PuzzleColors {
+    val Mist = Color(0xFFF7F2EA)
+    val Cloud = Color(0xFFFFF9F0)
+    val Stone = Color(0xFFD9CBB6)
+    val StoneDark = Color(0xFF7A6750)
+    val Muted = Color(0xFF8F806E)
+    val Teal = Color(0xFF7CAEA5)
+    val TealDark = Color(0xFF356D6A)
+    val Coral = Color(0xFFE98166)
+    val CoralDark = Color(0xFFB85B44)
+    val Gold = Color(0xFFCDA45A)
+    val ErrorSoft = Color(0xFFC76A5A)
+}
+
+object PuzzleDimens {
+    val PagePadding = 18.dp
+    val CompactPadding = 10.dp
+    val CardRadius = 18.dp
+    val ControlRadius = 24.dp
+    val SmallRadius = 10.dp
+    val IconButton = 46.dp
+    val PrimaryButtonHeight = 58.dp
+    val SecondaryButtonHeight = 50.dp
+    val TrayHeight = 140.dp
+}
+
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF6750A4),
+    primary = PuzzleColors.TealDark,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFFEADDFF),
-    onPrimaryContainer = Color(0xFF21005D),
-    secondary = Color(0xFF625B71),
+    primaryContainer = PuzzleColors.Teal.copy(alpha = 0.22f),
+    onPrimaryContainer = PuzzleColors.StoneDark,
+    secondary = PuzzleColors.Coral,
     onSecondary = Color.White,
-    secondaryContainer = Color(0xFFE8DEF8),
-    onSecondaryContainer = Color(0xFF1D192B),
-    tertiary = Color(0xFF7D5260),
+    secondaryContainer = PuzzleColors.Cloud,
+    onSecondaryContainer = PuzzleColors.StoneDark,
+    tertiary = PuzzleColors.Gold,
     onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFD8E4),
-    onTertiaryContainer = Color(0xFF31111D),
-    error = Color(0xFFB3261E),
+    tertiaryContainer = PuzzleColors.Gold.copy(alpha = 0.18f),
+    onTertiaryContainer = PuzzleColors.StoneDark,
+    error = PuzzleColors.ErrorSoft,
     onError = Color.White,
-    background = Color(0xFFFFFBFE),
-    onBackground = Color(0xFF1C1B1F),
-    surface = Color(0xFFFFFBFE),
-    onSurface = Color(0xFF1C1B1F),
-    surfaceVariant = Color(0xFFE7E0EC),
-    onSurfaceVariant = Color(0xFF49454F)
+    background = PuzzleColors.Mist,
+    onBackground = PuzzleColors.StoneDark,
+    surface = PuzzleColors.Cloud,
+    onSurface = PuzzleColors.StoneDark,
+    surfaceVariant = PuzzleColors.Stone.copy(alpha = 0.34f),
+    onSurfaceVariant = PuzzleColors.Muted,
+    outline = PuzzleColors.Stone
 )
 
 @Composable

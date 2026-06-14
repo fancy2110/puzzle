@@ -11,6 +11,7 @@ import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.platformCacheDir
 import com.puzzle.game.engine.PuzzleEngine
+import com.puzzle.game.engine.PieceBitmapGenerator
 import com.puzzle.game.native.NativeSplitAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -83,9 +84,11 @@ class GameViewModel : ViewModel() {
                     val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
                     engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
                     engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                    val pieces = engine.shufflePieces()
                     GeneratedGameData(
-                        pieces = engine.shufflePieces(),
+                        pieces = pieces,
                         bitmap = puzzleBitmap,
+                        pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
                         imageWidth = puzzleBitmap.width,
                         imageHeight = puzzleBitmap.height
                     )
@@ -94,6 +97,7 @@ class GameViewModel : ViewModel() {
                 applyNewGame(
                     pieces = gameData.pieces,
                     bitmap = gameData.bitmap,
+                    pieceBitmaps = gameData.pieceBitmaps,
                     imageWidth = gameData.imageWidth,
                     imageHeight = gameData.imageHeight,
                     blockSize = 64
@@ -203,9 +207,11 @@ class GameViewModel : ViewModel() {
                 val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
                 engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
                 engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                val pieces = engine.shufflePieces()
                 GeneratedGameData(
-                    pieces = engine.shufflePieces(),
+                    pieces = pieces,
                     bitmap = puzzleBitmap,
+                    pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
                     imageWidth = puzzleBitmap.width,
                     imageHeight = puzzleBitmap.height
                 )
@@ -213,6 +219,7 @@ class GameViewModel : ViewModel() {
             applyNewGame(
                 pieces = gameData.pieces,
                 bitmap = gameData.bitmap,
+                pieceBitmaps = gameData.pieceBitmaps,
                 imageWidth = gameData.imageWidth,
                 imageHeight = gameData.imageHeight,
                 blockSize = 64
@@ -228,10 +235,13 @@ class GameViewModel : ViewModel() {
             )
 
         val (imgW, imgH) = nativeAdapter.imageSize
+        val nativePieceBitmaps = nativeAdapter.pieceBitmaps.ifEmpty {
+            PieceBitmapGenerator.generate(bitmap, nativeAdapter.pieces, 64)
+        }
         applyNewGame(
             pieces = nativeAdapter.pieces,
             bitmap = bitmap,
-            pieceBitmaps = nativeAdapter.pieceBitmaps,
+            pieceBitmaps = nativePieceBitmaps,
             imageWidth = imgW,
             imageHeight = imgH,
             blockSize = 64,
@@ -252,9 +262,11 @@ class GameViewModel : ViewModel() {
             val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
             engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
             engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+            val pieces = engine.shufflePieces()
             GeneratedGameData(
-                pieces = engine.shufflePieces(),
+                pieces = pieces,
                 bitmap = puzzleBitmap,
+                pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
                 imageWidth = puzzleBitmap.width,
                 imageHeight = puzzleBitmap.height
             )
@@ -263,6 +275,7 @@ class GameViewModel : ViewModel() {
         applyNewGame(
             pieces = gameData.pieces,
             bitmap = gameData.bitmap,
+            pieceBitmaps = gameData.pieceBitmaps,
             imageWidth = gameData.imageWidth,
             imageHeight = gameData.imageHeight,
             blockSize = 64
@@ -353,27 +366,21 @@ class GameViewModel : ViewModel() {
 
     // ── Gameplay ─────────────────────────────────────────
 
-    fun tryPlacePiece(pieceId: String, row: Int, col: Int) {
-        val currentState = _state.value
-        val expectedPos = currentState.correctPositions[pieceId] ?: return
-        val expectedRow = expectedPos.first
-        val expectedCol = expectedPos.second
+    fun tryPlacePiece(pieceId: String, targetPieceId: String) {
+        val isCorrectTarget = pieceId == targetPieceId
 
-        val isNearCorrect = (row == expectedRow && col == expectedCol) ||
-                ((row - expectedRow) in -1..1 && (col - expectedCol) in -1..1)
-
-        if (isNearCorrect) {
+        if (isCorrectTarget) {
             _state.update { current ->
                 val newCellFilled = current.cellFilledBy.toMutableMap()
-                newCellFilled["${expectedRow}_${expectedCol}"] = pieceId
+                newCellFilled[pieceId] = pieceId
 
-                val allPlaced = current.correctPositions.values.all { pos ->
-                    newCellFilled["${pos.first}_${pos.second}"] != null
+                val allPlaced = current.pieces.all { piece ->
+                    newCellFilled[piece.id] == piece.id
                 }
 
                 if (allPlaced) {
                     stopTimer()
-                    PuzzleLog.i("GameVM", "Puzzle completed! pieces=${currentState.pieces.size} time=${currentState.elapsedSeconds}s")
+                    PuzzleLog.i("GameVM", "Puzzle completed! pieces=${current.pieces.size} time=${current.elapsedSeconds}s")
                     current.copy(
                         cellFilledBy = newCellFilled,
                         phase = GamePhase.COMPLETED,
@@ -395,7 +402,7 @@ class GameViewModel : ViewModel() {
     fun handleDragEnd() {
         val result = dragDropState.endDrag()
         if (result != null) {
-            tryPlacePiece(result.pieceId, result.targetRow, result.targetCol)
+            tryPlacePiece(result.pieceId, result.targetPieceId)
         } else {
             dragDropState.cancelDrag()
         }
@@ -470,6 +477,7 @@ class GameViewModel : ViewModel() {
     private data class GeneratedGameData(
         val pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
         val bitmap: ImageBitmap,
+        val pieceBitmaps: Map<String, ImageBitmap>,
         val imageWidth: Int,
         val imageHeight: Int
     )

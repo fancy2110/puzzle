@@ -11,6 +11,8 @@ class DragDropState {
     var dragPieceSize by mutableStateOf(Offset.Zero)
     var isDragging by mutableStateOf(false)
     var dropTargetCell: Pair<Int, Int>? by mutableStateOf(null)
+    var dropTargetPieceId: String? by mutableStateOf(null)
+    var dropOverlapRatio: Float by mutableStateOf(0f)
 
     /** Tap-to-select mode: simpler interaction for kids */
     var selectedPieceId: String? by mutableStateOf(null)
@@ -23,10 +25,10 @@ class DragDropState {
         }
     }
 
-    fun tapTarget(row: Int, col: Int): DragResult? {
+    fun tapTarget(targetPieceId: String): DragResult? {
         val pieceId = selectedPieceId ?: return null
         selectedPieceId = null
-        return DragResult(pieceId, row, col)
+        return DragResult(pieceId, targetPieceId)
     }
 
     fun clearSelection() {
@@ -45,15 +47,22 @@ class DragDropState {
         dragOffset = offset
     }
 
+    fun updateDropTarget(pieceId: String?, overlapRatio: Float = 0f) {
+        dropTargetPieceId = pieceId
+        dropOverlapRatio = overlapRatio
+    }
+
     fun endDrag(): DragResult? {
         val pieceId = draggedPieceId
-        val target = dropTargetCell
+        val target = dropTargetPieceId
         isDragging = false
         draggedPieceId = null
         dropTargetCell = null
+        dropTargetPieceId = null
+        dropOverlapRatio = 0f
 
         if (pieceId != null && target != null) {
-            return DragResult(pieceId, target.first, target.second)
+            return DragResult(pieceId, target)
         }
         return null
     }
@@ -62,11 +71,12 @@ class DragDropState {
         isDragging = false
         draggedPieceId = null
         dropTargetCell = null
+        dropTargetPieceId = null
+        dropOverlapRatio = 0f
     }
 }
 
 data class DragResult(
     val pieceId: String,
-    val targetRow: Int,
-    val targetCol: Int
+    val targetPieceId: String
 )

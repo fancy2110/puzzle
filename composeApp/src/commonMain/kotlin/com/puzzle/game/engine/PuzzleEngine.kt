@@ -19,9 +19,9 @@ class PuzzleEngine {
         imageHeight = height
     }
 
-    fun splitImage(pieceCount: Int, blockSize: Int = 64) {
+    fun splitImage(pieceCount: Int, blockSize: Int = PuzzleConfig.PIXEL_BLOCK_SIZE) {
         val splitter = ImageSplitter(imageWidth, imageHeight, blockSize)
-        val (blocksResult, piecesResult) = splitter.split(pieceCount)
+        val (blocksResult, piecesResult) = splitter.split(pieceCount, includeBlocks = false)
         blocks = blocksResult
         pieces = piecesResult
     }

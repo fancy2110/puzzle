@@ -117,7 +117,9 @@ fun CelebrationOverlay(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(32.dp)
         ) {
             Text(text = "🎉", fontSize = 72.sp)
             Spacer(modifier = Modifier.height(12.dp))

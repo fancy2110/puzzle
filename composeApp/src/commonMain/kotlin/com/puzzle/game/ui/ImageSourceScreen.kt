@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -15,6 +14,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.ui.theme.PuzzleDimens
 
 @Composable
 fun ImageSourceScreen(
@@ -23,42 +24,43 @@ fun ImageSourceScreen(
     onUseCurrent: () -> Unit,
     onGenerateAi: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(18.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        SimpleTopBar(title = "图片来源", onBack = onBack)
+    PuzzleBackground {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(PuzzleDimens.PagePadding),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            SimpleTopBar(title = "图片来源", onBack = onBack)
 
-        ImageSourceCard(
-            title = "内置图片",
-            subtitle = "使用已内置的主题图片，Android 和 iOS 离线可用",
-            action = "选择",
-            onClick = onPickBuiltIn
-        )
-        ImageSourceCard(
-            title = "当前主题",
-            subtitle = "沿用首页已选主题，直接返回开始游戏",
-            action = "使用",
-            onClick = onUseCurrent
-        )
-        ImageSourceCard(
-            title = "AI 生成",
-            subtitle = "当前版本先使用所选主题生成拼图，后续接入提示词和 API Key",
-            action = "开始",
-            onClick = onGenerateAi
-        )
+            ImageSourceCard(
+                title = "内置图片",
+                subtitle = "使用已内置的主题图片，Android 和 iOS 离线可用",
+                action = "选择",
+                onClick = onPickBuiltIn
+            )
+            ImageSourceCard(
+                title = "当前主题",
+                subtitle = "沿用首页已选主题，直接返回开始游戏",
+                action = "使用",
+                onClick = onUseCurrent
+            )
+            ImageSourceCard(
+                title = "AI 生成",
+                subtitle = "当前版本先使用所选主题生成拼图，后续接入提示词和 API Key",
+                action = "开始",
+                onClick = onGenerateAi
+            )
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.weight(1f))
 
-        Text(
-            text = "相册导入和完整 AI 提示词流程已预留入口，优先保证当前内置图和程序图在双端稳定运行。",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontSize = 12.sp,
-            lineHeight = 18.sp
-        )
+            Text(
+                text = "相册导入和完整 AI 提示词流程已预留入口，优先保证当前内置图和程序图在双端稳定运行。",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                lineHeight = 18.sp
+            )
+        }
     }
 }
 

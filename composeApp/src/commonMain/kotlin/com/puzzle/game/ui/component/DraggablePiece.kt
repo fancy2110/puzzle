@@ -1,6 +1,7 @@
 package com.puzzle.game.ui.component
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,13 +22,16 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.engine.model.PuzzlePiece
@@ -35,53 +39,84 @@ import com.puzzle.game.game.DragDropState
 
 // ── Piece image renderer ─────────────────────────────────
 
-/**
- * Scale such that each grid block is at least [minBlockDp] dp tall in the card.
- * This prevents the content from becoming microscopic for pieces with large
- * bounding boxes but sparse blocks (a side effect of BFS irregular splitting).
- */
-internal fun pieceImageScale(piece: PuzzlePiece, cardSize: Int, blockSizePx: Int = 64, minBlockDp: Float = 14f): Triple<Float, Float, Float> {
-    val w = piece.pixels.width.coerceAtLeast(1)
-    val h = piece.pixels.height.coerceAtLeast(1)
-    val bbScale = minOf(cardSize.toFloat() / w, cardSize.toFloat() / h)
-    val blockScale = minBlockDp / blockSizePx.toFloat()
-    val scale = maxOf(bbScale, blockScale).coerceAtMost(8f)
-    val offX = -piece.pixels.left.toFloat() * scale
-    val offY = -piece.pixels.top.toFloat() * scale
-    return Triple(scale, offX, offY)
-}
-
-/**
- * Renders a puzzle piece as a rectangular crop from the source bitmap.
- * The scale is computed to ensure each block is at least [minBlockDp] dp,
- * so the piece's content fills the card even when the splitting algorithm
- * produces sparse irregular shapes.
- */
 @Composable
 internal fun PieceImageContent(
     piece: PuzzlePiece,
     puzzleBitmap: ImageBitmap?,
     cardSize: Int = 70,
-    blockSizePx: Int = 64,
+    blockSizePx: Int = 1,
     minBlockDp: Float = 14f,
     modifier: Modifier = Modifier
 ) {
-    if (puzzleBitmap == null || piece.items.isEmpty()) return
+    if (puzzleBitmap == null || piece.pixels.width <= 0 || piece.pixels.height <= 0) return
 
-    val (scale, offX, offY) = remember(piece.id, cardSize) {
-        pieceImageScale(piece, cardSize, blockSizePx, minBlockDp)
+    val srcLeft = piece.pixels.left.coerceIn(0, (puzzleBitmap.width - 1).coerceAtLeast(0))
+    val srcTop = piece.pixels.top.coerceIn(0, (puzzleBitmap.height - 1).coerceAtLeast(0))
+    val srcWidth = piece.pixels.width
+        .coerceAtMost(puzzleBitmap.width - srcLeft)
+        .coerceAtLeast(1)
+    val srcHeight = piece.pixels.height
+        .coerceAtMost(puzzleBitmap.height - srcTop)
+        .coerceAtLeast(1)
+
+    Canvas(modifier = modifier) {
+        val path = piece.toLocalPath(size.width, size.height)
+        val drawContent = {
+            drawImage(
+                image = puzzleBitmap,
+                srcOffset = IntOffset(srcLeft, srcTop),
+                srcSize = IntSize(srcWidth, srcHeight),
+                dstOffset = IntOffset.Zero,
+                dstSize = IntSize(
+                    size.width.toInt().coerceAtLeast(1),
+                    size.height.toInt().coerceAtLeast(1)
+                )
+            )
+        }
+
+        if (path != null) {
+            clipPath(path) { drawContent() }
+        } else {
+            drawContent()
+        }
+    }
+}
+
+@Composable
+internal fun PieceShapeOverlay(
+    piece: PuzzlePiece,
+    fillColor: Color,
+    strokeColor: Color,
+    strokeWidth: Dp,
+    modifier: Modifier = Modifier
+) {
+    Canvas(modifier = modifier) {
+        val path = piece.toLocalPath(size.width, size.height)
+        if (path != null) {
+            drawPath(path, fillColor)
+            drawPath(path, strokeColor, style = Stroke(width = strokeWidth.toPx()))
+        } else {
+            drawRect(fillColor)
+            drawRect(strokeColor, style = Stroke(width = strokeWidth.toPx()))
+        }
+    }
+}
+
+private fun PuzzlePiece.toLocalPath(width: Float, height: Float): Path? {
+    if (outline.size < 3 || pixels.width <= 0 || pixels.height <= 0 || width <= 0f || height <= 0f) {
+        return null
     }
 
-    Image(
-        bitmap = puzzleBitmap,
-        contentDescription = "碎片",
-        modifier = modifier
-            .graphicsLayer(
-                scaleX = scale, scaleY = scale,
-                translationX = offX, translationY = offY
-            ),
-        contentScale = ContentScale.None
-    )
+    val scaleX = width / pixels.width.toFloat()
+    val scaleY = height / pixels.height.toFloat()
+    return Path().apply {
+        outline.forEachIndexed { index, point ->
+            val x = (point.x - pixels.left) * scaleX
+            val y = (point.y - pixels.top) * scaleY
+            if (index == 0) moveTo(x, y) else lineTo(x, y)
+        }
+        close()
+    }
 }
 
 @Composable

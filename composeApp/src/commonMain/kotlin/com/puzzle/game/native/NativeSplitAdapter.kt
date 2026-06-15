@@ -2,6 +2,7 @@ package com.puzzle.game.native
 
 import androidx.compose.ui.graphics.ImageBitmap
 import com.puzzle.game.decodeToImageBitmap
+import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.readFileBytes
 import com.puzzle.logger.PuzzleLog
@@ -10,6 +11,9 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 
 class NativeSplitAdapter {
+    private companion object {
+        const val MAX_EAGER_NATIVE_PIECE_BITMAPS = 120
+    }
 
     var pieces: List<PuzzlePiece> = emptyList(); private set
     var gridCols: Int = 0; private set
@@ -23,7 +27,7 @@ class NativeSplitAdapter {
     private var engine: NativePuzzleEngine? = null
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun loadAndSplit(imageBytes: ByteArray, pieceCount: Int, blockSize: Int = 64, tempDir: String? = null): Boolean {
+    fun loadAndSplit(imageBytes: ByteArray, pieceCount: Int, blockSize: Int = PuzzleConfig.PIXEL_BLOCK_SIZE, tempDir: String? = null): Boolean {
         close()
 
         val eng = NativePuzzleEngine()
@@ -66,7 +70,7 @@ class NativeSplitAdapter {
             "grid=${result.grid_cols}×${result.grid_rows} bs=${result.block_size} pieces=${pieces.size}")
 
         // Save PNGs to cache and load them back as bitmaps
-        if (tempDir != null) {
+        if (tempDir != null && pieces.size <= MAX_EAGER_NATIVE_PIECE_BITMAPS) {
             val jsonStr = eng.savePieces(tempDir, blockSize)
             if (jsonStr != null) {
                 PuzzleLog.i("NativeSplit", "Pieces saved to: $tempDir ($jsonStr)")
@@ -75,6 +79,8 @@ class NativeSplitAdapter {
             } else {
                 PuzzleLog.w("NativeSplit", "savePieces failed: ${eng.lastError() ?: "unknown"}")
             }
+        } else if (tempDir != null) {
+            PuzzleLog.i("NativeSplit", "Skip eager piece PNG generation for ${pieces.size} pieces")
         }
 
         return true

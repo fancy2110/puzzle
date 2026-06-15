@@ -1,0 +1,1206 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>故事拼图 APP 高保真交互原型</title>
+  <style>
+    :root {
+      --ink: #24302f;
+      --muted: #6d7a78;
+      --soft: #f8f3e8;
+      --paper: #fffaf0;
+      --cloud: #eef7f4;
+      --teal: #3f9c98;
+      --teal-deep: #1f6867;
+      --coral: #ee7661;
+      --gold: #e7b84a;
+      --leaf: #76a96c;
+      --line: rgba(47, 72, 70, .16);
+      --shadow: 0 22px 70px rgba(38, 55, 55, .18);
+      --radius: 8px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(140deg, rgba(63, 156, 152, .11), transparent 34%),
+        linear-gradient(320deg, rgba(238, 118, 97, .14), transparent 30%),
+        #f3f0e8;
+      min-height: 100vh;
+    }
+
+    button { font: inherit; border: 0; cursor: pointer; }
+
+    .shell {
+      width: min(1280px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 28px 0;
+      display: grid;
+      grid-template-columns: minmax(500px, 1fr) 430px;
+      gap: 28px;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .brief {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .eyebrow {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--teal-deep);
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 9px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 36px;
+      line-height: 1.12;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 12px 0 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.75;
+    }
+
+    .panel {
+      background: rgba(255, 250, 240, .78);
+      border: 1px solid rgba(47, 72, 70, .14);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      padding: 16px;
+      backdrop-filter: blur(10px);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 16px;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .flow-step {
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      min-height: 82px;
+      position: relative;
+    }
+
+    .flow-step b {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+
+    .flow-step span {
+      display: block;
+      font-size: 11px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .spec-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .spec {
+      background: #fffdf7;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px;
+      min-height: 132px;
+    }
+
+    .spec b { display: block; font-size: 14px; margin-bottom: 8px; }
+    .spec p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.7; }
+
+    .prototype-nav {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .nav-btn {
+      height: 40px;
+      border-radius: var(--radius);
+      background: #fffdf7;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .nav-btn.active {
+      color: #fff;
+      background: var(--teal-deep);
+      border-color: var(--teal-deep);
+    }
+
+    .stage {
+      display: grid;
+      place-items: center;
+    }
+
+    .phone {
+      width: 390px;
+      height: 824px;
+      padding: 12px;
+      border-radius: 34px;
+      background: #152120;
+      box-shadow: 0 36px 78px rgba(19, 32, 31, .26);
+    }
+
+    .screen {
+      position: relative;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      border-radius: 25px;
+      background:
+        linear-gradient(180deg, #fffaf0 0%, #eef7f4 100%);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .statusbar {
+      height: 34px;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11px;
+      font-weight: 800;
+      color: rgba(36, 48, 47, .84);
+      flex: none;
+    }
+
+    .signal {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 99px;
+      background: currentColor;
+      opacity: .78;
+    }
+
+    .page {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      padding: 10px 18px 18px;
+      overflow: hidden;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+      flex: none;
+    }
+
+    .icon-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 8px;
+      border: 1px solid rgba(47, 72, 70, .18);
+      background: rgba(255, 253, 247, .86);
+      color: var(--ink);
+      font-weight: 900;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 8px 24px rgba(38, 55, 55, .08);
+    }
+
+    .title {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .title h3 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .appmark {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      object-fit: cover;
+      border: 1px solid rgba(47, 72, 70, .10);
+      box-shadow: 0 10px 26px rgba(38, 55, 55, .15);
+    }
+
+    .scroll {
+      overflow: auto;
+      min-height: 0;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .scroll::-webkit-scrollbar { display: none; }
+
+    .story-hero {
+      position: relative;
+      min-height: 208px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(47, 72, 70, .15);
+      background: #dff3ee;
+      box-shadow: 0 18px 42px rgba(38, 55, 55, .14);
+      margin-bottom: 14px;
+    }
+
+    .story-hero .scene-art,
+    .detail-art .scene-art,
+    .puzzle-art .scene-art,
+    .complete-art .scene-art,
+    .review-card .scene-art {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .hero-copy {
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 12px;
+      color: #173331;
+      text-shadow: 0 1px 0 rgba(255,255,255,.45);
+    }
+
+    .hero-copy h2 {
+      margin: 0 0 5px;
+      font-size: 26px;
+      line-height: 1.05;
+    }
+
+    .hero-copy p {
+      margin: 0;
+      font-size: 12px;
+      max-width: 240px;
+      line-height: 1.5;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .chip {
+      height: 28px;
+      padding: 0 10px;
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      background: rgba(255, 253, 247, .78);
+      border: 1px solid rgba(47, 72, 70, .15);
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .chip.primary {
+      background: rgba(63, 156, 152, .15);
+      color: var(--teal-deep);
+      border-color: rgba(63, 156, 152, .25);
+    }
+
+    .story-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .story-card {
+      display: grid;
+      grid-template-columns: 86px 1fr;
+      gap: 12px;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(47, 72, 70, .15);
+      background: rgba(255, 253, 247, .82);
+      box-shadow: 0 12px 28px rgba(38, 55, 55, .08);
+      text-align: left;
+      color: inherit;
+    }
+
+    .thumb {
+      height: 86px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(47, 72, 70, .12);
+      background: #eaf5ef;
+    }
+
+    .story-card h4 {
+      margin: 2px 0 5px;
+      font-size: 16px;
+    }
+
+    .story-card p {
+      margin: 0 0 9px;
+      font-size: 12px;
+      line-height: 1.48;
+      color: var(--muted);
+    }
+
+    .progress-line {
+      height: 7px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(47, 72, 70, .12);
+    }
+
+    .progress-line span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--gold));
+    }
+
+    .detail-art {
+      height: 266px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(47, 72, 70, .14);
+      box-shadow: 0 18px 42px rgba(38, 55, 55, .14);
+      background: #e6f4ef;
+      flex: none;
+    }
+
+    .meta-strip {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin: 12px 0;
+    }
+
+    .meta {
+      border-radius: 8px;
+      padding: 10px 8px;
+      background: rgba(255, 253, 247, .82);
+      border: 1px solid rgba(47, 72, 70, .13);
+      text-align: center;
+    }
+
+    .meta b {
+      display: block;
+      font-size: 15px;
+    }
+
+    .meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      margin-top: 3px;
+    }
+
+    .body-copy {
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(255, 253, 247, .82);
+      border: 1px solid rgba(47, 72, 70, .13);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .primary-btn, .secondary-btn {
+      height: 52px;
+      border-radius: 8px;
+      width: 100%;
+      font-size: 17px;
+      font-weight: 900;
+      margin-top: 12px;
+    }
+
+    .primary-btn {
+      color: #fff;
+      background: linear-gradient(135deg, var(--coral), #d85b47);
+      box-shadow: 0 13px 28px rgba(238, 118, 97, .28);
+    }
+
+    .secondary-btn {
+      color: var(--teal-deep);
+      background: rgba(255, 253, 247, .82);
+      border: 1px solid rgba(47, 72, 70, .16);
+    }
+
+    .map-track {
+      position: relative;
+      padding: 4px 0 8px;
+    }
+
+    .map-line {
+      position: absolute;
+      left: 34px;
+      top: 50px;
+      bottom: 54px;
+      width: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, var(--teal), var(--gold));
+      opacity: .42;
+    }
+
+    .scene-node {
+      position: relative;
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 12px;
+      padding: 8px;
+      border-radius: 8px;
+      background: rgba(255, 253, 247, .78);
+      border: 1px solid rgba(47, 72, 70, .13);
+    }
+
+    .scene-node.active {
+      border-color: rgba(238, 118, 97, .5);
+      box-shadow: 0 12px 30px rgba(238, 118, 97, .15);
+    }
+
+    .scene-number {
+      position: absolute;
+      left: 55px;
+      top: 8px;
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 900;
+      background: var(--teal-deep);
+      border: 2px solid #fffdf7;
+    }
+
+    .scene-info h4 {
+      margin: 0 0 4px;
+      font-size: 15px;
+    }
+
+    .scene-info p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .game-wrap {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      flex: 1;
+      gap: 10px;
+    }
+
+    .game-progress {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 5px;
+      margin-bottom: 4px;
+    }
+
+    .game-progress span {
+      height: 6px;
+      border-radius: 99px;
+      background: rgba(47, 72, 70, .12);
+    }
+
+    .game-progress span.done {
+      background: var(--teal);
+    }
+
+    .game-progress span.current {
+      background: var(--coral);
+    }
+
+    .narration {
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 253, 247, .86);
+      border: 1px solid rgba(47, 72, 70, .14);
+      font-size: 12px;
+      line-height: 1.55;
+      color: var(--muted);
+      flex: none;
+    }
+
+    .puzzle-board {
+      position: relative;
+      flex: 1;
+      min-height: 290px;
+      border-radius: 8px;
+      background: rgba(255, 253, 247, .76);
+      border: 2px solid rgba(47, 72, 70, .18);
+      overflow: hidden;
+      box-shadow: inset 0 0 0 8px rgba(255,255,255,.35);
+    }
+
+    .puzzle-art {
+      position: absolute;
+      inset: 14px;
+      border-radius: 8px;
+      overflow: hidden;
+      opacity: .38;
+      border: 1px solid rgba(47, 72, 70, .12);
+    }
+
+    .placed-piece, .target-piece {
+      position: absolute;
+      border-radius: 7px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.8);
+      box-shadow: 0 10px 22px rgba(38, 55, 55, .16);
+    }
+
+    .target-piece {
+      background: rgba(63, 156, 152, .18);
+      border: 2px dashed rgba(31, 104, 103, .72);
+      box-shadow: 0 0 0 4px rgba(63, 156, 152, .10);
+    }
+
+    .placed-piece.a { left: 42px; top: 76px; width: 94px; height: 96px; background: var(--coral); }
+    .placed-piece.b { left: 138px; top: 78px; width: 110px; height: 82px; background: var(--teal); }
+    .placed-piece.c { left: 86px; top: 174px; width: 88px; height: 86px; background: var(--gold); }
+    .target-piece { left: 174px; top: 166px; width: 116px; height: 92px; }
+
+    .piece-tray {
+      height: 124px;
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background: rgba(255, 253, 247, .86);
+      border: 1px solid rgba(47, 72, 70, .14);
+      overflow: hidden;
+      flex: none;
+    }
+
+    .tray-piece {
+      min-width: 82px;
+      border-radius: 8px;
+      border: 1px solid rgba(47, 72, 70, .12);
+      background: linear-gradient(145deg, #fff, #f1eadc);
+      box-shadow: 0 10px 22px rgba(38, 55, 55, .12);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .tray-piece::before {
+      content: "";
+      position: absolute;
+      width: 58px;
+      height: 58px;
+      border-radius: 8px 16px 8px 20px;
+      left: 14px;
+      top: 24px;
+      background: var(--coral);
+      transform: rotate(-8deg);
+    }
+
+    .tray-piece:nth-child(2)::before { background: var(--gold); transform: rotate(10deg); }
+    .tray-piece:nth-child(3)::before { background: var(--teal); transform: rotate(-2deg); }
+    .tray-piece:nth-child(4)::before { background: #f5e7c8; transform: rotate(12deg); }
+
+    .tool-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      flex: none;
+    }
+
+    .tool-btn {
+      height: 38px;
+      border-radius: 8px;
+      color: var(--teal-deep);
+      background: rgba(255, 253, 247, .82);
+      border: 1px solid rgba(47, 72, 70, .14);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .complete-art {
+      height: 330px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(47, 72, 70, .14);
+      box-shadow: 0 18px 42px rgba(38, 55, 55, .15);
+      background: #e6f4ef;
+      flex: none;
+    }
+
+    .question {
+      margin-top: 12px;
+      padding: 14px;
+      border-radius: 8px;
+      background: rgba(255, 253, 247, .88);
+      border: 1px solid rgba(47, 72, 70, .14);
+    }
+
+    .question b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 8px;
+    }
+
+    .choice-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .choice {
+      height: 38px;
+      border-radius: 8px;
+      background: var(--cloud);
+      color: var(--teal-deep);
+      font-weight: 800;
+      border: 1px solid rgba(63, 156, 152, .22);
+    }
+
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 12px;
+    }
+
+    .review-card {
+      height: 118px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid rgba(47, 72, 70, .13);
+      background: #edf6f1;
+      position: relative;
+    }
+
+    .review-card span {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border-radius: 99px;
+      background: rgba(255, 253, 247, .9);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(47, 72, 70, .14);
+      background: rgba(255, 253, 247, .84);
+      margin-bottom: 10px;
+    }
+
+    .setting-row div {
+      flex: 1;
+    }
+
+    .setting-row b {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .setting-row span {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    .switch {
+      width: 48px;
+      height: 28px;
+      border-radius: 99px;
+      background: var(--teal);
+      position: relative;
+      flex: none;
+    }
+
+    .switch::after {
+      content: "";
+      position: absolute;
+      right: 4px;
+      top: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+
+    .segmented {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      padding: 6px;
+      border-radius: 8px;
+      background: rgba(47, 72, 70, .08);
+      margin-bottom: 10px;
+    }
+
+    .segmented button {
+      height: 34px;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .segmented button.active {
+      background: #fffdf7;
+      color: var(--teal-deep);
+      box-shadow: 0 4px 12px rgba(38, 55, 55, .08);
+    }
+
+    .home-indicator {
+      width: 136px;
+      height: 5px;
+      border-radius: 99px;
+      background: rgba(36, 48, 47, .22);
+      margin: 0 auto 8px;
+      flex: none;
+    }
+
+    svg text { font-family: inherit; }
+
+    @media (max-width: 980px) {
+      .shell {
+        grid-template-columns: 1fr;
+        width: min(760px, calc(100vw - 28px));
+      }
+      .stage { order: -1; }
+      .phone { width: min(390px, calc(100vw - 28px)); }
+      .flow, .spec-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="brief">
+      <div>
+        <div class="eyebrow">Story Puzzle / High Fidelity Prototype</div>
+        <h1>用拼图推进故事，让孩子在观察中读懂画面</h1>
+        <p class="lead">
+          基于 PRD 的核心设定，本原型将“故事书架、故事详情、故事进度、单幕拼图、幕间理解、故事回顾、家长设置”串成一条完整体验。
+          原型重点验证：孩子是否能理解自己正在完成故事的哪一幕，以及每次拼图完成后故事如何继续向前。
+        </p>
+      </div>
+
+      <section class="panel">
+        <h2>主流程</h2>
+        <div class="flow">
+          <div class="flow-step"><b>选择故事</b><span>从故事书架选择一本拼图绘本</span></div>
+          <div class="flow-step"><b>查看详情</b><span>理解主题、时长、年龄和幕数</span></div>
+          <div class="flow-step"><b>故事地图</b><span>知道第几幕、完成到哪里</span></div>
+          <div class="flow-step"><b>完成拼图</b><span>观察碎片并还原关键画面</span></div>
+          <div class="flow-step"><b>理解画面</b><span>完成后回答观察问题</span></div>
+          <div class="flow-step"><b>进入下一幕</b><span>故事被拼图行为推动</span></div>
+          <div class="flow-step"><b>故事完成</b><span>回看完整故事并复述</span></div>
+          <div class="flow-step"><b>家长设置</b><span>调节难度、旁白和提示</span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>关键产品原则</h2>
+        <div class="spec-grid">
+          <div class="spec">
+            <b>叙事优先</b>
+            <p>每一幕拼图都承载故事节点。完成拼图后必须有旁白、问题和下一幕推进，避免沦为普通拼图集合。</p>
+          </div>
+          <div class="spec">
+            <b>温和反馈</b>
+            <p>不强调失败和分数。错误时提示观察颜色、边缘和角色位置，连续错误后给低压力帮助。</p>
+          </div>
+          <div class="spec">
+            <b>儿童友好</b>
+            <p>保留点击选择、参考图、语音旁白和大块拼图。低龄儿童也能独立完成基础故事。</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>页面切换</h2>
+        <div class="prototype-nav" id="prototypeNav">
+          <button class="nav-btn active" data-screen="library">故事书架</button>
+          <button class="nav-btn" data-screen="detail">故事详情</button>
+          <button class="nav-btn" data-screen="map">故事地图</button>
+          <button class="nav-btn" data-screen="play">拼图游玩</button>
+          <button class="nav-btn" data-screen="scene-complete">单幕完成</button>
+          <button class="nav-btn" data-screen="story-complete">故事完成</button>
+          <button class="nav-btn" data-screen="settings">家长设置</button>
+          <button class="nav-btn" data-screen="library">回到书架</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="stage">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="signal"><i class="dot"></i><i class="dot"></i><i class="dot"></i></span>
+          </div>
+
+          <section class="page active" data-page="library">
+            <div class="topbar">
+              <img class="appmark" src="design/app-icon/app-icon-1024.png" alt="故事拼图">
+              <div class="title">
+                <h3>故事拼图</h3>
+                <p>今天想拼哪一个故事？</p>
+              </div>
+              <button class="icon-btn" data-go="settings" aria-label="设置">≡</button>
+            </div>
+            <div class="scroll">
+              <button class="story-hero" data-go="detail">
+                <svg class="scene-art" viewBox="0 0 360 208" role="img" aria-label="小星星回家封面">
+                  <defs>
+                    <linearGradient id="sky1" x1="0" x2="1" y1="0" y2="1">
+                      <stop offset="0" stop-color="#bfe7e5"/>
+                      <stop offset=".54" stop-color="#f9e7bc"/>
+                      <stop offset="1" stop-color="#f5b59f"/>
+                    </linearGradient>
+                  </defs>
+                  <rect width="360" height="208" fill="url(#sky1)"/>
+                  <circle cx="298" cy="46" r="24" fill="#fff7d8"/>
+                  <path d="M0 154 C52 120 96 144 142 114 C192 82 252 108 360 70 L360 208 L0 208 Z" fill="#7ab18f"/>
+                  <path d="M0 172 C86 138 146 190 232 136 C276 108 318 132 360 118 L360 208 L0 208 Z" fill="#4d9587"/>
+                  <polygon points="174,58 187,84 216,88 195,108 200,137 174,123 148,137 153,108 132,88 161,84" fill="#f2c957" stroke="#fff8dc" stroke-width="5"/>
+                  <path d="M87 144 q26 -40 52 0" fill="none" stroke="#fffaf0" stroke-width="10" stroke-linecap="round"/>
+                  <circle cx="88" cy="146" r="17" fill="#ee7661"/>
+                  <circle cx="140" cy="146" r="17" fill="#3f9c98"/>
+                </svg>
+                <div class="hero-copy">
+                  <h2>小星星回家</h2>
+                  <p>拼完五个夜晚画面，帮助小星星回到天空。</p>
+                </div>
+              </button>
+
+              <div class="chip-row">
+                <span class="chip primary">推荐 4-7 岁</span>
+                <span class="chip">5 幕故事</span>
+                <span class="chip">约 12 分钟</span>
+              </div>
+
+              <div class="story-list">
+                <button class="story-card" data-go="detail">
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86">
+                      <rect width="86" height="86" fill="#c9ece8"/>
+                      <path d="M0 58 C24 42 45 64 86 38 L86 86 L0 86 Z" fill="#5c9b81"/>
+                      <polygon points="43,16 49,31 66,32 53,43 57,60 43,51 29,60 33,43 20,32 37,31" fill="#e7b84a"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4>小星星回家</h4>
+                    <p>小兔和朋友们帮助掉进森林的小星星。</p>
+                    <div class="progress-line"><span style="width: 40%"></span></div>
+                  </div>
+                </button>
+                <button class="story-card" data-go="detail">
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86">
+                      <rect width="86" height="86" fill="#f6dfb2"/>
+                      <path d="M0 62 C18 38 34 54 52 34 C66 20 76 27 86 18 L86 86 L0 86 Z" fill="#e59a76"/>
+                      <rect x="25" y="32" width="36" height="32" rx="5" fill="#3f9c98"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h4>小船去远方</h4>
+                    <p>跟着小船认识河流、桥和远处的家。</p>
+                    <div class="progress-line"><span style="width: 0%"></span></div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" data-page="detail">
+            <div class="topbar">
+              <button class="icon-btn" data-go="library" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>小星星回家</h3>
+                <p>勇气、观察、帮助别人</p>
+              </div>
+            </div>
+            <div class="detail-art">
+              <svg class="scene-art" viewBox="0 0 360 266">
+                <rect width="360" height="266" fill="#bfe7e5"/>
+                <circle cx="302" cy="48" r="26" fill="#fff7d8"/>
+                <path d="M0 182 C56 140 88 168 130 132 C178 92 238 126 360 74 L360 266 L0 266 Z" fill="#79b18c"/>
+                <path d="M0 210 C70 154 138 226 228 150 C276 110 320 150 360 132 L360 266 L0 266 Z" fill="#4d9587"/>
+                <polygon points="180,70 195,100 228,104 204,127 210,160 180,144 150,160 156,127 132,104 165,100" fill="#e7b84a" stroke="#fff7d8" stroke-width="6"/>
+                <path d="M80 178 q30 -48 60 0" fill="none" stroke="#fffaf0" stroke-width="12" stroke-linecap="round"/>
+                <circle cx="80" cy="180" r="20" fill="#ee7661"/>
+                <circle cx="140" cy="180" r="20" fill="#3f9c98"/>
+              </svg>
+            </div>
+            <div class="meta-strip">
+              <div class="meta"><b>5 幕</b><span>完整故事</span></div>
+              <div class="meta"><b>6-12</b><span>推荐碎片</span></div>
+              <div class="meta"><b>12 分钟</b><span>预计时长</span></div>
+            </div>
+            <div class="body-copy">
+              夜晚，小星星不小心落进森林。小兔、小鸟和朋友们一起想办法，搭起云梯，把它送回明亮的夜空。
+            </div>
+            <button class="primary-btn" data-go="map">继续第 2 幕</button>
+            <button class="secondary-btn" data-go="settings">调整难度</button>
+          </section>
+
+          <section class="page" data-page="map">
+            <div class="topbar">
+              <button class="icon-btn" data-go="detail" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>故事进度</h3>
+                <p>第 2 幕 / 共 5 幕</p>
+              </div>
+            </div>
+            <div class="scroll">
+              <div class="map-track">
+                <div class="map-line"></div>
+                <button class="scene-node" data-go="scene-complete">
+                  <span class="scene-number">1</span>
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86"><rect width="86" height="86" fill="#c9ece8"/><path d="M0 58 C24 42 45 64 86 38 L86 86 L0 86 Z" fill="#5c9b81"/><polygon points="43,16 49,31 66,32 53,43 57,60 43,51 29,60 33,43 20,32 37,31" fill="#e7b84a"/></svg>
+                  </div>
+                  <div class="scene-info"><h4>星星掉进森林</h4><p>已完成。小星星在哪里？</p></div>
+                </button>
+                <button class="scene-node active" data-go="play">
+                  <span class="scene-number">2</span>
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86"><rect width="86" height="86" fill="#e7f4ec"/><path d="M0 66 C20 46 44 56 86 34 L86 86 L0 86 Z" fill="#6ea06b"/><circle cx="34" cy="52" r="16" fill="#ee7661"/><polygon points="58,16 64,31 78,34 67,44 70,60 58,52 46,60 49,44 38,34 52,31" fill="#e7b84a"/></svg>
+                  </div>
+                  <div class="scene-info"><h4>小兔发现星星</h4><p>正在拼。找到画面里的小兔和星光。</p></div>
+                </button>
+                <button class="scene-node" data-go="play">
+                  <span class="scene-number">3</span>
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86"><rect width="86" height="86" fill="#c8e8e7"/><rect x="20" y="40" width="48" height="20" rx="4" fill="#3f9c98"/><circle cx="28" cy="34" r="12" fill="#ee7661"/><circle cx="58" cy="32" r="10" fill="#e7b84a"/></svg>
+                  </div>
+                  <div class="scene-info"><h4>朋友一起想办法</h4><p>未开始。它们要怎么帮忙？</p></div>
+                </button>
+                <button class="scene-node" data-go="play">
+                  <span class="scene-number">4</span>
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86"><rect width="86" height="86" fill="#eec9b9"/><path d="M18 70 L68 24" stroke="#fff7d8" stroke-width="8"/><path d="M28 61 L78 15" stroke="#3f9c98" stroke-width="8"/><circle cx="20" cy="68" r="12" fill="#ee7661"/></svg>
+                  </div>
+                  <div class="scene-info"><h4>搭起高高云梯</h4><p>未开始。云梯通向哪里？</p></div>
+                </button>
+                <button class="scene-node" data-go="story-complete">
+                  <span class="scene-number">5</span>
+                  <div class="thumb">
+                    <svg class="scene-art" viewBox="0 0 86 86"><rect width="86" height="86" fill="#20394d"/><circle cx="18" cy="20" r="3" fill="#fff7d8"/><circle cx="65" cy="18" r="4" fill="#fff7d8"/><polygon points="43,22 50,37 66,39 54,50 57,66 43,58 29,66 32,50 20,39 36,37" fill="#e7b84a"/><path d="M0 68 C24 52 52 70 86 50 L86 86 L0 86 Z" fill="#4d9587"/></svg>
+                  </div>
+                  <div class="scene-info"><h4>星星回到夜空</h4><p>未开始。森林被照亮了。</p></div>
+                </button>
+              </div>
+              <button class="primary-btn" data-go="play">开始第 2 幕</button>
+            </div>
+          </section>
+
+          <section class="page" data-page="play">
+            <div class="topbar">
+              <button class="icon-btn" data-go="map" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>小兔发现星星</h3>
+                <p>已拼 3/8 · 02:18</p>
+              </div>
+            </div>
+            <div class="game-wrap">
+              <div class="game-progress"><span class="done"></span><span class="current"></span><span></span><span></span><span></span></div>
+              <div class="narration">小兔走过草地，看见前面有一点暖暖的光。那会是谁呢？</div>
+              <div class="puzzle-board">
+                <div class="puzzle-art">
+                  <svg class="scene-art" viewBox="0 0 320 300">
+                    <rect width="320" height="300" fill="#d7f0ec"/>
+                    <circle cx="250" cy="46" r="20" fill="#fff7d8"/>
+                    <path d="M0 210 C62 162 116 220 180 150 C226 100 272 140 320 110 L320 300 L0 300 Z" fill="#6ea06b"/>
+                    <circle cx="102" cy="186" r="34" fill="#ee7661"/>
+                    <polygon points="220,82 234,110 265,114 242,135 248,166 220,151 192,166 198,135 175,114 206,110" fill="#e7b84a"/>
+                  </svg>
+                </div>
+                <div class="placed-piece a"></div>
+                <div class="placed-piece b"></div>
+                <div class="placed-piece c"></div>
+                <div class="target-piece"></div>
+              </div>
+              <div class="tool-row">
+                <button class="tool-btn">参考图</button>
+                <button class="tool-btn">听旁白</button>
+                <button class="tool-btn">提示</button>
+              </div>
+              <div class="piece-tray">
+                <button class="tray-piece" data-go="scene-complete"></button>
+                <button class="tray-piece"></button>
+                <button class="tray-piece"></button>
+                <button class="tray-piece"></button>
+              </div>
+            </div>
+          </section>
+
+          <section class="page" data-page="scene-complete">
+            <div class="topbar">
+              <button class="icon-btn" data-go="map" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>第 2 幕完成</h3>
+                <p>你拼出了小兔发现星星的画面</p>
+              </div>
+            </div>
+            <div class="complete-art">
+              <svg class="scene-art" viewBox="0 0 360 330">
+                <rect width="360" height="330" fill="#d7f0ec"/>
+                <circle cx="286" cy="54" r="22" fill="#fff7d8"/>
+                <path d="M0 230 C70 168 130 226 206 150 C260 96 310 142 360 118 L360 330 L0 330 Z" fill="#6ea06b"/>
+                <path d="M0 260 C88 212 134 282 238 206 C284 172 322 184 360 170 L360 330 L0 330 Z" fill="#4d9587"/>
+                <circle cx="105" cy="208" r="36" fill="#ee7661"/>
+                <path d="M84 181 L72 150 L99 174 Z" fill="#ee7661"/>
+                <path d="M126 181 L145 152 L135 184 Z" fill="#ee7661"/>
+                <circle cx="94" cy="202" r="4" fill="#24302f"/>
+                <circle cx="117" cy="202" r="4" fill="#24302f"/>
+                <polygon points="230,92 245,122 278,126 254,149 260,182 230,166 200,182 206,149 182,126 215,122" fill="#e7b84a" stroke="#fff7d8" stroke-width="6"/>
+              </svg>
+            </div>
+            <div class="question">
+              <b>观察一下：谁找到了小星星？</b>
+              <div class="choice-row">
+                <button class="choice">小兔</button>
+                <button class="choice">小鸟</button>
+                <button class="choice">月亮</button>
+              </div>
+            </div>
+            <button class="primary-btn" data-go="map">进入第 3 幕</button>
+          </section>
+
+          <section class="page" data-page="story-complete">
+            <div class="topbar">
+              <button class="icon-btn" data-go="library" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>故事完成</h3>
+                <p>你完成了《小星星回家》</p>
+              </div>
+            </div>
+            <div class="body-copy">
+              小星星回到了夜空，朋友们也学会了互相帮助。现在可以听一遍完整故事，或者试着自己讲给家人听。
+            </div>
+            <div class="review-grid">
+              <div class="review-card"><span>1</span><svg class="scene-art" viewBox="0 0 160 118"><rect width="160" height="118" fill="#c9ece8"/><path d="M0 84 C50 60 90 94 160 54 L160 118 L0 118 Z" fill="#5c9b81"/><polygon points="80,20 90,44 116,47 96,64 101,90 80,77 59,90 64,64 44,47 70,44" fill="#e7b84a"/></svg></div>
+              <div class="review-card"><span>2</span><svg class="scene-art" viewBox="0 0 160 118"><rect width="160" height="118" fill="#d7f0ec"/><path d="M0 84 C50 58 90 90 160 50 L160 118 L0 118 Z" fill="#6ea06b"/><circle cx="58" cy="78" r="22" fill="#ee7661"/><polygon points="110,25 119,45 140,48 124,62 128,84 110,73 92,84 96,62 80,48 101,45" fill="#e7b84a"/></svg></div>
+              <div class="review-card"><span>3</span><svg class="scene-art" viewBox="0 0 160 118"><rect width="160" height="118" fill="#c8e8e7"/><rect x="42" y="58" width="76" height="24" rx="6" fill="#3f9c98"/><circle cx="52" cy="48" r="18" fill="#ee7661"/><circle cx="108" cy="46" r="16" fill="#e7b84a"/></svg></div>
+              <div class="review-card"><span>4</span><svg class="scene-art" viewBox="0 0 160 118"><rect width="160" height="118" fill="#eec9b9"/><path d="M36 100 L126 20" stroke="#fff7d8" stroke-width="12"/><path d="M58 96 L148 16" stroke="#3f9c98" stroke-width="12"/><circle cx="38" cy="96" r="18" fill="#ee7661"/></svg></div>
+            </div>
+            <button class="primary-btn" data-go="library">换个故事</button>
+            <button class="secondary-btn" data-go="detail">再玩一次</button>
+          </section>
+
+          <section class="page" data-page="settings">
+            <div class="topbar">
+              <button class="icon-btn" data-go="library" aria-label="返回">‹</button>
+              <div class="title">
+                <h3>家长设置</h3>
+                <p>让故事难度更适合孩子</p>
+              </div>
+            </div>
+            <div class="scroll">
+              <div class="body-copy" style="margin-bottom: 12px;">年龄档位</div>
+              <div class="segmented">
+                <button>3-4</button><button class="active">5-6</button><button>7-8</button><button>8+</button>
+              </div>
+              <div class="setting-row">
+                <div><b>语音旁白</b><span>每一幕开始和完成后自动朗读</span></div>
+                <span class="switch"></span>
+              </div>
+              <div class="setting-row">
+                <div><b>显示参考图</b><span>拼图时可短暂查看完整画面</span></div>
+                <span class="switch"></span>
+              </div>
+              <div class="setting-row">
+                <div><b>完成后提问</b><span>用观察问题帮助孩子理解故事</span></div>
+                <span class="switch"></span>
+              </div>
+              <div class="setting-row">
+                <div><b>默认碎片数</b><span>当前推荐：8-12 片</span></div>
+                <button class="icon-btn">12</button>
+              </div>
+              <button class="primary-btn" data-go="library">保存设置</button>
+            </div>
+          </section>
+
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const nav = document.querySelectorAll("[data-screen]");
+    const pages = document.querySelectorAll("[data-page]");
+    const goButtons = document.querySelectorAll("[data-go]");
+
+    function show(screen) {
+      pages.forEach(page => page.classList.toggle("active", page.dataset.page === screen));
+      nav.forEach(button => button.classList.toggle("active", button.dataset.screen === screen));
+    }
+
+    nav.forEach(button => {
+      button.addEventListener("click", () => show(button.dataset.screen));
+    });
+
+    goButtons.forEach(button => {
+      button.addEventListener("click", () => show(button.dataset.go));
+    });
+  </script>
+</body>
+</html>

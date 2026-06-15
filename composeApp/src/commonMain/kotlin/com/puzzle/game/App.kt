@@ -55,10 +55,17 @@ fun App() {
             }
 
             Screen.ThemePicker -> {
+                val launchedFromImageSource = screenStack.dropLast(1).lastOrNull() == Screen.ImageSource
                 ThemeScreen(
                     viewModel = gameViewModel,
                     onBack = { navViewModel.goBack() },
-                    onConfirm = { navViewModel.goBack() }
+                    onConfirm = {
+                        if (launchedFromImageSource) {
+                            navViewModel.goBackTo(Screen.Menu)
+                        } else {
+                            navViewModel.goBack()
+                        }
+                    }
                 )
             }
 

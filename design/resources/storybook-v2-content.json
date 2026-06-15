@@ -1,0 +1,61 @@
+{
+  "version": "2.0.0",
+  "groups": [
+    {
+      "id": "homeward-path",
+      "title": "回家的路",
+      "summary": "一组关于观察道路、建筑和方向的故事画面。",
+      "pages": [
+        {
+          "id": "homeward-path-01",
+          "themeId": "demo",
+          "title": "真实图片",
+          "story": "小屋前的路被风吹散了，帮小朋友把回家的画面拼完整。",
+          "assetFile": "demo1.png"
+        },
+        {
+          "id": "homeward-path-02",
+          "themeId": "cat",
+          "title": "花园里的朋友",
+          "story": "小猫在花园里发现了一条新路，它需要找到藏在画面里的线索。",
+          "assetFile": null
+        },
+        {
+          "id": "homeward-path-03",
+          "themeId": "balloon",
+          "title": "天空来信",
+          "story": "热气球带来了一封信，拼好画面就能看见它飞来的方向。",
+          "assetFile": null
+        }
+      ]
+    },
+    {
+      "id": "quiet-adventure",
+      "title": "安静的冒险",
+      "summary": "一组关于海洋、森林和星空的观察故事。",
+      "pages": [
+        {
+          "id": "quiet-adventure-01",
+          "themeId": "ocean",
+          "title": "海底小路",
+          "story": "珊瑚之间藏着一条小路，把碎片拼好，找到小鱼要去的地方。",
+          "assetFile": null
+        },
+        {
+          "id": "quiet-adventure-02",
+          "themeId": "forest",
+          "title": "森林聚会",
+          "story": "森林里的朋友们正在准备聚会，完整画面里藏着每个朋友的位置。",
+          "assetFile": null
+        },
+        {
+          "id": "quiet-adventure-03",
+          "themeId": "space",
+          "title": "星星台阶",
+          "story": "小火箭停在星星台阶旁，拼好画面就能看清它下一站去哪。",
+          "assetFile": null
+        }
+      ]
+    }
+  ]
+}

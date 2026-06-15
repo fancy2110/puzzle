@@ -30,6 +30,10 @@ object PieceBitmapGenerator {
         piece: PuzzlePiece,
         blockSize: Int
     ): ImageBitmap {
+        if (blockSize == PuzzleConfig.PIXEL_BLOCK_SIZE) {
+            return generatePixelPieceBitmap(sourcePixels, piece)
+        }
+
         val width = piece.pixels.width.coerceAtLeast(1)
         val height = piece.pixels.height.coerceAtLeast(1)
         val bitmap = ImageBitmap(width, height)
@@ -67,6 +71,68 @@ object PieceBitmapGenerator {
         }
 
         return bitmap
+    }
+
+    private fun generatePixelPieceBitmap(
+        sourcePixels: PixelMap,
+        piece: PuzzlePiece
+    ): ImageBitmap {
+        val width = piece.pixels.width.coerceAtLeast(1)
+        val height = piece.pixels.height.coerceAtLeast(1)
+        val bitmap = ImageBitmap(width, height)
+        val canvas = Canvas(bitmap)
+        val paint = Paint()
+        val mask = BooleanArray(width * height)
+
+        for (pos in piece.items) {
+            val localX = pos.x - piece.pixels.left
+            val localY = pos.y - piece.pixels.top
+            if (localX in 0 until width && localY in 0 until height) {
+                mask[localY * width + localX] = true
+            }
+        }
+
+        for (pos in piece.items) {
+            val localX = pos.x - piece.pixels.left
+            val localY = pos.y - piece.pixels.top
+            if (localX !in 0 until width || localY !in 0 until height) continue
+
+            val alpha = if (hasTransparentNeighbor(localX, localY, width, height, mask)) 0.55f else 1f
+            paint.color = sourcePixels[pos.x, pos.y].withMultipliedAlpha(alpha)
+            canvas.drawRect(
+                left = localX.toFloat(),
+                top = localY.toFloat(),
+                right = localX + 1f,
+                bottom = localY + 1f,
+                paint = paint
+            )
+        }
+
+        return bitmap
+    }
+
+    private fun hasTransparentNeighbor(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        mask: BooleanArray
+    ): Boolean {
+        return !isMasked(x - 1, y, width, height, mask) ||
+                !isMasked(x + 1, y, width, height, mask) ||
+                !isMasked(x, y - 1, width, height, mask) ||
+                !isMasked(x, y + 1, width, height, mask)
+    }
+
+    private fun isMasked(
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        mask: BooleanArray
+    ): Boolean {
+        if (x !in 0 until width || y !in 0 until height) return false
+        return mask[y * width + x]
     }
 
     private fun edgeAlpha(

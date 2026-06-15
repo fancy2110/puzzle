@@ -1,5 +1,6 @@
 package com.puzzle.game.native
 
+import com.puzzle.game.engine.PuzzleConfig
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -40,7 +41,7 @@ expect class NativePuzzleEngine() {
     val isAvailable: Boolean
 
     fun loadImage(data: ByteArray): Boolean
-    fun split(pieceCount: Int, blockSize: Int = 64): NativeSplitResult?
+    fun split(pieceCount: Int, blockSize: Int = PuzzleConfig.PIXEL_BLOCK_SIZE): NativeSplitResult?
     fun extractPixels(pieceIndex: Int): IntArray?
     fun pieceCount(): Int
     fun lastError(): String?
@@ -52,5 +53,5 @@ expect class NativePuzzleEngine() {
      * @param blockSize the block size used during splitting (must match)
      * @return JSON array of saved filenames, or null on error
      */
-    fun savePieces(outputDir: String, blockSize: Int = 64): String?
+    fun savePieces(outputDir: String, blockSize: Int = PuzzleConfig.PIXEL_BLOCK_SIZE): String?
 }

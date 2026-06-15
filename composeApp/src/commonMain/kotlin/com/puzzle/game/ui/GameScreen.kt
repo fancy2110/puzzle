@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -29,13 +30,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.PlatformBackHandler
 import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.ui.component.CelebrationOverlay
 import com.puzzle.game.ui.component.CloudButton
 import com.puzzle.game.ui.component.CoralButton
 import com.puzzle.game.ui.component.FloatingDraggedPiece
 import com.puzzle.game.ui.component.PieceImageContent
+import com.puzzle.game.ui.component.PieceShapeOverlay
 import com.puzzle.game.ui.component.Plaque
 import com.puzzle.game.ui.component.PuzzleBackground
 import com.puzzle.game.ui.component.StoneSurface
@@ -50,12 +54,13 @@ fun GameScreen(
 ) {
     val state by viewModel.state.collectAsState()
 
-    // Handle back press → pause dialog
-    if (state.isPaused) {
-        PauseDialog(
-            onResume = { viewModel.resume() },
-            onQuit = onGoToMenu
-        )
+    PlatformBackHandler(enabled = true) {
+        when {
+            state.isPaused -> viewModel.resume()
+            state.phase == GamePhase.PLAYING -> viewModel.pause()
+            state.phase == GamePhase.COMPLETED || state.phase == GamePhase.ERROR -> onGoToMenu()
+            else -> onGoToMenu()
+        }
     }
 
     when (state.phase) {
@@ -75,6 +80,14 @@ fun GameScreen(
             onGoToMenu = onGoToMenu
         )
         else -> {}
+    }
+
+    // Pause dialog must be drawn after the game content so it stays above the puzzle.
+    if (state.isPaused) {
+        PauseDialog(
+            onResume = { viewModel.resume() },
+            onQuit = onGoToMenu
+        )
     }
 
     // Celebration overlay (shown on top of completed screen)
@@ -99,11 +112,15 @@ private fun PauseDialog(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.5f))
-            .clickable(enabled = false) { /* block clicks through */ },
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {},
         contentAlignment = Alignment.Center
     ) {
         Card(
             modifier = Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
                 .width(260.dp)
                 .padding(24.dp),
             shape = RoundedCornerShape(20.dp),
@@ -238,12 +255,10 @@ private fun PlayingScreen(
                         .padding(end = 4.dp, top = 2.dp, bottom = 2.dp, start = 4.dp)
                 ) {
                     Spacer(modifier = Modifier.height(40.dp)) // space for top bar
-                    if (dragState.selectedPieceId != null) {
-                        SelectionHint()
-                    }
-                    if (state.wrongDropHint) {
-                        WrongHint()
-                    }
+                    InteractionHintBar(
+                        isSelected = dragState.selectedPieceId != null,
+                        showWrongHint = state.wrongDropHint
+                    )
                     Spacer(modifier = Modifier.height(4.dp))
                     PieceTrayHorizontal(
                         pieces = state.pieces,
@@ -266,12 +281,10 @@ private fun PlayingScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
 
-                if (dragState.selectedPieceId != null) {
-                    SelectionHint()
-                }
-                if (state.wrongDropHint) {
-                    WrongHint()
-                }
+                InteractionHintBar(
+                    isSelected = dragState.selectedPieceId != null,
+                    showWrongHint = state.wrongDropHint
+                )
 
                 GameBoardArea(
                     state = state,
@@ -342,51 +355,66 @@ private fun GameTopBar(
 }
 
 @Composable
-private fun SelectionHint() {
-    Text(
-        text = "已选中碎片，点击棋盘格子放置",
-        fontSize = 12.sp,
-        color = PuzzleColors.TealDark,
-        fontWeight = FontWeight.Medium,
+private fun InteractionHintBar(
+    isSelected: Boolean,
+    showWrongHint: Boolean
+) {
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                PuzzleColors.Teal.copy(alpha = 0.16f),
-                RoundedCornerShape(PuzzleDimens.SmallRadius)
+            .height(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        when {
+            showWrongHint -> Text(
+                "再试试",
+                fontSize = 13.sp,
+                color = PuzzleColors.ErrorSoft,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center
             )
-            .padding(6.dp),
-        textAlign = TextAlign.Center
-    )
-}
-
-@Composable
-private fun WrongHint() {
-    Text(
-        "再试试", fontSize = 13.sp,
-        color = PuzzleColors.ErrorSoft,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.fillMaxWidth(),
-        textAlign = TextAlign.Center
-    )
+            isSelected -> Text(
+                text = "已选中碎片，点击棋盘格子放置",
+                fontSize = 12.sp,
+                color = PuzzleColors.TealDark,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        PuzzleColors.Teal.copy(alpha = 0.16f),
+                        RoundedCornerShape(PuzzleDimens.SmallRadius)
+                    )
+                    .padding(vertical = 6.dp),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 @Composable
 private fun BottomHint(dragState: com.puzzle.game.game.DragDropState, viewModel: GameViewModel) {
-    if (dragState.selectedPieceId != null) {
-        TextButton(
-            onClick = { dragState.clearSelection() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("取消选择", fontSize = 13.sp, color = PuzzleColors.ErrorSoft)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(36.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (dragState.selectedPieceId != null) {
+            TextButton(
+                onClick = { dragState.clearSelection() },
+                modifier = Modifier.height(32.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp)
+            ) {
+                Text("取消选择", fontSize = 13.sp, color = PuzzleColors.ErrorSoft)
+            }
+        } else {
+            Text(
+                "点击或拖动",
+                fontSize = 12.sp,
+                color = PuzzleColors.Muted,
+                textAlign = TextAlign.Center
+            )
         }
-    } else {
-        Text(
-            "点击或拖动",
-            fontSize = 12.sp,
-            color = PuzzleColors.Muted,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
-        )
     }
 }
 
@@ -401,9 +429,9 @@ private fun GameBoardArea(
 ) {
     val imageWidth = state.puzzleBitmap?.width ?: 800
     val imageHeight = state.puzzleBitmap?.height ?: 600
-    val blockSize = 64
-    val gridCols = state.gridCols.takeIf { it > 0 } ?: ((imageWidth / blockSize) + 1)
-    val gridRows = state.gridRows.takeIf { it > 0 } ?: ((imageHeight / blockSize) + 1)
+    val blockSize = PuzzleConfig.PIXEL_BLOCK_SIZE
+    val gridCols = state.gridCols.takeIf { it > 0 } ?: ceilDiv(imageWidth, blockSize)
+    val gridRows = state.gridRows.takeIf { it > 0 } ?: ceilDiv(imageHeight, blockSize)
     val pieces = state.pieces
     val puzzleBitmap = state.puzzleBitmap
     val placedPieceIds = state.cellFilledBy.values.toSet()
@@ -451,19 +479,14 @@ private fun GameBoardArea(
         }
     }
 
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .border(2.dp, PuzzleColors.Stone, RoundedCornerShape(12.dp))
-            .background(PuzzleColors.Cloud),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
         BoxWithConstraints(
-            modifier = Modifier.fillMaxSize().padding(10.dp),
+            modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
-            val boardW = maxWidth
-            val boardH = maxHeight
+            val framePadding = 10.dp
+            val boardW = maxWidth - framePadding * 2
+            val boardH = maxHeight - framePadding * 2
 
             val aspect = imageWidth.toFloat() / imageHeight.toFloat()
             val displayW: Dp
@@ -479,121 +502,125 @@ private fun GameBoardArea(
 
             Box(
                 modifier = Modifier
-                    .size(displayW, displayH)
-                    .onGloballyPositioned { coords ->
-                        boardImageWindowPos = coords.positionInWindow()
-                        boardImageSize = coords.size
-                    }
+                    .size(displayW + framePadding * 2, displayH + framePadding * 2)
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(2.dp, PuzzleColors.Stone, RoundedCornerShape(12.dp))
+                    .background(PuzzleColors.Cloud),
+                contentAlignment = Alignment.Center
             ) {
-                // Ghost image
-                if (puzzleBitmap != null) {
-                    androidx.compose.foundation.Image(
-                        bitmap = puzzleBitmap,
-                        contentDescription = "原图",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                        alpha = 0.38f
-                    )
-                }
+                Box(
+                    modifier = Modifier
+                        .size(displayW, displayH)
+                        .onGloballyPositioned { coords ->
+                            boardImageWindowPos = coords.positionInWindow()
+                            boardImageSize = coords.size
+                        }
+                ) {
+                    // Ghost image
+                    if (puzzleBitmap != null) {
+                        androidx.compose.foundation.Image(
+                            bitmap = puzzleBitmap,
+                            contentDescription = "原图",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit,
+                            alpha = 0.34f
+                        )
+                    }
 
-                if (puzzleBitmap != null) {
+                    if (puzzleBitmap != null) {
+                        pieces
+                            .filter { placedPieceIds.contains(it.id) }
+                            .forEach { piece ->
+                                val pieceBitmap = state.pieceBitmaps[piece.id]
+                                val pieceX = displayW * (piece.pixels.left.toFloat() / imageWidth.toFloat())
+                                val pieceY = displayH * (piece.pixels.top.toFloat() / imageHeight.toFloat())
+                                val pieceW = displayW * (piece.pixels.width.toFloat() / imageWidth.toFloat())
+                                val pieceH = displayH * (piece.pixels.height.toFloat() / imageHeight.toFloat())
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = pieceX, y = pieceY)
+                                        .size(pieceW, pieceH)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .border(
+                                            1.dp,
+                                            PuzzleColors.Gold.copy(alpha = 0.58f),
+                                            RoundedCornerShape(4.dp)
+                                        )
+                                ) {
+                                    if (pieceBitmap != null) {
+                                        androidx.compose.foundation.Image(
+                                            bitmap = pieceBitmap,
+                                            contentDescription = "已放置碎片",
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentScale = ContentScale.FillBounds
+                                        )
+                                    } else {
+                                        PieceImageContent(
+                                            piece = piece,
+                                            puzzleBitmap = puzzleBitmap,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
+                                }
+                            }
+                    }
+
                     pieces
-                        .filter { placedPieceIds.contains(it.id) }
+                        .filter { !placedPieceIds.contains(it.id) }
                         .forEach { piece ->
-                            val pieceBitmap = state.pieceBitmaps[piece.id]
                             val pieceX = displayW * (piece.pixels.left.toFloat() / imageWidth.toFloat())
                             val pieceY = displayH * (piece.pixels.top.toFloat() / imageHeight.toFloat())
                             val pieceW = displayW * (piece.pixels.width.toFloat() / imageWidth.toFloat())
                             val pieceH = displayH * (piece.pixels.height.toFloat() / imageHeight.toFloat())
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = pieceX, y = pieceY)
-                                    .size(pieceW, pieceH)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .border(
-                                        1.dp,
-                                        PuzzleColors.Gold.copy(alpha = 0.58f),
-                                        RoundedCornerShape(4.dp)
-                                    )
-                            ) {
-                                if (pieceBitmap != null) {
-                                    androidx.compose.foundation.Image(
-                                        bitmap = pieceBitmap,
-                                        contentDescription = "已放置碎片",
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.FillBounds
-                                    )
-                                } else {
-                                    androidx.compose.foundation.Image(
-                                        bitmap = puzzleBitmap,
-                                        contentDescription = "已放置碎片",
-                                        modifier = Modifier
-                                            .size(displayW, displayH)
-                                            .offset(
-                                                x = -pieceX,
-                                                y = -pieceY
-                                            ),
-                                        contentScale = ContentScale.FillBounds
+                            val isDropTarget = dragState.dropTargetPieceId == piece.id
+                            val isTapTarget = dragState.selectedPieceId == piece.id
+                            if (isDropTarget || isTapTarget) {
+                                Box(
+                                    modifier = Modifier
+                                        .offset(x = pieceX, y = pieceY)
+                                        .size(pieceW, pieceH)
+                                        .then(
+                                            if (dragState.selectedPieceId != null) {
+                                                Modifier.clickable {
+                                                    val result = dragState.tapTarget(piece.id)
+                                                    if (result != null) {
+                                                        viewModel.tryPlacePiece(result.pieceId, result.targetPieceId)
+                                                    }
+                                                }
+                                            } else Modifier
+                                        )
+                                ) {
+                                    PieceShapeOverlay(
+                                        piece = piece,
+                                        fillColor = if (isDropTarget) PuzzleColors.Teal.copy(alpha = 0.28f)
+                                        else PuzzleColors.Gold.copy(alpha = 0.16f),
+                                        strokeColor = if (isDropTarget) PuzzleColors.Teal else PuzzleColors.Gold,
+                                        strokeWidth = if (isDropTarget) 2.dp else 1.dp,
+                                        modifier = Modifier.fillMaxSize()
                                     )
                                 }
                             }
                         }
-                }
 
-                pieces
-                    .filter { !placedPieceIds.contains(it.id) }
-                    .forEach { piece ->
-                        val pieceX = displayW * (piece.pixels.left.toFloat() / imageWidth.toFloat())
-                        val pieceY = displayH * (piece.pixels.top.toFloat() / imageHeight.toFloat())
-                        val pieceW = displayW * (piece.pixels.width.toFloat() / imageWidth.toFloat())
-                        val pieceH = displayH * (piece.pixels.height.toFloat() / imageHeight.toFloat())
-                        val isDropTarget = dragState.dropTargetPieceId == piece.id
-                        val isTapTarget = dragState.selectedPieceId == piece.id
-                        if (isDropTarget || isTapTarget) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = pieceX, y = pieceY)
-                                    .size(pieceW, pieceH)
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(
-                                        if (isDropTarget) PuzzleColors.Teal.copy(alpha = 0.28f)
-                                        else PuzzleColors.Gold.copy(alpha = 0.16f)
-                                    )
-                                    .border(
-                                        width = if (isDropTarget) 2.dp else 1.dp,
-                                        color = if (isDropTarget) PuzzleColors.Teal else PuzzleColors.Gold,
-                                        shape = RoundedCornerShape(6.dp)
-                                    )
-                                    .then(
-                                        if (dragState.selectedPieceId != null) {
-                                            Modifier.clickable {
-                                                val result = dragState.tapTarget(piece.id)
-                                                if (result != null) {
-                                                    viewModel.tryPlacePiece(result.pieceId, result.targetPieceId)
-                                                }
-                                            }
-                                        } else Modifier
-                                    )
-                            )
+                    if (gridRows * gridCols <= 2_500) {
+                        for (row in 0 until gridRows) {
+                            for (col in 0 until gridCols) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(1f / gridCols)
+                                        .fillMaxHeight(1f / gridRows)
+                                        .offset(
+                                            x = displayW * col / gridCols,
+                                            y = displayH * row / gridRows
+                                        )
+                                        .border(
+                                            width = 0.3.dp,
+                                            color = PuzzleColors.Stone.copy(alpha = 0.20f)
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {}
+                            }
                         }
-                    }
-
-                for (row in 0 until gridRows) {
-                    for (col in 0 until gridCols) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(1f / gridCols)
-                                .fillMaxHeight(1f / gridRows)
-                                .offset(
-                                    x = displayW * col / gridCols,
-                                    y = displayH * row / gridRows
-                                )
-                                .border(
-                                    width = 0.3.dp,
-                                    color = PuzzleColors.Stone.copy(alpha = 0.24f)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {}
                     }
                 }
             }
@@ -631,14 +658,11 @@ private fun PieceTrayHorizontal(
             var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
 
             val pieceBitmap = pieceBitmaps[piece.id]
-            val cardAspect = pieceBitmap?.let {
-                it.width.toFloat() / it.height.coerceAtLeast(1)
-            } ?: (piece.pixels.width.toFloat() / piece.pixels.height.coerceAtLeast(1).toFloat())
 
             Box(
                 modifier = Modifier
+                    .width(112.dp)
                     .fillMaxHeight()
-                    .aspectRatio(cardAspect)
                     .onGloballyPositioned { coords ->
                         pieceWindowPos = coords.positionInWindow()
                         pieceIntSize = coords.size
@@ -672,9 +696,8 @@ private fun PieceTrayHorizontal(
                     )
                     .clip(RoundedCornerShape(10.dp))
                     .border(
-                        width = if (isSelected) 3.dp else 1.dp,
-                        color = if (isSelected) PuzzleColors.Teal
-                        else PuzzleColors.Stone.copy(alpha = 0.55f),
+                        width = 1.dp,
+                        color = PuzzleColors.Stone.copy(alpha = 0.55f),
                         shape = RoundedCornerShape(10.dp)
                     )
                     .background(
@@ -701,6 +724,21 @@ private fun PieceTrayHorizontal(
                         contentDescription = "碎片",
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp)),
                         contentScale = ContentScale.Fit
+                    )
+                } else {
+                    PieceImageContent(
+                        piece = piece,
+                        puzzleBitmap = puzzleBitmap,
+                        cardSize = 100,
+                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(8.dp))
+                    )
+                }
+                if (isSelected) {
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .padding(2.dp)
+                            .border(2.dp, PuzzleColors.Teal, RoundedCornerShape(8.dp))
                     )
                 }
             }
@@ -867,4 +905,8 @@ private fun com.puzzle.game.engine.model.PuzzlePiece.targetRectInWindow(
     val right = boardPos.x + boardSize.width * (pixels.right.toFloat() / imageWidth.toFloat())
     val bottom = boardPos.y + boardSize.height * (pixels.bottom.toFloat() / imageHeight.toFloat())
     return WindowRect(left, top, right, bottom)
+}
+
+private fun ceilDiv(value: Int, divisor: Int): Int {
+    return ((value + divisor - 1) / divisor).coerceAtLeast(1)
 }

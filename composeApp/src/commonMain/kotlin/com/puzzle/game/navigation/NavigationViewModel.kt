@@ -16,6 +16,7 @@ class NavigationViewModel {
         get() = _screenStack.value.lastOrNull() ?: Screen.Menu
 
     fun navigateTo(screen: Screen) {
+        if (_screenStack.value.lastOrNull() == screen) return
         _screenStack.value = _screenStack.value + screen
     }
 

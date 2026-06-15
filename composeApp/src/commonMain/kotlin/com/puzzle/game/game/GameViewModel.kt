@@ -12,6 +12,7 @@ import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.platformCacheDir
 import com.puzzle.game.engine.PuzzleEngine
 import com.puzzle.game.engine.PieceBitmapGenerator
+import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.native.NativeSplitAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
@@ -27,6 +28,9 @@ import io.ktor.client.call.body
 import io.ktor.client.request.get
 
 class GameViewModel : ViewModel() {
+    private val blockSize = PuzzleConfig.PIXEL_BLOCK_SIZE
+    private val maxEagerPieceBitmaps = 120
+
     private val _state = MutableStateFlow(GameState())
     val state: StateFlow<GameState> = _state
 
@@ -83,12 +87,12 @@ class GameViewModel : ViewModel() {
                 val gameData = withContext(Dispatchers.Default) {
                     val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
                     engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-                    engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                    engine.splitImage(pieceCount = pieceCount, blockSize = blockSize)
                     val pieces = engine.shufflePieces()
                     GeneratedGameData(
                         pieces = pieces,
                         bitmap = puzzleBitmap,
-                        pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
+                        pieceBitmaps = generatePieceBitmapsIfAffordable(puzzleBitmap, pieces),
                         imageWidth = puzzleBitmap.width,
                         imageHeight = puzzleBitmap.height
                     )
@@ -100,7 +104,7 @@ class GameViewModel : ViewModel() {
                     pieceBitmaps = gameData.pieceBitmaps,
                     imageWidth = gameData.imageWidth,
                     imageHeight = gameData.imageHeight,
-                    blockSize = 64
+                    blockSize = blockSize
                 )
                 startTimer()
             } catch (e: Exception) {
@@ -196,8 +200,19 @@ class GameViewModel : ViewModel() {
      */
     private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
         val imgSize = "${imageBytes.size / 1024}KB"
+        if (blockSize == PuzzleConfig.PIXEL_BLOCK_SIZE) {
+            val bitmap = withContext(Dispatchers.Default) {
+                decodeToImageBitmap(imageBytes)
+            } ?: PuzzlePictureGenerator.generate(
+                _state.value.selectedTheme ?: ThemePresets.themes.first(),
+                800, 600
+            )
+            startGameWithBitmapInternal(bitmap, pieceCount)
+            return
+        }
+
         val success = withContext(Dispatchers.Default) {
-            nativeAdapter.loadAndSplit(imageBytes, pieceCount, 64, platformCacheDir())
+            nativeAdapter.loadAndSplit(imageBytes, pieceCount, blockSize, platformCacheDir())
         }
         if (!success) {
             PuzzleLog.w("GameVM", "Native split failed ($imgSize), falling back to Kotlin engine")
@@ -206,12 +221,12 @@ class GameViewModel : ViewModel() {
             val gameData = withContext(Dispatchers.Default) {
                 val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
                 engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-                engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+                    engine.splitImage(pieceCount = pieceCount, blockSize = blockSize)
                 val pieces = engine.shufflePieces()
                 GeneratedGameData(
                     pieces = pieces,
                     bitmap = puzzleBitmap,
-                    pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
+                    pieceBitmaps = generatePieceBitmapsIfAffordable(puzzleBitmap, pieces),
                     imageWidth = puzzleBitmap.width,
                     imageHeight = puzzleBitmap.height
                 )
@@ -222,7 +237,7 @@ class GameViewModel : ViewModel() {
                 pieceBitmaps = gameData.pieceBitmaps,
                 imageWidth = gameData.imageWidth,
                 imageHeight = gameData.imageHeight,
-                blockSize = 64
+                blockSize = blockSize
             )
             startTimer()
             return
@@ -236,7 +251,7 @@ class GameViewModel : ViewModel() {
 
         val (imgW, imgH) = nativeAdapter.imageSize
         val nativePieceBitmaps = nativeAdapter.pieceBitmaps.ifEmpty {
-            PieceBitmapGenerator.generate(bitmap, nativeAdapter.pieces, 64)
+            generatePieceBitmapsIfAffordable(bitmap, nativeAdapter.pieces)
         }
         applyNewGame(
             pieces = nativeAdapter.pieces,
@@ -244,7 +259,7 @@ class GameViewModel : ViewModel() {
             pieceBitmaps = nativePieceBitmaps,
             imageWidth = imgW,
             imageHeight = imgH,
-            blockSize = 64,
+            blockSize = blockSize,
             customPositions = nativeAdapter.correctPositions
         )
         startTimer()
@@ -261,12 +276,12 @@ class GameViewModel : ViewModel() {
         val gameData = withContext(Dispatchers.Default) {
             val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
             engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-            engine.splitImage(pieceCount = pieceCount, blockSize = 64)
+            engine.splitImage(pieceCount = pieceCount, blockSize = blockSize)
             val pieces = engine.shufflePieces()
             GeneratedGameData(
                 pieces = pieces,
                 bitmap = puzzleBitmap,
-                pieceBitmaps = PieceBitmapGenerator.generate(puzzleBitmap, pieces, 64),
+                pieceBitmaps = generatePieceBitmapsIfAffordable(puzzleBitmap, pieces),
                 imageWidth = puzzleBitmap.width,
                 imageHeight = puzzleBitmap.height
             )
@@ -278,9 +293,49 @@ class GameViewModel : ViewModel() {
             pieceBitmaps = gameData.pieceBitmaps,
             imageWidth = gameData.imageWidth,
             imageHeight = gameData.imageHeight,
-            blockSize = 64
+            blockSize = blockSize
         )
         startTimer()
+    }
+
+    private suspend fun startGameWithBitmapInternal(bitmap: ImageBitmap, pieceCount: Int) {
+        val gameData = withContext(Dispatchers.Default) {
+            engine.loadImage(bitmap.width, bitmap.height)
+            engine.splitImage(pieceCount = pieceCount, blockSize = blockSize)
+            val pieces = engine.shufflePieces()
+            GeneratedGameData(
+                pieces = pieces,
+                bitmap = bitmap,
+                pieceBitmaps = generatePieceBitmapsIfAffordable(bitmap, pieces),
+                imageWidth = bitmap.width,
+                imageHeight = bitmap.height
+            )
+        }
+
+        applyNewGame(
+            pieces = gameData.pieces,
+            bitmap = gameData.bitmap,
+            pieceBitmaps = gameData.pieceBitmaps,
+            imageWidth = gameData.imageWidth,
+            imageHeight = gameData.imageHeight,
+            blockSize = blockSize
+        )
+        startTimer()
+    }
+
+    private fun generatePieceBitmapsIfAffordable(
+        bitmap: ImageBitmap,
+        pieces: List<com.puzzle.game.engine.model.PuzzlePiece>
+    ): Map<String, ImageBitmap> {
+        if (pieces.size > maxEagerPieceBitmaps) {
+            PuzzleLog.i("GameVM", "Skip eager piece bitmap generation for ${pieces.size} pieces")
+            return emptyMap()
+        }
+        if (pieces.any { it.items.isEmpty() }) {
+            PuzzleLog.i("GameVM", "Skip piece bitmap generation because runtime pieces store bounds only")
+            return emptyMap()
+        }
+        return PieceBitmapGenerator.generate(bitmap, pieces, blockSize)
     }
 
     /**
@@ -325,8 +380,8 @@ class GameViewModel : ViewModel() {
         blockSize: Int,
         customPositions: Map<String, Pair<Int, Int>>? = null
     ) {
-        val gridCols = (imageWidth / blockSize) + 1
-        val gridRows = (imageHeight / blockSize) + 1
+        val gridCols = ceilDiv(imageWidth, blockSize)
+        val gridRows = ceilDiv(imageHeight, blockSize)
 
         val correctPositions = customPositions ?: run {
             val map = mutableMapOf<String, Pair<Int, Int>>()
@@ -334,6 +389,11 @@ class GameViewModel : ViewModel() {
                 if (piece.items.isNotEmpty()) {
                     val center = piece.items[piece.items.size / 2]
                     map[piece.id] = Pair(center.y, center.x)
+                } else {
+                    map[piece.id] = Pair(
+                        piece.pixels.top + piece.pixels.height / 2,
+                        piece.pixels.left + piece.pixels.width / 2
+                    )
                 }
             }
             map
@@ -342,7 +402,7 @@ class GameViewModel : ViewModel() {
         // Log piece dimensions summary
         if (pieces.isNotEmpty()) {
             val dims = pieces.joinToString(", ") { p ->
-                "${p.id}: ${p.pixels.width}×${p.pixels.height}px@(${p.pixels.left},${p.pixels.top}) [${p.items.size}b]"
+                "${p.id}: ${p.pixels.width}×${p.pixels.height}px@(${p.pixels.left},${p.pixels.top}) [${p.items.size} stored cells]"
             }
             PuzzleLog.i("GameVM", "New game ready: ${imageWidth}×${imageHeight}px grid=${gridCols}×${gridRows} bs=$blockSize pieces=${pieces.size}")
             PuzzleLog.d("GameVM", "Piece dimensions: $dims")
@@ -362,6 +422,10 @@ class GameViewModel : ViewModel() {
                 showCelebration = false
             )
         }
+    }
+
+    private fun ceilDiv(value: Int, divisor: Int): Int {
+        return ((value + divisor - 1) / divisor).coerceAtLeast(1)
     }
 
     // ── Gameplay ─────────────────────────────────────────

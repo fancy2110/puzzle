@@ -82,6 +82,9 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.umeng.common)
+            implementation(libs.umeng.asms)
+            implementation(libs.umeng.apm)
         }
 
         iosMain.dependencies {
@@ -104,6 +107,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+        manifestPlaceholders["UMENG_APP_KEY"] = providers.gradleProperty("UMENG_ANDROID_APP_KEY").orElse("").get()
+        manifestPlaceholders["UMENG_CHANNEL"] = providers.gradleProperty("UMENG_CHANNEL").orElse("official").get()
+        manifestPlaceholders["UMENG_ANALYTICS_ENABLED"] = providers.gradleProperty("UMENG_ANALYTICS_ENABLED").orElse("false").get()
     }
 
     compileOptions {

@@ -32,6 +32,32 @@ object PuzzleDimens {
     val TrayHeight = 140.dp
 }
 
+object FragmaDimens {
+    val PageHorizontal = 20.dp
+    val PageVertical = 10.dp
+    val BrandMark = 62.dp
+    val BrandMarkCompact = 50.dp
+    val SettingsButton = 58.dp
+    val SettingsButtonCompact = 50.dp
+    val TopControlHeight = 54.dp
+    val ProgressPlaqueRadius = 20.dp
+    val TimerPlaqueWidth = 86.dp
+    val TimerPlaqueRadius = 18.dp
+    val StoryCardRadius = 30.dp
+    val StoryImageRadius = 24.dp
+    val StoryCardPadding = 14.dp
+    val StoryCardPaddingCompact = 10.dp
+    val SliderPanelRadius = 26.dp
+    val PieceTrayHeight = 150.dp
+    val PieceTrayRadius = 22.dp
+    val PieceCardWidth = 116.dp
+    val PieceCardRadius = 14.dp
+    val BookCanvasRadius = 18.dp
+    val BookCanvasPadding = 24.dp
+    val PrimaryActionHeight = 58.dp
+    val SecondaryActionHeight = 52.dp
+}
+
 private val LightColors = lightColorScheme(
     primary = PuzzleColors.TealDark,
     onPrimary = Color.White,

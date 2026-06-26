@@ -29,9 +29,22 @@
     </dict>
     <key>UILaunchScreen</key>
     <dict/>
+    <key>UMENG_ANALYTICS_ENABLED</key>
+    <string>$(UMENG_ANALYTICS_ENABLED)</string>
+    <key>UMENG_APP_KEY</key>
+    <string>$(UMENG_APP_KEY)</string>
+    <key>UMENG_CHANNEL</key>
+    <string>$(UMENG_CHANNEL)</string>
     <key>UISupportedInterfaceOrientations</key>
     <array>
         <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
         <string>UIInterfaceOrientationLandscapeLeft</string>
         <string>UIInterfaceOrientationLandscapeRight</string>
     </array>

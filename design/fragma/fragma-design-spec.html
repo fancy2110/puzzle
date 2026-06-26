@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>故事拼图 Fragma Design Spec</title>
+  <style>
+    :root {
+      --paper0:#fffcf6; --paper1:#f7f2ea; --paper2:#eff5f4; --cloud:#fff9f0;
+      --stone:#d9cbb6; --ink:#7a6750; --muted:#8f806e; --teal:#7caea5;
+      --tealDark:#356d6a; --coral:#e98166; --gold:#cda45a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background: #ebe1d4;
+    }
+    .canvas {
+      min-width: 1680px;
+      padding: 56px 64px 96px;
+      background:
+        linear-gradient(90deg, rgba(53,109,106,.08) 1px, transparent 1px),
+        linear-gradient(rgba(53,109,106,.06) 1px, transparent 1px),
+        radial-gradient(circle at 12% 10%, rgba(205,164,90,.20), transparent 28%),
+        radial-gradient(circle at 84% 18%, rgba(124,174,165,.18), transparent 28%),
+        #ebe1d4;
+      background-size: 24px 24px, 24px 24px, auto, auto, auto;
+    }
+    h1 {
+      margin: 0;
+      color: var(--tealDark);
+      font-size: 48px;
+      letter-spacing: 0;
+    }
+    .intro {
+      max-width: 1050px;
+      margin: 14px 0 36px;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1.7;
+    }
+    .artboards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 54px;
+      align-items: start;
+    }
+    .board-wrap {
+      position: relative;
+      padding: 38px 36px 78px;
+      border-radius: 28px;
+      border: 1px dashed rgba(53,109,106,.38);
+      background: rgba(255,255,255,.32);
+    }
+    .board-label {
+      position: absolute;
+      left: 24px;
+      top: 16px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: var(--tealDark);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .phone {
+      position: relative;
+      width: 390px;
+      height: 844px;
+      margin: 44px auto 0;
+      overflow: hidden;
+      border-radius: 42px;
+      border: 10px solid rgba(255,255,255,.62);
+      box-shadow: 0 24px 44px rgba(67,48,27,.20);
+      background:
+        radial-gradient(circle at 18% 10%, rgba(205,164,90,.14), transparent 25%),
+        radial-gradient(circle at 90% 64%, rgba(124,174,165,.16), transparent 26%),
+        linear-gradient(180deg, var(--paper0) 0%, var(--paper1) 62%, var(--paper2) 100%);
+    }
+    .home-bg-detail, .game-bg-detail {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: .48;
+      background:
+        linear-gradient(45deg, rgba(205,164,90,.10) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(53,109,106,.06) 25%, transparent 25%);
+      background-size: 48px 48px;
+    }
+    .asset {
+      position: absolute;
+      display: block;
+    }
+    .brand { left: 20px; top: 28px; width: 62px; height: 62px; }
+    .settings { right: 20px; top: 30px; width: 58px; height: 58px; }
+    .brand-copy { position: absolute; left: 98px; top: 33px; }
+    .brand-copy .title { color: var(--tealDark); font-size: 38px; line-height: 42px; font-weight: 900; }
+    .brand-copy .sub { margin-top: 7px; color: var(--muted); font-size: 14px; font-weight: 600; }
+    .peek-left, .peek-right {
+      position: absolute;
+      top: 146px;
+      width: 108px;
+      height: 334px;
+      border-radius: 26px;
+      opacity: .72;
+      filter: drop-shadow(0 10px 16px rgba(67,48,27,.14));
+    }
+    .peek-left { left: -72px; }
+    .peek-right { right: -72px; transform: scaleX(-1); }
+    .story-card { left: 35px; top: 124px; width: 320px; height: 468px; }
+    .pager-indicator {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 602px;
+      height: 26px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      color: var(--tealDark);
+      font-size: 14px;
+      font-weight: 850;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(122,103,80,.25); }
+    .dot.active { width: 18px; background: var(--tealDark); }
+    .slider { left: 20px; top: 646px; width: 350px; height: 126px; }
+    .primary { left: 20px; top: 794px; width: 350px; height: 58px; }
+    .secondary-theme { left: 20px; top: 870px; width: 166px; height: 52px; }
+    .secondary-image { right: 20px; top: 870px; width: 166px; height: 52px; }
+    .game-controls { left: 11px; top: 20px; width: 368px; height: 54px; }
+    .book-canvas { left: 15px; top: 106px; width: 360px; height: 520px; }
+    .piece-tray { left: 11px; top: 684px; width: 368px; height: 150px; }
+    .hint {
+      position: absolute;
+      left: 0; right: 0; bottom: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 750;
+      text-align: center;
+    }
+    .annotation {
+      position: absolute;
+      min-width: 180px;
+      max-width: 220px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: rgba(255,249,240,.94);
+      border: 1px solid rgba(53,109,106,.24);
+      box-shadow: 0 10px 22px rgba(67,48,27,.12);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+    .annotation strong { display:block; color: var(--tealDark); font-size:13px; margin-bottom:4px; }
+    .mark {
+      position:absolute;
+      border:2px solid rgba(53,109,106,.85);
+      background: rgba(124,174,165,.10);
+      border-radius: 12px;
+      pointer-events:none;
+    }
+    .mark.gold { border-color: rgba(205,164,90,.9); background: rgba(205,164,90,.12); }
+    .mark.coral { border-color: rgba(233,129,102,.9); background: rgba(233,129,102,.12); }
+    .section-title {
+      margin: 52px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--tealDark);
+      font-size: 28px;
+      font-weight: 900;
+    }
+    .section-title:after { content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(53,109,106,.42), transparent); }
+    .component-grid {
+      display:grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 18px;
+    }
+    .component-card {
+      min-height: 190px;
+      border-radius: 20px;
+      background: rgba(255,249,240,.82);
+      border: 1px solid rgba(122,103,80,.18);
+      box-shadow: 0 10px 22px rgba(67,48,27,.10);
+      padding: 14px;
+      display:grid;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+    }
+    .preview {
+      border-radius: 14px;
+      background:
+        linear-gradient(45deg, rgba(217,203,182,.32) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(217,203,182,.32) 25%, transparent 25%),
+        rgba(255,255,255,.62);
+      background-size: 24px 24px;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+      min-height: 120px;
+    }
+    .preview img { max-width: 100%; max-height: 150px; object-fit: contain; }
+    .meta { font-size:12px; color:var(--muted); line-height:1.45; }
+    .meta strong { display:block; color:var(--tealDark); font-size:13px; margin-bottom:4px; }
+    .tokens {
+      display:grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 14px;
+    }
+    .swatch {
+      height: 92px;
+      border-radius: 16px;
+      padding: 10px;
+      display:flex;
+      align-items:flex-end;
+      color:#fff;
+      font-size:12px;
+      font-weight:850;
+      text-shadow: 0 1px 3px rgba(0,0,0,.3);
+      border:1px solid rgba(122,103,80,.18);
+    }
+    .swatch.light { color:var(--ink); text-shadow:none; }
+    .relations { display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; }
+    .relation {
+      border-radius: 20px;
+      background: rgba(255,249,240,.82);
+      border: 1px solid rgba(53,109,106,.22);
+      box-shadow: 0 10px 22px rgba(67,48,27,.10);
+      padding: 18px;
+      min-height: 122px;
+    }
+    .relation strong { color:var(--tealDark); display:block; margin-bottom:8px; font-size:16px; }
+    .relation span { color:var(--muted); font-size:13px; line-height:1.65; }
+  </style>
+</head>
+<body>
+  <main class="canvas">
+    <h1>故事拼图 · Fragma 组件化设计稿</h1>
+    <p class="intro">从零建立设计语言，不生成 PNG。所有视觉素材均为独立 SVG 组件，再融合为完整首页与拼图页画板。画板使用 390 × 844 移动端基准，便于后续映射到 Compose UI。</p>
+
+    <section class="artboards">
+      <div class="board-wrap">
+        <div class="board-label">Frame / Home 390×844</div>
+        <div class="phone" style="height:960px;">
+          <div class="home-bg-detail"></div>
+          <img class="asset brand" src="components/brand-mark.svg" alt="">
+          <div class="brand-copy"><div class="title">故事拼图</div><div class="sub">拼完整画面，读懂每一页故事</div></div>
+          <img class="asset settings" src="components/settings-button.svg" alt="">
+          <img class="peek-left" src="components/story-card.svg" alt="">
+          <img class="peek-right" src="components/story-card.svg" alt="">
+          <img class="asset story-card" src="components/story-card.svg" alt="">
+          <div class="pager-indicator"><span class="dot active"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span>1 / 5</span></div>
+          <img class="asset slider" src="components/piece-slider.svg" alt="">
+          <img class="asset primary" src="components/primary-button.svg" alt="">
+          <img class="asset secondary-theme" src="components/secondary-button-theme.svg" alt="">
+          <img class="asset secondary-image" src="components/secondary-button-image.svg" alt="">
+          <div class="mark" style="left:20px;top:28px;width:350px;height:62px;"></div>
+          <div class="mark gold" style="left:35px;top:124px;width:320px;height:468px;"></div>
+          <div class="mark" style="left:20px;top:646px;width:350px;height:126px;"></div>
+          <div class="mark coral" style="left:20px;top:794px;width:350px;height:58px;"></div>
+        </div>
+        <div class="annotation" style="left:30px;top:142px;"><strong>TopBar</strong>Logo、品牌文字、设置按钮为独立组件；横向间距 16dp。</div>
+        <div class="annotation" style="right:14px;top:312px;"><strong>StoryPager</strong>5 页结构，中间页 320dp，左右露出邻页。</div>
+        <div class="annotation" style="left:24px;bottom:164px;"><strong>Controls</strong>滑杆、主按钮、二级按钮独立组件组合。</div>
+      </div>
+
+      <div class="board-wrap">
+        <div class="board-label">Frame / Puzzle 390×844</div>
+        <div class="phone">
+          <div class="game-bg-detail"></div>
+          <img class="asset game-controls" src="components/top-controls.svg" alt="">
+          <img class="asset book-canvas" src="components/book-canvas.svg" alt="">
+          <img class="asset piece-tray" src="components/piece-tray.svg" alt="">
+          <div class="hint">◆  点击或拖动  ◆</div>
+          <div class="mark" style="left:11px;top:20px;width:368px;height:54px;"></div>
+          <div class="mark gold" style="left:15px;top:106px;width:360px;height:520px;"></div>
+          <div class="mark" style="left:49px;top:204px;width:292px;height:338px;border-radius:8px;"></div>
+          <div class="mark" style="left:11px;top:684px;width:368px;height:150px;"></div>
+        </div>
+        <div class="annotation" style="left:28px;top:142px;"><strong>Top Controls</strong>返回键、进度牌、计时器组合为单独组件。</div>
+        <div class="annotation" style="right:20px;top:312px;"><strong>Book Canvas</strong>书页装饰层和真实 Board 区域分离。</div>
+        <div class="annotation" style="left:30px;bottom:184px;"><strong>Piece Tray</strong>卷轴容器 + 碎片卡片 + 选中态。</div>
+      </div>
+    </section>
+
+    <div class="section-title">组件资源</div>
+    <section class="component-grid">
+      <div class="component-card"><div class="preview"><img src="components/brand-mark.svg"></div><div class="meta"><strong>brand-mark.svg</strong>品牌标识，62×62。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/settings-button.svg"></div><div class="meta"><strong>settings-button.svg</strong>设置按钮，58×58。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/story-illustration.svg"></div><div class="meta"><strong>story-illustration.svg</strong>故事画面资源。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/story-card.svg"></div><div class="meta"><strong>story-card.svg</strong>Pager 页面卡片。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/piece-slider.svg"></div><div class="meta"><strong>piece-slider.svg</strong>10-300 碎片数量控件。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/primary-button.svg"></div><div class="meta"><strong>primary-button.svg</strong>主操作按钮。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/secondary-button-theme.svg"></div><div class="meta"><strong>secondary-button-theme.svg</strong>换主题按钮。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/top-controls.svg"></div><div class="meta"><strong>top-controls.svg</strong>拼图页顶部控件。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/book-canvas.svg"></div><div class="meta"><strong>book-canvas.svg</strong>书页画布。</div></div>
+      <div class="component-card"><div class="preview"><img src="components/piece-tray.svg"></div><div class="meta"><strong>piece-tray.svg</strong>候选碎片卷轴栏。</div></div>
+    </section>
+
+    <div class="section-title">设计 Token</div>
+    <section class="tokens">
+      <div class="swatch light" style="background:#fffcf6;">paper0<br>#FFFCF6</div>
+      <div class="swatch light" style="background:#fff9f0;">cloud<br>#FFF9F0</div>
+      <div class="swatch light" style="background:#d9cbb6;">stone<br>#D9CBB6</div>
+      <div class="swatch" style="background:#356d6a;">tealDark</div>
+      <div class="swatch" style="background:#7caea5;">teal</div>
+      <div class="swatch" style="background:#e98166;">coral</div>
+      <div class="swatch" style="background:#cda45a;">gold</div>
+      <div class="swatch" style="background:#7a6750;">ink</div>
+    </section>
+
+    <div class="section-title">组合关系</div>
+    <section class="relations">
+      <div class="relation"><strong>HomeFrame</strong><span>Background → TopBar → HorizontalPager(5 pages) → Indicator → PieceSlider → PrimaryAction → SecondaryActions。</span></div>
+      <div class="relation"><strong>StoryPager</strong><span>每个 Page 由 StoryCard 组成，StoryCard 内部包含 Illustration、角饰、故事文案和底部宝石装饰。</span></div>
+      <div class="relation"><strong>PuzzleFrame</strong><span>TopControls → BookCanvas → PieceTray → Hint。拖拽浮层在最上层，BookCanvas 内部 Board 区域独立计算坐标。</span></div>
+    </section>
+  </main>
+</body>
+</html>

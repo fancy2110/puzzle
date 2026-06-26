@@ -1,0 +1,64 @@
+{
+  "name": "StoryPuzzle Fragma Design System",
+  "frame": {
+    "mobile": { "width": 390, "height": 844, "safeTop": 20, "safeBottom": 16 }
+  },
+  "colors": {
+    "paper0": "#FFFCF6",
+    "paper1": "#F7F2EA",
+    "paper2": "#EFF5F4",
+    "cloud": "#FFF9F0",
+    "stone": "#D9CBB6",
+    "stoneDeep": "#BBA486",
+    "ink": "#7A6750",
+    "muted": "#8F806E",
+    "teal": "#7CAEA5",
+    "tealDark": "#356D6A",
+    "coral": "#E98166",
+    "coralDark": "#B85B44",
+    "gold": "#CDA45A",
+    "sky": "#BFE4EA",
+    "orchidBlue": "#426F91",
+    "orchidGold": "#D9A44E"
+  },
+  "radii": {
+    "sm": 10,
+    "md": 16,
+    "lg": 24,
+    "xl": 30,
+    "pill": 999
+  },
+  "spacing": {
+    "pageX": 20,
+    "topGap": 18,
+    "sectionGap": 18,
+    "controlGap": 14,
+    "cardPadding": 14
+  },
+  "typography": {
+    "brand": { "size": 38, "weight": 900, "lineHeight": 42 },
+    "subtitle": { "size": 14, "weight": 600, "lineHeight": 20 },
+    "sectionTitle": { "size": 22, "weight": 850, "lineHeight": 28 },
+    "body": { "size": 16, "weight": 650, "lineHeight": 24 },
+    "button": { "size": 25, "weight": 900, "lineHeight": 30 }
+  },
+  "shadows": {
+    "card": "0 16 32 rgba(67,48,27,0.16)",
+    "button": "0 12 22 rgba(184,91,68,0.30)",
+    "soft": "0 8 18 rgba(67,48,27,0.14)"
+  },
+  "components": {
+    "brandMark": { "width": 62, "height": 62, "radius": 18 },
+    "iconButton": { "width": 58, "height": 58, "radius": 18 },
+    "storyCard": { "width": 320, "height": 468, "radius": 30, "padding": 14 },
+    "sliderPanel": { "width": 350, "height": 126, "radius": 26 },
+    "primaryButton": { "width": 350, "height": 58, "radius": 25 },
+    "secondaryButton": { "width": 166, "height": 52, "radius": 24 },
+    "topControlButton": { "width": 54, "height": 54, "radius": 16 },
+    "progressPlaque": { "width": 184, "height": 54, "radius": 20 },
+    "timerPlaque": { "width": 86, "height": 54, "radius": 18 },
+    "bookCanvas": { "width": 360, "height": 520, "radius": 18 },
+    "pieceTray": { "width": 368, "height": 150, "radius": 22 },
+    "pieceCard": { "width": 116, "height": 122, "radius": 14 }
+  }
+}

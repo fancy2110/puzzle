@@ -21,6 +21,7 @@ object PuzzlePictureGenerator {
             "forest" -> drawForest(canvas, width, height, theme, rng)
             "space" -> drawSpace(canvas, width, height, theme, rng)
             "flower" -> drawFlowers(canvas, width, height, theme, rng)
+            else -> drawStorybookScene(canvas, width, height, theme, rng)
         }
 
         return bitmap
@@ -66,6 +67,117 @@ object PuzzlePictureGenerator {
     private fun drawBackground(canvas: Canvas, w: Int, h: Int, theme: ThemeData) {
         val paint = Paint().apply { color = theme.secondary }
         canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), paint)
+    }
+
+    private fun drawStorybookScene(canvas: Canvas, w: Int, h: Int, theme: ThemeData, rng: Random) {
+        val sky = Paint().apply { color = theme.secondary }
+        val hill = Paint().apply { color = theme.primary.copy(alpha = 0.34f) }
+        val hill2 = Paint().apply { color = theme.primary.copy(alpha = 0.22f) }
+        val ink = Paint().apply { color = theme.primary }
+        val accent = Paint().apply { color = theme.accent }
+        val warm = Paint().apply { color = Color(0xFFFFF6DF) }
+
+        canvas.drawRect(0f, 0f, w.toFloat(), h.toFloat(), sky)
+        canvas.drawOval(-w * 0.20f, h * 0.50f, w * 0.74f, h * 1.08f, hill2)
+        canvas.drawOval(w * 0.28f, h * 0.46f, w * 1.18f, h * 1.08f, hill)
+
+        val isNight = theme.id.contains("red") ||
+                theme.id.contains("sleeping") ||
+                theme.id.contains("mermaid") ||
+                theme.id.contains("snow")
+        if (isNight) {
+            repeat(24) {
+                val sx = rng.nextFloat() * w
+                val sy = 24f + rng.nextFloat() * h * 0.42f
+                canvas.drawCircle(Offset(sx, sy), 2f + rng.nextFloat() * 3f, Paint().apply { color = Color.White.copy(alpha = 0.72f) })
+            }
+            canvas.drawCircle(Offset(w * 0.82f, h * 0.16f), 34f, Paint().apply { color = Color(0xFFFFE7A6) })
+        } else {
+            drawSunAt(canvas, w * 0.82f, h * 0.16f, 34f)
+        }
+
+        val path = Path().apply {
+            moveTo(w * 0.42f, h.toFloat())
+            cubicTo(w * 0.36f, h * 0.78f, w * 0.48f, h * 0.62f, w * 0.55f, h * 0.46f)
+            cubicTo(w * 0.62f, h * 0.62f, w * 0.72f, h * 0.78f, w * 0.70f, h.toFloat())
+            close()
+        }
+        canvas.drawPath(path, Paint().apply { color = Color(0xFFFFF0C9).copy(alpha = 0.78f) })
+
+        drawStoryLandmark(canvas, w, h, theme, ink, accent, warm)
+        drawStoryCharacters(canvas, w, h, theme, rng)
+        drawStoryPlants(canvas, w, h, theme, rng)
+    }
+
+    private fun drawStoryLandmark(
+        canvas: Canvas,
+        w: Int,
+        h: Int,
+        theme: ThemeData,
+        ink: Paint,
+        accent: Paint,
+        warm: Paint
+    ) {
+        val baseX = w * 0.56f
+        val baseY = h * 0.48f
+        if (theme.id.contains("cinderella") || theme.id.contains("snow") || theme.id.contains("sleeping") || theme.id.contains("beanstalk")) {
+            canvas.drawRect(baseX - 84f, baseY - 30f, baseX + 84f, baseY + 118f, warm)
+            repeat(3) { i ->
+                val tx = baseX - 70f + i * 70f
+                canvas.drawRect(tx - 18f, baseY - 92f, tx + 18f, baseY + 118f, warm)
+                val roof = Path().apply {
+                    moveTo(tx - 26f, baseY - 92f)
+                    lineTo(tx, baseY - 132f)
+                    lineTo(tx + 26f, baseY - 92f)
+                    close()
+                }
+                canvas.drawPath(roof, accent)
+            }
+            canvas.drawRect(baseX - 16f, baseY + 54f, baseX + 16f, baseY + 118f, ink)
+        } else if (theme.id.contains("pigs") || theme.id.contains("hansel") || theme.id.contains("red")) {
+            canvas.drawRect(baseX - 86f, baseY + 8f, baseX + 86f, baseY + 118f, warm)
+            val roof = Path().apply {
+                moveTo(baseX - 108f, baseY + 8f)
+                lineTo(baseX, baseY - 78f)
+                lineTo(baseX + 108f, baseY + 8f)
+                close()
+            }
+            canvas.drawPath(roof, accent)
+            canvas.drawRect(baseX - 18f, baseY + 58f, baseX + 18f, baseY + 118f, ink)
+        } else {
+            canvas.drawOval(baseX - 86f, baseY - 36f, baseX + 86f, baseY + 132f, warm)
+            canvas.drawCircle(Offset(baseX, baseY + 18f), 36f, accent)
+            canvas.drawRect(baseX - 14f, baseY + 50f, baseX + 14f, baseY + 132f, ink)
+        }
+    }
+
+    private fun drawStoryCharacters(canvas: Canvas, w: Int, h: Int, theme: ThemeData, rng: Random) {
+        val body = Paint().apply { color = theme.accent }
+        val head = Paint().apply { color = Color(0xFFFFD9B0) }
+        val dark = Paint().apply { color = theme.primary }
+        val cx = w * 0.34f
+        val cy = h * 0.67f
+        canvas.drawCircle(Offset(cx, cy - 54f), 24f, head)
+        canvas.drawOval(cx - 30f, cy - 30f, cx + 30f, cy + 58f, body)
+        canvas.drawCircle(Offset(cx - 8f, cy - 58f), 3f, dark)
+        canvas.drawCircle(Offset(cx + 8f, cy - 58f), 3f, dark)
+
+        val companionCount = if (theme.id.contains("pigs")) 3 else if (theme.id.contains("snow")) 4 else 1
+        repeat(companionCount) { index ->
+            val px = w * (0.18f + index * 0.08f)
+            val py = h * (0.78f + (index % 2) * 0.04f)
+            canvas.drawOval(px - 18f, py - 14f, px + 18f, py + 16f, Paint().apply { color = theme.primary.copy(alpha = 0.82f) })
+            canvas.drawCircle(Offset(px + 10f, py - 12f), 11f, Paint().apply { color = theme.accent.copy(alpha = 0.90f) })
+        }
+    }
+
+    private fun drawStoryPlants(canvas: Canvas, w: Int, h: Int, theme: ThemeData, rng: Random) {
+        repeat(18) {
+            val x = 24f + rng.nextFloat() * (w - 48f)
+            val y = h * 0.70f + rng.nextFloat() * h * 0.24f
+            val r = 5f + rng.nextFloat() * 9f
+            canvas.drawCircle(Offset(x, y), r, Paint().apply { color = listOf(theme.primary, theme.accent, Color.White).random(rng).copy(alpha = 0.76f) })
+        }
     }
 
     private fun drawFriendlyCat(canvas: Canvas, w: Int, h: Int, theme: ThemeData, rng: Random) {

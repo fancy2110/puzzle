@@ -44,12 +44,16 @@ class DragDropState {
     }
 
     fun updateDrag(offset: Offset) {
-        dragOffset = offset
+        if (dragOffset != offset) {
+            dragOffset = offset
+        }
     }
 
     fun updateDropTarget(pieceId: String?, overlapRatio: Float = 0f) {
-        dropTargetPieceId = pieceId
-        dropOverlapRatio = overlapRatio
+        if (dropTargetPieceId != pieceId || kotlin.math.abs(dropOverlapRatio - overlapRatio) > 0.02f) {
+            dropTargetPieceId = pieceId
+            dropOverlapRatio = overlapRatio
+        }
     }
 
     fun endDrag(): DragResult? {

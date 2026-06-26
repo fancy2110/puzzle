@@ -7,9 +7,15 @@ import platform.Foundation.*
 actual object AssetLoader {
     actual fun readBytes(path: String): ByteArray? {
         return try {
-            val name = path.substringBeforeLast(".")
+            val directory = path.substringBeforeLast("/", missingDelimiterValue = "")
+            val fileName = path.substringAfterLast("/")
+            val name = fileName.substringBeforeLast(".")
             val ext = path.substringAfterLast(".", "")
-            val filePath = NSBundle.mainBundle.pathForResource(name, ext)
+            val filePath = if (directory.isBlank()) {
+                NSBundle.mainBundle.pathForResource(name, ext)
+            } else {
+                NSBundle.mainBundle.pathForResource(name, ext, directory)
+            }
                 ?: return null
 
             val handle = NSFileHandle.fileHandleForReadingAtPath(filePath)

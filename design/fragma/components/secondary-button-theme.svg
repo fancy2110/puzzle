@@ -1,0 +1,6 @@
+<svg width="166" height="52" viewBox="0 0 166 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="164" height="50" rx="24" fill="#FFF9F0" stroke="#D9CBB6"/>
+  <rect x="34" y="15" width="20" height="24" rx="3" fill="#7CAEA5" stroke="#356D6A"/>
+  <path d="M44 19L48 26L56 27L50 32L52 40L44 36L36 40L38 32L32 27L40 26L44 19Z" fill="#FFF9F0"/>
+  <text x="100" y="33" text-anchor="middle" fill="#7A6750" font-size="18" font-weight="850" font-family="PingFang SC, sans-serif">换主题</text>
+</svg>

@@ -3,7 +3,6 @@ package com.puzzle.game.ai
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 
 @Serializable
 data class GeneratedImage(
@@ -13,8 +12,24 @@ data class GeneratedImage(
     val localPath: String? = null
 )
 
+@Serializable
+data class ImageGenerationRequest(
+    val prompt: String,
+    val negativePrompt: String = CHILD_SAFE_NEGATIVE_PROMPT,
+    val size: String = "1024x1024",
+    val batchSize: Int = 1,
+    val seed: Int? = null
+)
+
+const val CHILD_SAFE_NEGATIVE_PROMPT =
+    "恐怖，血腥，暴力，武器，危险动作，成人内容，惊吓表情，阴暗压抑，低清晰度，文字，水印，畸形肢体，怪异面部"
+
 interface AIImageProvider {
-    suspend fun generateImage(prompt: String): GeneratedImage
+    suspend fun generateImage(request: ImageGenerationRequest): GeneratedImage
+
+    suspend fun generateImage(prompt: String): GeneratedImage {
+        return generateImage(ImageGenerationRequest(prompt = prompt))
+    }
 }
 
 /**
@@ -32,7 +47,8 @@ class MockAIImageProvider : AIImageProvider {
         "花园里的蝴蝶和美丽的花朵"
     )
 
-    override suspend fun generateImage(prompt: String): GeneratedImage {
+    override suspend fun generateImage(request: ImageGenerationRequest): GeneratedImage {
+        val prompt = request.prompt
         val themePrompt = if (prompt.isBlank()) themes.random(kotlin.random.Random) else prompt
         // Generate a procedurally varied image — simulates AI generation
         val id = "mock_ai_${kotlin.random.Random.nextInt(10000, 99999)}"
@@ -48,6 +64,10 @@ class MockAIImageProvider : AIImageProvider {
 class AIImageGenerator(private val provider: AIImageProvider = MockAIImageProvider()) {
     suspend fun generate(prompt: String): GeneratedImage {
         return provider.generateImage(prompt)
+    }
+
+    suspend fun generate(request: ImageGenerationRequest): GeneratedImage {
+        return provider.generateImage(request)
     }
 
     fun getDefaultThemes(): List<String> {

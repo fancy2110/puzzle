@@ -153,28 +153,22 @@ fun PieceTray(
                     .then(
                         if (!isPlaced) {
                             Modifier.pointerInput(piece.id) {
+                                var touchAnchor = Offset.Zero
                                 detectDragGestures(
                                     onDragStart = { localOffset ->
+                                        touchAnchor = localOffset
                                         dragState.startDrag(
                                             pieceId = piece.id,
-                                            startOffset = Offset(
-                                                pieceWindowPos.x + localOffset.x,
-                                                pieceWindowPos.y + localOffset.y
-                                            ),
+                                            startOffset = pieceWindowPos,
                                             pieceSize = Offset(
                                                 pieceIntSize.width.toFloat(),
                                                 pieceIntSize.height.toFloat()
                                             )
                                         )
                                     },
-                                    onDrag = { change, dragAmount ->
+                                    onDrag = { change, _ ->
                                         change.consume()
-                                        dragState.updateDrag(
-                                            Offset(
-                                                dragState.dragOffset.x + dragAmount.x,
-                                                dragState.dragOffset.y + dragAmount.y
-                                            )
-                                        )
+                                        dragState.updateDrag(pieceWindowPos + change.position - touchAnchor)
                                     },
                                     onDragEnd = { onDragEnd() },
                                     onDragCancel = { dragState.cancelDrag() }
@@ -199,7 +193,10 @@ fun PieceTray(
                 contentAlignment = Alignment.Center
             ) {
                 if (isPlaced) {
-                    Text("✓", fontSize = 18.sp, color = MaterialTheme.colorScheme.primary)
+                    CheckIcon(
+                        modifier = Modifier.size(22.dp),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 } else {
                     PieceImageContent(
                         piece = piece,

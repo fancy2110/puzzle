@@ -1,0 +1,15 @@
+<svg width="360" height="520" viewBox="0 0 360 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="s" x="-18" y="-10" width="396" height="560"><feDropShadow dx="0" dy="16" stdDeviation="12" flood-color="#43301B" flood-opacity=".20"/></filter></defs>
+  <path d="M8 96L64 60H305L352 94V458L322 500H38L8 458V96Z" fill="#D1C4B2"/>
+  <rect x="13" y="72" width="334" height="404" rx="18" fill="#FFF9F0" stroke="#BBA486" stroke-width="2" filter="url(#s)"/>
+  <rect x="34" y="98" width="292" height="338" rx="8" fill="#ECE7DE" stroke="#BFE4EA"/>
+  <path d="M42 126C96 96 144 148 194 130S268 96 318 126" stroke="#BDF2EE" stroke-width="2"/>
+  <path d="M156 99C142 178 182 210 160 272S166 360 204 436" stroke="#BDF2EE" stroke-width="2"/>
+  <path d="M34 320C106 260 136 312 180 252S260 260 326 306" stroke="#BDF2EE" stroke-width="2"/>
+  <path d="M276 98C268 174 316 208 286 270S302 370 326 420" stroke="#BDF2EE" stroke-width="2"/>
+  <path d="M16 72H50L16 106V72Z" fill="#CDA45A"/>
+  <path d="M344 72H310L344 106V72Z" fill="#CDA45A"/>
+  <path d="M16 476H50L16 442V476Z" fill="#CDA45A"/>
+  <path d="M344 476H310L344 442V476Z" fill="#CDA45A"/>
+  <path d="M292 476H326V520L309 506L292 520V476Z" fill="#426F91" stroke="#CDA45A"/>
+</svg>

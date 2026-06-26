@@ -131,9 +131,10 @@ fun PuzzleBoard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (isFilled) {
-                                    Text("✓", fontSize = 10.sp,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        textAlign = TextAlign.Center)
+                                    CheckIcon(
+                                        modifier = Modifier.size(12.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
                             }
                         }

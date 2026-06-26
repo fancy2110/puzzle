@@ -4,8 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -23,11 +21,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 import com.puzzle.game.data.Preferences
+import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.BrandMark
 import com.puzzle.game.ui.component.CloudButton
+import com.puzzle.game.ui.component.FragmaIconButton
 import com.puzzle.game.ui.component.PuzzleBackground
 import com.puzzle.game.ui.component.StoneSurface
+import com.puzzle.game.ui.component.StoryButton
+import com.puzzle.game.ui.component.StoryButtonTone
+import com.puzzle.game.ui.adaptive.AdaptiveContent
 import com.puzzle.game.ui.theme.PuzzleColors
+import com.puzzle.game.ui.theme.FragmaDimens
 import com.puzzle.game.ui.theme.PuzzleDimens
 
 @Composable
@@ -40,12 +44,19 @@ fun SettingsScreen(
     var referenceEnabled by remember { mutableStateOf(preferences.isReferenceEnabled()) }
 
     PuzzleBackground {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(PuzzleDimens.PagePadding),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
+        AdaptiveContent { spec ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(spec.pagePadding),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = 640.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
             SettingsTopBar(onBack = onBack)
 
             StoneSurface(modifier = Modifier.fillMaxWidth()) {
@@ -85,18 +96,13 @@ fun SettingsScreen(
                         title = "图片来源",
                         subtitle = "选择内置画面、当前主题或后续 AI 生成入口",
                         trailing = {
-                            OutlinedButton(
+                            StoryButton(
+                                text = "管理",
                                 onClick = onOpenImageSource,
-                                shape = RoundedCornerShape(16.dp),
-                                border = BorderStroke(1.dp, PuzzleColors.Stone.copy(alpha = 0.72f)),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = PuzzleColors.Cloud,
-                                    contentColor = PuzzleColors.StoneDark
-                                ),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text("管理", fontWeight = FontWeight.SemiBold)
-                            }
+                                tone = StoryButtonTone.Secondary,
+                                height = 42.dp,
+                                modifier = Modifier.width(82.dp)
+                            )
                         }
                     )
                 }
@@ -128,6 +134,8 @@ fun SettingsScreen(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth()
             )
+                }
+            }
         }
     }
 }
@@ -155,11 +163,12 @@ private fun SettingsTopBar(onBack: () -> Unit) {
                 overflow = TextOverflow.Ellipsis
             )
         }
-        CloudButton(
-            text = "返回",
+        FragmaIconButton(
             onClick = onBack,
-            modifier = Modifier.width(82.dp).height(44.dp)
-        )
+            size = FragmaDimens.SettingsButtonCompact
+        ) {
+            BackIcon(modifier = Modifier.size(23.dp))
+        }
     }
 }
 

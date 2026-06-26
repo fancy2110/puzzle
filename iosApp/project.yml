@@ -19,6 +19,10 @@ targets:
       base:
         INFOPLIST_FILE: iosApp/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.puzzle.game
+        TARGETED_DEVICE_FAMILY: "1,2"
+        UMENG_ANALYTICS_ENABLED: "false"
+        UMENG_APP_KEY: ""
+        UMENG_CHANNEL: "app_store"
         FRAMEWORK_SEARCH_PATHS:
           - "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework"
           - "$(SRCROOT)/../composeApp/build/bin/iosArm64/debugFramework"

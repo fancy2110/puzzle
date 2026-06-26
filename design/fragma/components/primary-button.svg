@@ -1,0 +1,8 @@
+<svg width="350" height="58" viewBox="0 0 350 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="s" x="-12" y="-8" width="374" height="86"><feDropShadow dx="0" dy="10" stdDeviation="8" flood-color="#B85B44" flood-opacity=".28"/></filter></defs>
+  <rect x="0" y="0" width="350" height="58" rx="25" fill="#E98166" filter="url(#s)"/>
+  <path d="M28 18H78M272 18H322M28 40H78M272 40H322" stroke="#F5B59F" opacity=".35"/>
+  <path d="M46 22L53 29L46 36L39 29L46 22Z" fill="#FFF9F0"/>
+  <path d="M304 22L311 29L304 36L297 29L304 22Z" fill="#FFF9F0"/>
+  <text x="175" y="38" text-anchor="middle" fill="white" font-size="25" font-weight="900" font-family="PingFang SC, sans-serif">开始拼图</text>
+</svg>

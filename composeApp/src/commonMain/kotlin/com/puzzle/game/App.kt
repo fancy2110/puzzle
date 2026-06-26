@@ -1,10 +1,13 @@
 package com.puzzle.game
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.data.PreferencesFactory
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.navigation.NavigationViewModel
@@ -25,8 +28,13 @@ fun App() {
         val preferences = remember { PreferencesFactory.create() }
 
         val screenStack by navViewModel.screenStack.collectAsState()
+        val currentScreen = screenStack.lastOrNull()
 
-        when (screenStack.lastOrNull()) {
+        LaunchedEffect(currentScreen) {
+            currentScreen?.analyticsScreen()?.let { Analytics.screen(it) }
+        }
+
+        when (currentScreen) {
             Screen.Splash -> {
                 SplashScreen(
                     onFinished = {
@@ -39,16 +47,20 @@ fun App() {
                 MenuScreen(
                     viewModel = gameViewModel,
                     onStartGame = {
+                        Analytics.click("start_game", AnalyticsScreen.Menu)
                         gameViewModel.startGame()
                         navViewModel.navigateTo(Screen.Game)
                     },
                     onPickTheme = {
+                        Analytics.click("open_theme_picker", AnalyticsScreen.Menu)
                         navViewModel.navigateTo(Screen.ThemePicker)
                     },
                     onPickImage = {
+                        Analytics.click("open_image_source", AnalyticsScreen.Menu)
                         navViewModel.navigateTo(Screen.ImageSource)
                     },
                     onOpenSettings = {
+                        Analytics.click("open_settings", AnalyticsScreen.Menu)
                         navViewModel.navigateTo(Screen.Settings)
                     }
                 )
@@ -60,6 +72,7 @@ fun App() {
                     viewModel = gameViewModel,
                     onBack = { navViewModel.goBack() },
                     onConfirm = {
+                        Analytics.click("confirm_theme", AnalyticsScreen.ThemePicker)
                         if (launchedFromImageSource) {
                             navViewModel.goBackTo(Screen.Menu)
                         } else {
@@ -72,10 +85,17 @@ fun App() {
             Screen.ImageSource -> {
                 ImageSourceScreen(
                     onBack = { navViewModel.goBack() },
-                    onPickBuiltIn = { navViewModel.navigateTo(Screen.ThemePicker) },
-                    onUseCurrent = { navViewModel.goBackTo(Screen.Menu) },
-                    onGenerateAi = {
-                        gameViewModel.startAIGame()
+                    onPickBuiltIn = {
+                        Analytics.click("image_source_builtin", AnalyticsScreen.ImageSource)
+                        navViewModel.navigateTo(Screen.ThemePicker)
+                    },
+                    onUseCurrent = {
+                        Analytics.click("image_source_current_theme", AnalyticsScreen.ImageSource)
+                        navViewModel.goBackTo(Screen.Menu)
+                    },
+                    onGenerateAi = { prompt ->
+                        Analytics.click("image_source_ai_generate", AnalyticsScreen.ImageSource)
+                        gameViewModel.startAIGame(prompt)
                         navViewModel.navigateTo(Screen.Game)
                     }
                 )
@@ -93,10 +113,12 @@ fun App() {
                 GameScreen(
                     viewModel = gameViewModel,
                     onGoToMenu = {
+                        Analytics.click("go_to_menu", AnalyticsScreen.Game)
                         gameViewModel.goToMenu()
                         navViewModel.replaceWith(Screen.Menu)
                     },
                     onPlayAgain = {
+                        Analytics.click("play_again", AnalyticsScreen.Game)
                         gameViewModel.startGame()
                     }
                 )
@@ -112,4 +134,13 @@ fun App() {
             }
         }
     }
+}
+
+private fun Screen.analyticsScreen(): AnalyticsScreen = when (this) {
+    Screen.Splash -> AnalyticsScreen.Splash
+    Screen.Menu -> AnalyticsScreen.Menu
+    Screen.ThemePicker -> AnalyticsScreen.ThemePicker
+    Screen.ImageSource -> AnalyticsScreen.ImageSource
+    Screen.Settings -> AnalyticsScreen.Settings
+    Screen.Game -> AnalyticsScreen.Game
 }

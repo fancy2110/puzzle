@@ -1,0 +1,6 @@
+<svg width="58" height="58" viewBox="0 0 58 58" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="s" x="-8" y="-4" width="74" height="74"><feDropShadow dx="0" dy="7" stdDeviation="5" flood-color="#43301B" flood-opacity=".15"/></filter></defs>
+  <rect x="3" y="3" width="52" height="52" rx="18" fill="#FFF9F0" stroke="#D9CBB6" filter="url(#s)"/>
+  <path d="M30 15L33 18L37 17L39 21L37 25L40 29L37 33L39 37L35 40L31 38L27 40L23 37L25 33L22 29L25 25L23 21L27 18L30 15Z" fill="#356D6A"/>
+  <circle cx="31" cy="29" r="7" fill="#FFF9F0"/>
+</svg>

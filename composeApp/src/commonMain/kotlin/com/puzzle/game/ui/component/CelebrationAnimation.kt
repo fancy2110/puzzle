@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -121,7 +120,13 @@ fun CelebrationOverlay(
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .padding(32.dp)
         ) {
-            Text(text = "🎉", fontSize = 72.sp)
+            Box(
+                modifier = Modifier.size(78.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                DiamondIcon(modifier = Modifier.size(70.dp), color = MaterialTheme.colorScheme.tertiary)
+                PuzzlePieceIcon(modifier = Modifier.size(34.dp), color = MaterialTheme.colorScheme.primary)
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "太棒了！",
@@ -137,21 +142,20 @@ fun CelebrationOverlay(
             )
             Spacer(modifier = Modifier.height(28.dp))
 
-            androidx.compose.material3.Button(
+            StoryButton(
+                text = "再来一局",
                 onClick = onPlayAgain,
                 modifier = Modifier.fillMaxWidth(0.55f).height(50.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("再来一局", fontSize = 20.sp)
-            }
+                height = 50.dp
+            )
             Spacer(modifier = Modifier.height(10.dp))
-            androidx.compose.material3.OutlinedButton(
+            StoryButton(
+                text = "返回菜单",
                 onClick = onBackToMenu,
                 modifier = Modifier.fillMaxWidth(0.55f).height(50.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("返回菜单", fontSize = 20.sp)
-            }
+                tone = StoryButtonTone.Secondary,
+                height = 50.dp
+            )
         }
     }
 }

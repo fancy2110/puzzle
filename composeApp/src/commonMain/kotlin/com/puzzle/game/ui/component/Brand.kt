@@ -34,11 +34,10 @@ fun BrandMark(
     size: Dp = 56.dp
 ) {
     val shape = RoundedCornerShape(size * 0.28f)
-
     Surface(
         modifier = modifier
             .size(size)
-            .shadow(8.dp, shape, ambientColor = Color.Black.copy(alpha = 0.08f), spotColor = Color.Black.copy(alpha = 0.14f))
+            .shadow(8.dp, shape)
             .border(1.dp, PuzzleColors.Stone.copy(alpha = 0.72f), shape),
         shape = shape,
         color = PuzzleColors.Cloud
@@ -47,61 +46,50 @@ fun BrandMark(
             Canvas(modifier = Modifier.fillMaxSize()) {
                 val w = this.size.width
                 val h = this.size.height
-                val cardTop = h * 0.18f
-                val cardLeft = w * 0.14f
-                val cardSize = Size(w * 0.72f, h * 0.66f)
-
+                val left = w * 0.08f
+                val top = h * 0.08f
+                val card = Size(w * 0.84f, h * 0.84f)
                 drawRoundRect(
-                    color = Color.White.copy(alpha = 0.82f),
-                    topLeft = Offset(cardLeft, cardTop),
-                    size = cardSize,
-                    cornerRadius = CornerRadius(w * 0.11f, w * 0.11f)
+                    color = PuzzleColors.Mist,
+                    topLeft = Offset(left, top),
+                    size = card,
+                    cornerRadius = CornerRadius(w * 0.12f)
                 )
-
-                val skyPiece = Path().apply {
-                    moveTo(cardLeft, cardTop)
-                    lineTo(cardLeft + cardSize.width * 0.56f, cardTop)
-                    lineTo(cardLeft + cardSize.width * 0.48f, cardTop + cardSize.height * 0.46f)
-                    lineTo(cardLeft + cardSize.width * 0.12f, cardTop + cardSize.height * 0.38f)
+                val tealPiece = Path().apply {
+                    moveTo(left, top)
+                    lineTo(left + card.width * 0.60f, top)
+                    lineTo(left + card.width * 0.48f, top + card.height * 0.48f)
+                    lineTo(left, top + card.height * 0.38f)
                     close()
                 }
-                drawPath(skyPiece, PuzzleColors.Teal.copy(alpha = 0.88f))
-
-                val storyPiece = Path().apply {
-                    moveTo(cardLeft + cardSize.width * 0.42f, cardTop + cardSize.height * 0.03f)
-                    lineTo(cardLeft + cardSize.width, cardTop)
-                    lineTo(cardLeft + cardSize.width, cardTop + cardSize.height * 0.72f)
-                    lineTo(cardLeft + cardSize.width * 0.52f, cardTop + cardSize.height * 0.54f)
+                val coralPiece = Path().apply {
+                    moveTo(left + card.width * 0.54f, top)
+                    lineTo(left + card.width, top)
+                    lineTo(left + card.width, top + card.height * 0.68f)
+                    lineTo(left + card.width * 0.48f, top + card.height * 0.50f)
                     close()
                 }
-                drawPath(storyPiece, PuzzleColors.Coral.copy(alpha = 0.92f))
-
-                val groundPiece = Path().apply {
-                    moveTo(cardLeft, cardTop + cardSize.height * 0.42f)
-                    lineTo(cardLeft + cardSize.width * 0.54f, cardTop + cardSize.height * 0.52f)
-                    lineTo(cardLeft + cardSize.width, cardTop + cardSize.height * 0.74f)
-                    lineTo(cardLeft + cardSize.width, cardTop + cardSize.height)
-                    lineTo(cardLeft, cardTop + cardSize.height)
+                val goldPiece = Path().apply {
+                    moveTo(left, top + card.height * 0.36f)
+                    lineTo(left + card.width * 0.48f, top + card.height * 0.50f)
+                    lineTo(left + card.width, top + card.height * 0.68f)
+                    lineTo(left + card.width, top + card.height)
+                    lineTo(left, top + card.height)
                     close()
                 }
-                drawPath(groundPiece, PuzzleColors.Gold.copy(alpha = 0.88f))
-
+                drawPath(tealPiece, PuzzleColors.Teal)
+                drawPath(coralPiece, PuzzleColors.Coral)
+                drawPath(goldPiece, PuzzleColors.Gold)
                 drawRoundRect(
-                    color = PuzzleColors.StoneDark.copy(alpha = 0.72f),
-                    topLeft = Offset(cardLeft + cardSize.width * 0.40f, cardTop + cardSize.height * 0.52f),
-                    size = Size(cardSize.width * 0.20f, cardSize.height * 0.32f),
-                    cornerRadius = CornerRadius(w * 0.035f, w * 0.035f)
-                )
-                drawRoundRect(
-                    color = Color.White.copy(alpha = 0.86f),
-                    topLeft = Offset(cardLeft + cardSize.width * 0.20f, cardTop + cardSize.height * 0.48f),
-                    size = Size(cardSize.width * 0.14f, cardSize.height * 0.16f),
-                    cornerRadius = CornerRadius(w * 0.025f, w * 0.025f)
+                    color = PuzzleColors.StoneDark.copy(alpha = 0.74f),
+                    topLeft = Offset(left + card.width * 0.40f, top + card.height * 0.52f),
+                    size = Size(card.width * 0.20f, card.height * 0.34f),
+                    cornerRadius = CornerRadius(w * 0.035f)
                 )
                 drawCircle(
                     color = PuzzleColors.Coral,
                     radius = w * 0.07f,
-                    center = Offset(cardLeft + cardSize.width * 0.22f, cardTop + cardSize.height * 0.82f)
+                    center = Offset(left + card.width * 0.20f, top + card.height * 0.82f)
                 )
             }
         }

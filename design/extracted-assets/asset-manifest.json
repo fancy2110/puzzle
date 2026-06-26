@@ -1,0 +1,169 @@
+{
+  "sourceMockups": {
+    "home": {
+      "file": "../mockups/home-story-pager-concept.png",
+      "width": 864,
+      "height": 1821
+    },
+    "game": {
+      "file": "../mockups/game-book-canvas-concept.png",
+      "width": 853,
+      "height": 1844
+    }
+  },
+  "scalePolicy": {
+    "designFrameWidth": 390,
+    "homeSourceScale": 2.215,
+    "gameSourceScale": 2.187,
+    "note": "Implementation dimensions should be converted from source pixels to dp by dividing by the source scale, then adjusted only for safe-area and responsive constraints."
+  },
+  "assets": [
+    {
+      "id": "home-full",
+      "file": "home/home-full.png",
+      "source": "home",
+      "crop": { "x": 0, "y": 0, "width": 864, "height": 1821 },
+      "usage": "Home full-page visual reference"
+    },
+    {
+      "id": "home-background-top",
+      "file": "home/background-top.png",
+      "source": "home",
+      "crop": { "x": 0, "y": 0, "width": 864, "height": 280 },
+      "usage": "Paper background, top texture and ambient geometry"
+    },
+    {
+      "id": "home-logo-card",
+      "file": "home/logo-card.png",
+      "source": "home",
+      "crop": { "x": 58, "y": 76, "width": 150, "height": 150 },
+      "usage": "Brand mark card"
+    },
+    {
+      "id": "home-settings-button",
+      "file": "home/settings-button.png",
+      "source": "home",
+      "crop": { "x": 716, "y": 78, "width": 120, "height": 120 },
+      "usage": "Settings icon button"
+    },
+    {
+      "id": "home-story-pager-card",
+      "file": "home/story-pager-card.png",
+      "source": "home",
+      "crop": { "x": 113, "y": 248, "width": 640, "height": 898 },
+      "usage": "Main story pager card including image and story copy"
+    },
+    {
+      "id": "home-story-image",
+      "file": "home/story-image.png",
+      "source": "home",
+      "crop": { "x": 153, "y": 284, "width": 560, "height": 610 },
+      "usage": "Primary story image area"
+    },
+    {
+      "id": "home-story-copy-panel",
+      "file": "home/story-copy-panel.png",
+      "source": "home",
+      "crop": { "x": 151, "y": 888, "width": 560, "height": 190 },
+      "usage": "Story description panel with title rule"
+    },
+    {
+      "id": "home-piece-count-slider-panel",
+      "file": "home/piece-count-slider-panel.png",
+      "source": "home",
+      "crop": { "x": 62, "y": 1220, "width": 740, "height": 222 },
+      "usage": "Piece-count control panel and slider"
+    },
+    {
+      "id": "home-start-button",
+      "file": "home/start-button.png",
+      "source": "home",
+      "crop": { "x": 128, "y": 1470, "width": 610, "height": 124 },
+      "usage": "Primary start action"
+    },
+    {
+      "id": "home-change-theme-button",
+      "file": "home/change-theme-button.png",
+      "source": "home",
+      "crop": { "x": 108, "y": 1608, "width": 332, "height": 116 },
+      "usage": "Secondary change-theme action"
+    },
+    {
+      "id": "home-change-image-button",
+      "file": "home/change-image-button.png",
+      "source": "home",
+      "crop": { "x": 430, "y": 1608, "width": 332, "height": 116 },
+      "usage": "Secondary change-image action"
+    },
+    {
+      "id": "game-full",
+      "file": "game/game-full.png",
+      "source": "game",
+      "crop": { "x": 0, "y": 0, "width": 853, "height": 1844 },
+      "usage": "Puzzle full-page visual reference"
+    },
+    {
+      "id": "game-back-button",
+      "file": "game/back-button.png",
+      "source": "game",
+      "crop": { "x": 43, "y": 70, "width": 96, "height": 96 },
+      "usage": "Puzzle page back button"
+    },
+    {
+      "id": "game-progress-plaque",
+      "file": "game/progress-plaque.png",
+      "source": "game",
+      "crop": { "x": 248, "y": 58, "width": 370, "height": 98 },
+      "usage": "Progress plaque with book icon"
+    },
+    {
+      "id": "game-timer-plaque",
+      "file": "game/timer-plaque.png",
+      "source": "game",
+      "crop": { "x": 682, "y": 76, "width": 150, "height": 90 },
+      "usage": "Timer plaque with clock icon"
+    },
+    {
+      "id": "game-book-canvas",
+      "file": "game/book-canvas.png",
+      "source": "game",
+      "crop": { "x": 14, "y": 230, "width": 824, "height": 1040 },
+      "usage": "Book/canvas shell including board and pedestal"
+    },
+    {
+      "id": "game-board-image-cracks",
+      "file": "game/board-image-cracks.png",
+      "source": "game",
+      "crop": { "x": 95, "y": 356, "width": 690, "height": 790 },
+      "usage": "Board image region with ghost image and crack highlights"
+    },
+    {
+      "id": "game-piece-tray-scroll",
+      "file": "game/piece-tray-scroll.png",
+      "source": "game",
+      "crop": { "x": 22, "y": 1390, "width": 810, "height": 260 },
+      "usage": "Bottom scroll tray with candidate pieces"
+    },
+    {
+      "id": "game-selected-piece-card",
+      "file": "game/selected-piece-card.png",
+      "source": "game",
+      "crop": { "x": 50, "y": 1440, "width": 178, "height": 210 },
+      "usage": "Selected candidate piece state"
+    },
+    {
+      "id": "game-piece-card-2",
+      "file": "game/piece-card-2.png",
+      "source": "game",
+      "crop": { "x": 255, "y": 1440, "width": 178, "height": 210 },
+      "usage": "Candidate piece default state"
+    },
+    {
+      "id": "game-bottom-hint",
+      "file": "game/bottom-hint.png",
+      "source": "game",
+      "crop": { "x": 265, "y": 1715, "width": 320, "height": 120 },
+      "usage": "Bottom hint typography and ornament"
+    }
+  ]
+}

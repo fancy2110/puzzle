@@ -4,8 +4,12 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.puzzle.game.ai.AIImageGenerator
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsEvent
 import com.puzzle.logger.PuzzleLog
+import com.puzzle.game.data.BuiltinStoryImageSet
 import com.puzzle.game.data.PuzzlePictureGenerator
+import com.puzzle.game.data.StoryPresets
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
@@ -39,17 +43,91 @@ class GameViewModel : ViewModel() {
     private val aiGenerator = AIImageGenerator()
     val dragDropState = DragDropState()
 
-    val themes: List<ThemeData> = ThemePresets.themes
+    val storySets: List<BuiltinStoryImageSet> = StoryPresets.stories
+    val storyPages: List<com.puzzle.game.data.StoryPageData>
+        get() = StoryPresets.pagesForStory(_state.value.selectedStoryId)
 
     private var timerJob: Job? = null
 
     fun selectTheme(themeId: String) {
-        val theme = ThemePresets.getById(themeId)
-        _state.update { it.copy(selectedTheme = theme) }
+        val theme = StoryPresets.pagesForStory(_state.value.selectedStoryId)
+            .firstOrNull { it.theme.id == themeId }
+            ?.theme
+            ?: ThemePresets.getById(themeId)
+        Analytics.track(
+            AnalyticsEvent.ThemeSelect,
+            mapOf(
+                "story_id" to _state.value.selectedStoryId,
+                "theme_id" to theme.id,
+                "story_page_index" to StoryPresets.indexOfTheme(theme.id)
+            )
+        )
+        _state.update {
+            it.copy(
+                selectedTheme = theme,
+                selectedStoryPageIndex = StoryPresets.indexOfTheme(theme.id)
+            )
+        }
+    }
+
+    fun selectStory(storyId: String) {
+        val pages = StoryPresets.pagesForStory(storyId)
+        val firstPage = pages.firstOrNull() ?: return
+        Analytics.track(
+            AnalyticsEvent.ThemeSelect,
+            mapOf(
+                "story_id" to firstPage.storyId,
+                "theme_id" to firstPage.theme.id,
+                "story_page_index" to 0,
+                "selection_type" to "story"
+            )
+        )
+        _state.update {
+            it.copy(
+                selectedStoryId = firstPage.storyId,
+                selectedStoryPageIndex = 0,
+                selectedTheme = firstPage.theme
+            )
+        }
     }
 
     fun selectDifficulty(difficulty: GameDifficulty) {
-        _state.update { it.copy(difficulty = difficulty) }
+        _state.update { it.copy(difficulty = difficulty, pieceCount = difficulty.pieceCount) }
+    }
+
+    fun selectPieceCount(pieceCount: Int) {
+        val normalized = pieceCount.coerceIn(10, 300)
+        if (_state.value.pieceCount != normalized && normalized % 10 == 0) {
+            Analytics.track(
+                AnalyticsEvent.PieceCountChange,
+                mapOf("piece_count" to normalized)
+            )
+        }
+        _state.update { it.copy(pieceCount = normalized) }
+    }
+
+    fun selectStoryPage(index: Int) {
+        val pages = storyPages
+        val pageIndex = ((index % pages.size) + pages.size) % pages.size
+        val page = pages[pageIndex]
+        Analytics.track(
+            AnalyticsEvent.StoryPageSelect,
+            mapOf(
+                "story_id" to page.storyId,
+                "theme_id" to page.theme.id,
+                "story_page_index" to pageIndex
+            )
+        )
+        _state.update {
+            it.copy(
+                selectedStoryPageIndex = pageIndex,
+                selectedTheme = page.theme
+            )
+        }
+    }
+
+    fun moveStoryPage(delta: Int) {
+        selectStoryPage(_state.value.selectedStoryPageIndex + delta)
     }
 
     /**
@@ -60,10 +138,17 @@ class GameViewModel : ViewModel() {
     fun startGame() {
         val currentState = _state.value
         val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
-        val pieceCount = currentState.difficulty.pieceCount
+        val pieceCount = currentState.pieceCount
         val assetFile = theme.assetFile
 
-        PuzzleLog.i("GameVM", "Starting game: theme=${theme.id} difficulty=${currentState.difficulty.name} pieces=$pieceCount asset=${assetFile ?: "procedural"}")
+        PuzzleLog.i("GameVM", "Starting game: theme=${theme.id} pieces=$pieceCount asset=${assetFile ?: "procedural"}")
+        Analytics.track(
+            AnalyticsEvent.GameStart,
+            baseGameProperties(theme.id, pieceCount) + mapOf(
+                "story_id" to currentState.selectedStoryId,
+                "source" to if (assetFile != null) "asset" else "procedural"
+            )
+        )
 
         // Set loading state immediately, then do blocking work in coroutine
         resetForNewGame()
@@ -121,7 +206,7 @@ class GameViewModel : ViewModel() {
      * @param imageBytes Raw PNG or JPEG bytes
      */
     fun startGameWithImage(imageBytes: ByteArray) {
-        val pieceCount = _state.value.difficulty.pieceCount
+        val pieceCount = _state.value.pieceCount
         resetForNewGame()
         viewModelScope.launch {
             startGameWithImageInternal(imageBytes, pieceCount)
@@ -133,13 +218,20 @@ class GameViewModel : ViewModel() {
      * Attempts to generate via the configured AI provider,
      * falling back to procedural generation if AI is unavailable.
      */
-    fun startAIGame() {
+    fun startAIGame(promptOverride: String? = null) {
         val currentState = _state.value
         val theme = currentState.selectedTheme ?: ThemePresets.themes.first()
-        val pieceCount = currentState.difficulty.pieceCount
-        val prompt = theme.description
+        val pieceCount = currentState.pieceCount
+        val prompt = promptOverride?.trim()?.takeIf { it.isNotBlank() } ?: theme.description
 
         PuzzleLog.i("GameVM", "Starting AI game: theme=${theme.id} prompt='$prompt' pieces=$pieceCount")
+        Analytics.track(
+            AnalyticsEvent.AiGameStart,
+            baseGameProperties(theme.id, pieceCount) + mapOf(
+                "story_id" to currentState.selectedStoryId,
+                "prompt_length" to prompt.length
+            )
+        )
 
         resetForNewGame()
 
@@ -187,6 +279,10 @@ class GameViewModel : ViewModel() {
         try {
             fallbackReason?.let { reason ->
                 PuzzleLog.w("GameVM", "AI generation failed, falling back to procedural: $reason")
+                Analytics.track(
+                    AnalyticsEvent.AiFallback,
+                    baseGameProperties(theme.id, pieceCount) + mapOf("reason" to reason)
+                )
             }
             startProceduralGame(theme, pieceCount)
         } catch (e: Exception) {
@@ -407,6 +503,18 @@ class GameViewModel : ViewModel() {
             PuzzleLog.i("GameVM", "New game ready: ${imageWidth}×${imageHeight}px grid=${gridCols}×${gridRows} bs=$blockSize pieces=${pieces.size}")
             PuzzleLog.d("GameVM", "Piece dimensions: $dims")
         }
+        Analytics.track(
+            AnalyticsEvent.GameReady,
+            mapOf(
+                "piece_count" to pieces.size,
+                "image_width" to imageWidth,
+                "image_height" to imageHeight,
+                "grid_cols" to gridCols,
+                "grid_rows" to gridRows,
+                "block_size" to blockSize,
+                "has_piece_bitmaps" to pieceBitmaps.isNotEmpty()
+            )
+        )
 
         _state.update {
             it.copy(
@@ -434,6 +542,16 @@ class GameViewModel : ViewModel() {
         val isCorrectTarget = pieceId == targetPieceId
 
         if (isCorrectTarget) {
+            val before = _state.value
+            Analytics.track(
+                AnalyticsEvent.PiecePlace,
+                mapOf(
+                    "result" to "success",
+                    "piece_count" to before.pieces.size,
+                    "placed_count" to before.cellFilledBy.size + 1,
+                    "elapsed_seconds" to before.elapsedSeconds
+                )
+            )
             _state.update { current ->
                 val newCellFilled = current.cellFilledBy.toMutableMap()
                 newCellFilled[pieceId] = pieceId
@@ -445,6 +563,15 @@ class GameViewModel : ViewModel() {
                 if (allPlaced) {
                     stopTimer()
                     PuzzleLog.i("GameVM", "Puzzle completed! pieces=${current.pieces.size} time=${current.elapsedSeconds}s")
+                    Analytics.track(
+                        AnalyticsEvent.GameComplete,
+                        mapOf(
+                            "story_id" to current.selectedStoryId,
+                            "theme_id" to (current.selectedTheme?.id ?: "unknown"),
+                            "piece_count" to current.pieces.size,
+                            "elapsed_seconds" to current.elapsedSeconds
+                        )
+                    )
                     current.copy(
                         cellFilledBy = newCellFilled,
                         phase = GamePhase.COMPLETED,
@@ -455,6 +582,16 @@ class GameViewModel : ViewModel() {
                 }
             }
         } else {
+            val current = _state.value
+            Analytics.track(
+                AnalyticsEvent.PiecePlace,
+                mapOf(
+                    "result" to "wrong_target",
+                    "piece_count" to current.pieces.size,
+                    "placed_count" to current.cellFilledBy.size,
+                    "elapsed_seconds" to current.elapsedSeconds
+                )
+            )
             _state.update { it.copy(wrongDropHint = true) }
             viewModelScope.launch {
                 delay(600)
@@ -473,6 +610,7 @@ class GameViewModel : ViewModel() {
     }
 
     fun dismissCelebration() {
+        Analytics.track(AnalyticsEvent.CelebrationDismiss)
         _state.update { it.copy(showCelebration = false) }
     }
 
@@ -483,6 +621,16 @@ class GameViewModel : ViewModel() {
     }
 
     fun goToMenu() {
+        val current = _state.value
+        Analytics.track(
+            AnalyticsEvent.GameQuit,
+            mapOf(
+                "phase" to current.phase.name.lowercase(),
+                "piece_count" to current.pieces.size,
+                "placed_count" to current.cellFilledBy.size,
+                "elapsed_seconds" to current.elapsedSeconds
+            )
+        )
         stopTimer()
         nativeAdapter.close()
         dragDropState.cancelDrag()
@@ -502,11 +650,19 @@ class GameViewModel : ViewModel() {
 
     private fun setError(message: String) {
         PuzzleLog.e("GameVM", "Error: $message")
+        Analytics.track(
+            AnalyticsEvent.GameError,
+            mapOf(
+                "phase" to _state.value.phase.name.lowercase(),
+                "message" to message
+            )
+        )
         stopTimer()
         _state.update { it.copy(phase = GamePhase.ERROR, errorMessage = message, isImageLoading = false) }
     }
 
     fun retryGame() {
+        Analytics.track(AnalyticsEvent.GameRetry)
         _state.update { it.copy(phase = GamePhase.GENERATING, errorMessage = null, isImageLoading = true) }
         startGame()
     }
@@ -529,13 +685,34 @@ class GameViewModel : ViewModel() {
     // ── Pause / Resume ───────────────────────────────────
 
     fun pause() {
+        Analytics.track(
+            AnalyticsEvent.GamePause,
+            mapOf(
+                "elapsed_seconds" to _state.value.elapsedSeconds,
+                "placed_count" to _state.value.cellFilledBy.size
+            )
+        )
         stopTimer()
         _state.update { it.copy(isPaused = true) }
     }
 
     fun resume() {
+        Analytics.track(
+            AnalyticsEvent.GameResume,
+            mapOf(
+                "elapsed_seconds" to _state.value.elapsedSeconds,
+                "placed_count" to _state.value.cellFilledBy.size
+            )
+        )
         _state.update { it.copy(isPaused = false) }
         startTimer()
+    }
+
+    private fun baseGameProperties(themeId: String, pieceCount: Int): Map<String, Any?> {
+        return mapOf(
+            "theme_id" to themeId,
+            "piece_count" to pieceCount
+        )
     }
 
     private data class GeneratedGameData(

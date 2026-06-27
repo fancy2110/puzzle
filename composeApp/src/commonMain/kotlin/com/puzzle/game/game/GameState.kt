@@ -37,6 +37,7 @@ data class GameState(
     val cellFilledBy: Map<String, String> = emptyMap(),
     val showCelebration: Boolean = false,
     val wrongDropHint: Boolean = false,
+    val showPositionHint: Boolean = true,
     val elapsedSeconds: Long = 0,
     val isPaused: Boolean = false,
     val errorMessage: String? = null

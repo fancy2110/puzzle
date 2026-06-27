@@ -19,7 +19,10 @@ Pods/
 target/
 output/
 *.png
+!composeApp/src/commonMain/composeResources/files/demo1.png
+!composeApp/src/commonMain/composeResources/files/stories/**/*.png
 *.jpg
+!composeApp/src/commonMain/composeResources/files/stories/**/*.jpg
 *.jpeg
 .gradle/config-cache/
 .DS_Store

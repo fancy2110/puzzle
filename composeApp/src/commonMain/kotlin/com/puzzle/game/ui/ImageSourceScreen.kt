@@ -32,7 +32,7 @@ fun ImageSourceScreen(
     onBack: () -> Unit,
     onPickBuiltIn: () -> Unit,
     onUseCurrent: () -> Unit,
-    onGenerateAi: (String) -> Unit
+    onGenerateAi: (String, String) -> Unit
 ) {
     var prompt by remember {
         mutableStateOf("月光花园里，一个小朋友和小蜗牛一起点亮温柔的小灯塔，儿童绘本插画，无文字")
@@ -70,7 +70,7 @@ fun ImageSourceScreen(
                 title = "AI 生成",
                 subtitle = "输入一句画面描述，生成后会进入拼图切割流程",
                 action = "生成",
-                onClick = { onGenerateAi(prompt) }
+                onClick = { onGenerateAi(prompt, "source_card") }
             )
 
             StoneSurface(modifier = Modifier.fillMaxWidth(), radius = 18.dp) {
@@ -101,7 +101,7 @@ fun ImageSourceScreen(
                     )
                     StoryButton(
                         text = "用提示词生成拼图",
-                        onClick = { onGenerateAi(prompt) },
+                        onClick = { onGenerateAi(prompt, "prompt_button") },
                         modifier = Modifier.fillMaxWidth(),
                         tone = StoryButtonTone.Primary
                     )

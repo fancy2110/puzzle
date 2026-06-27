@@ -84,7 +84,6 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.umeng.common)
             implementation(libs.umeng.asms)
-            implementation(libs.umeng.apm)
         }
 
         iosMain.dependencies {

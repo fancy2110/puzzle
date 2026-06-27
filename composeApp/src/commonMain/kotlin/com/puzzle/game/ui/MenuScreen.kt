@@ -27,11 +27,12 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,7 +53,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.data.AssetLoader
-import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.StoryPageData
 import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.game.GameViewModel
@@ -68,6 +68,8 @@ import com.puzzle.game.ui.adaptive.AdaptiveLayoutMode
 import com.puzzle.game.ui.theme.FragmaDimens
 import com.puzzle.game.ui.theme.PuzzleColors
 import com.puzzle.game.ui.theme.PuzzleDimens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 
 @Composable
@@ -79,13 +81,19 @@ fun MenuScreen(
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val pageIndex = state.selectedStoryPageIndex.coerceIn(0, viewModel.storyPages.lastIndex)
-    val previews = remember(viewModel.storyPages) {
-        viewModel.storyPages.associate { page ->
-            page.id to loadStoryPreview(page)
+    val storyPages = viewModel.storyPages
+    val pageIndex = state.selectedStoryPageIndex.coerceIn(0, storyPages.lastIndex)
+    val previews by produceState<Map<String, ImageBitmap>>(
+        initialValue = emptyMap(),
+        key1 = storyPages
+    ) {
+        value = withContext(Dispatchers.Default) {
+            storyPages.mapNotNull { page ->
+                loadStoryPreview(page)?.let { page.id to it }
+            }.toMap()
         }
     }
-    val pagerState = rememberPagerState(initialPage = pageIndex, pageCount = { viewModel.storyPages.size })
+    val pagerState = rememberPagerState(initialPage = pageIndex, pageCount = { storyPages.size })
 
     LaunchedEffect(pageIndex) {
         if (pagerState.currentPage != pageIndex) {
@@ -130,7 +138,7 @@ fun MenuScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             StoryPagerCard(
-                                pages = viewModel.storyPages,
+                                pages = storyPages,
                                 previews = previews,
                                 pageIndex = pageIndex,
                                 pagerState = pagerState,
@@ -150,7 +158,7 @@ fun MenuScreen(
                         }
                     } else {
                         StoryPagerCard(
-                            pages = viewModel.storyPages,
+                            pages = storyPages,
                             previews = previews,
                             pageIndex = pageIndex,
                             pagerState = pagerState,
@@ -214,13 +222,13 @@ private fun HomeActionPanel(
     }
 }
 
-private fun loadStoryPreview(page: StoryPageData): ImageBitmap {
+private suspend fun loadStoryPreview(page: StoryPageData): ImageBitmap? {
     val assetFile = page.theme.assetFile
     if (assetFile != null) {
         val assetBitmap = AssetLoader.readBytes(assetFile)?.let { decodeToImageBitmap(it) }
         if (assetBitmap != null) return assetBitmap
     }
-    return PuzzlePictureGenerator.generate(page.theme, 900, 680)
+    return null
 }
 
 @Composable
@@ -276,7 +284,7 @@ private fun StoryPagerCard(
                 .fillMaxSize()
         ) { index ->
             val storyPage = pages[index]
-            val preview = previews[storyPage.id] ?: previews.values.first()
+            val preview = previews[storyPage.id]
             val isActive = index == pagerState.currentPage
 
             StoryPageCard(
@@ -310,7 +318,7 @@ private fun StoryPagerCard(
 @Composable
 private fun StoryPageCard(
     storyPage: StoryPageData,
-    preview: ImageBitmap,
+    preview: ImageBitmap?,
     isActive: Boolean,
     compact: Boolean,
     modifier: Modifier = Modifier
@@ -341,15 +349,23 @@ private fun StoryPageCard(
                     .border(1.dp, PuzzleColors.Stone.copy(alpha = 0.58f), RoundedCornerShape(FragmaDimens.StoryImageRadius))
             ) {
                 StoryGeometryBackdrop(modifier = Modifier.matchParentSize())
-                Image(
-                    bitmap = preview,
-                    contentDescription = storyPage.title,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(if (compact) 4.dp else 6.dp)
-                        .clip(RoundedCornerShape(20.dp)),
-                    contentScale = ContentScale.Crop
-                )
+                if (preview != null) {
+                    Image(
+                        bitmap = preview,
+                        contentDescription = storyPage.title,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(if (compact) 4.dp else 6.dp)
+                            .clip(RoundedCornerShape(20.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp).align(Alignment.Center),
+                        color = PuzzleColors.Teal,
+                        strokeWidth = 3.dp
+                    )
+                }
                 CornerGlyphs(modifier = Modifier.matchParentSize())
             }
 

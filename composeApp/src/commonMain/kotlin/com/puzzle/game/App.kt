@@ -1,7 +1,7 @@
 package com.puzzle.game
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -19,6 +19,7 @@ import com.puzzle.game.ui.SettingsScreen
 import com.puzzle.game.ui.SplashScreen
 import com.puzzle.game.ui.ThemeScreen
 import com.puzzle.game.ui.theme.PuzzleGameTheme
+import kotlin.time.TimeSource
 
 @Composable
 fun App() {
@@ -30,8 +31,18 @@ fun App() {
         val screenStack by navViewModel.screenStack.collectAsState()
         val currentScreen = screenStack.lastOrNull()
 
-        LaunchedEffect(currentScreen) {
-            currentScreen?.analyticsScreen()?.let { Analytics.screen(it) }
+        DisposableEffect(currentScreen) {
+            val analyticsScreen = currentScreen?.analyticsScreen()
+            val enteredAt = TimeSource.Monotonic.markNow()
+            analyticsScreen?.let { Analytics.screen(it) }
+            onDispose {
+                analyticsScreen?.let {
+                    Analytics.screenDuration(
+                        screen = it,
+                        durationMs = enteredAt.elapsedNow().inWholeMilliseconds
+                    )
+                }
+            }
         }
 
         when (currentScreen) {
@@ -70,7 +81,10 @@ fun App() {
                 val launchedFromImageSource = screenStack.dropLast(1).lastOrNull() == Screen.ImageSource
                 ThemeScreen(
                     viewModel = gameViewModel,
-                    onBack = { navViewModel.goBack() },
+                    onBack = {
+                        Analytics.click("back", AnalyticsScreen.ThemePicker)
+                        navViewModel.goBack()
+                    },
                     onConfirm = {
                         Analytics.click("confirm_theme", AnalyticsScreen.ThemePicker)
                         if (launchedFromImageSource) {
@@ -84,7 +98,10 @@ fun App() {
 
             Screen.ImageSource -> {
                 ImageSourceScreen(
-                    onBack = { navViewModel.goBack() },
+                    onBack = {
+                        Analytics.click("back", AnalyticsScreen.ImageSource)
+                        navViewModel.goBack()
+                    },
                     onPickBuiltIn = {
                         Analytics.click("image_source_builtin", AnalyticsScreen.ImageSource)
                         navViewModel.navigateTo(Screen.ThemePicker)
@@ -93,8 +110,12 @@ fun App() {
                         Analytics.click("image_source_current_theme", AnalyticsScreen.ImageSource)
                         navViewModel.goBackTo(Screen.Menu)
                     },
-                    onGenerateAi = { prompt ->
-                        Analytics.click("image_source_ai_generate", AnalyticsScreen.ImageSource)
+                    onGenerateAi = { prompt, entryPoint ->
+                        Analytics.click(
+                            target = "image_source_ai_generate",
+                            screen = AnalyticsScreen.ImageSource,
+                            properties = mapOf("entry_point" to entryPoint)
+                        )
                         gameViewModel.startAIGame(prompt)
                         navViewModel.navigateTo(Screen.Game)
                     }
@@ -104,8 +125,14 @@ fun App() {
             Screen.Settings -> {
                 SettingsScreen(
                     preferences = preferences,
-                    onBack = { navViewModel.goBack() },
-                    onOpenImageSource = { navViewModel.navigateTo(Screen.ImageSource) }
+                    onBack = {
+                        Analytics.click("back", AnalyticsScreen.Settings)
+                        navViewModel.goBack()
+                    },
+                    onOpenImageSource = {
+                        Analytics.click("settings_open_image_source", AnalyticsScreen.Settings)
+                        navViewModel.navigateTo(Screen.ImageSource)
+                    }
                 )
             }
 

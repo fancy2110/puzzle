@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
@@ -34,8 +33,10 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
+import kotlin.math.roundToInt
 
 // ── Piece image renderer ─────────────────────────────────
 
@@ -153,22 +154,21 @@ fun PieceTray(
                     .then(
                         if (!isPlaced) {
                             Modifier.pointerInput(piece.id) {
-                                var touchAnchor = Offset.Zero
                                 detectDragGestures(
                                     onDragStart = { localOffset ->
-                                        touchAnchor = localOffset
                                         dragState.startDrag(
                                             pieceId = piece.id,
                                             startOffset = pieceWindowPos,
                                             pieceSize = Offset(
                                                 pieceIntSize.width.toFloat(),
                                                 pieceIntSize.height.toFloat()
-                                            )
+                                            ),
+                                            touchOffset = localOffset
                                         )
                                     },
                                     onDrag = { change, _ ->
                                         change.consume()
-                                        dragState.updateDrag(pieceWindowPos + change.position - touchAnchor)
+                                        dragState.updateDragPointer(pieceWindowPos + change.position)
                                     },
                                     onDragEnd = { onDragEnd() },
                                     onDragCancel = { dragState.cancelDrag() }
@@ -215,27 +215,34 @@ fun FloatingDraggedPiece(
     puzzleBitmap: ImageBitmap?,
     pieceBitmaps: Map<String, ImageBitmap> = emptyMap(),
     dragState: DragDropState,
-    pieces: List<PuzzlePiece>
+    pieces: List<PuzzlePiece>,
+    containerWindowOffset: Offset = Offset.Zero,
+    modifier: Modifier = Modifier
 ) {
     if (!dragState.isDragging || dragState.draggedPieceId == null) return
     val pieceId = dragState.draggedPieceId ?: return
     val piece = pieces.firstOrNull { it.id == pieceId } ?: return
     val pieceBitmap = pieceBitmaps[pieceId]
+    val density = LocalDensity.current
+    val pieceWidth = with(density) {
+        dragState.dragPieceSize.x.takeIf { it > 0f }?.toDp() ?: 110.dp
+    }
+    val pieceHeight = with(density) {
+        dragState.dragPieceSize.y.takeIf { it > 0f }?.toDp() ?: 110.dp
+    }
+    val localOffset = dragState.dragOffset - containerWindowOffset
 
     Box(
-        modifier = Modifier
-            .offset { IntOffset(dragState.dragOffset.x.toInt(), dragState.dragOffset.y.toInt()) }
-            .size(110.dp)
-            .shadow(8.dp, RoundedCornerShape(12.dp))
-            .clip(RoundedCornerShape(12.dp))
-            .background(Color.White),
+        modifier = modifier
+            .offset { IntOffset(localOffset.x.roundToInt(), localOffset.y.roundToInt()) }
+            .size(pieceWidth, pieceHeight),
         contentAlignment = Alignment.Center
     ) {
         if (pieceBitmap != null) {
             Image(
                 bitmap = pieceBitmap,
                 contentDescription = "拖拽碎片",
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
+                modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )
         } else {
@@ -243,7 +250,7 @@ fun FloatingDraggedPiece(
                 piece = piece,
                 puzzleBitmap = puzzleBitmap,
                 cardSize = 110,
-                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

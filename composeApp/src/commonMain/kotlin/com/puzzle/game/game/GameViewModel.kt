@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.puzzle.game.ai.AIImageGenerator
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsEvent
+import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.logger.PuzzleLog
 import com.puzzle.game.data.BuiltinStoryImageSet
 import com.puzzle.game.data.PuzzlePictureGenerator
@@ -14,6 +15,7 @@ import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.platformCacheDir
+import com.puzzle.game.readFileBytes
 import com.puzzle.game.engine.PuzzleEngine
 import com.puzzle.game.engine.PieceBitmapGenerator
 import com.puzzle.game.engine.PuzzleConfig
@@ -126,6 +128,16 @@ class GameViewModel : ViewModel() {
         }
     }
 
+    fun setPositionHintEnabled(enabled: Boolean) {
+        if (_state.value.showPositionHint == enabled) return
+        Analytics.click(
+            target = "position_hint_toggle",
+            screen = AnalyticsScreen.Game,
+            properties = mapOf("enabled" to enabled)
+        )
+        _state.update { it.copy(showPositionHint = enabled) }
+    }
+
     fun moveStoryPage(delta: Int) {
         selectStoryPage(_state.value.selectedStoryPageIndex + delta)
     }
@@ -165,7 +177,8 @@ class GameViewModel : ViewModel() {
                         startGameWithImageInternal(bytes, pieceCount)
                         return@launch
                     }
-                    PuzzleLog.w("GameVM", "Asset $assetFile not found, falling back to procedural")
+                    setError("故事图片读取失败，请重新选择故事")
+                    return@launch
                 }
 
                 // Kotlin procedural path
@@ -209,7 +222,11 @@ class GameViewModel : ViewModel() {
         val pieceCount = _state.value.pieceCount
         resetForNewGame()
         viewModelScope.launch {
-            startGameWithImageInternal(imageBytes, pieceCount)
+            try {
+                startGameWithImageInternal(imageBytes, pieceCount)
+            } catch (error: Exception) {
+                setError("图片处理失败: ${error.message ?: "未知错误"}")
+            }
         }
     }
 
@@ -255,7 +272,7 @@ class GameViewModel : ViewModel() {
                 // If AI returned a local file path, load and split
                 if (generated.localPath != null) {
                     val bytes = withContext(Dispatchers.Default) {
-                        com.puzzle.game.data.AssetLoader.readBytes(generated.localPath)
+                        readFileBytes(generated.localPath)
                     }
                     if (bytes != null) {
                         startGameWithImageInternal(bytes, pieceCount)
@@ -296,13 +313,11 @@ class GameViewModel : ViewModel() {
      */
     private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
         val imgSize = "${imageBytes.size / 1024}KB"
+        val bitmap = withContext(Dispatchers.Default) {
+            decodeToImageBitmap(imageBytes)
+        } ?: throw IllegalArgumentException("无法解码图片")
+
         if (blockSize == PuzzleConfig.PIXEL_BLOCK_SIZE) {
-            val bitmap = withContext(Dispatchers.Default) {
-                decodeToImageBitmap(imageBytes)
-            } ?: PuzzlePictureGenerator.generate(
-                _state.value.selectedTheme ?: ThemePresets.themes.first(),
-                800, 600
-            )
             startGameWithBitmapInternal(bitmap, pieceCount)
             return
         }
@@ -312,38 +327,9 @@ class GameViewModel : ViewModel() {
         }
         if (!success) {
             PuzzleLog.w("GameVM", "Native split failed ($imgSize), falling back to Kotlin engine")
-            // Fallback to Kotlin path — native library unavailable or failed
-            val theme = _state.value.selectedTheme ?: ThemePresets.themes.first()
-            val gameData = withContext(Dispatchers.Default) {
-                val puzzleBitmap = PuzzlePictureGenerator.generate(theme, 800, 600)
-                engine.loadImage(puzzleBitmap.width, puzzleBitmap.height)
-                    engine.splitImage(pieceCount = pieceCount, blockSize = blockSize)
-                val pieces = engine.shufflePieces()
-                GeneratedGameData(
-                    pieces = pieces,
-                    bitmap = puzzleBitmap,
-                    pieceBitmaps = generatePieceBitmapsIfAffordable(puzzleBitmap, pieces),
-                    imageWidth = puzzleBitmap.width,
-                    imageHeight = puzzleBitmap.height
-                )
-            }
-            applyNewGame(
-                pieces = gameData.pieces,
-                bitmap = gameData.bitmap,
-                pieceBitmaps = gameData.pieceBitmaps,
-                imageWidth = gameData.imageWidth,
-                imageHeight = gameData.imageHeight,
-                blockSize = blockSize
-            )
-            startTimer()
+            startGameWithBitmapInternal(bitmap, pieceCount)
             return
         }
-
-        val bitmap = decodeToImageBitmap(imageBytes)
-            ?: PuzzlePictureGenerator.generate(
-                _state.value.selectedTheme ?: ThemePresets.themes.first(),
-                800, 600
-            )
 
         val (imgW, imgH) = nativeAdapter.imageSize
         val nativePieceBitmaps = nativeAdapter.pieceBitmaps.ifEmpty {

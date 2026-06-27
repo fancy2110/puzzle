@@ -236,7 +236,7 @@ object BuiltinStoryImageCatalog {
                     title = scene.title,
                     story = scene.story,
                     prompt = "${scene.prompt}。$childSafeStyle",
-                    assetFile = "stories/$id/$pageId.png"
+                    assetFile = "stories/$id/$pageId.jpg"
                 )
             }
         )

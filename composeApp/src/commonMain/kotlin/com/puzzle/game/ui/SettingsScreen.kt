@@ -20,6 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.data.Preferences
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.BrandMark
@@ -71,6 +73,11 @@ fun SettingsScreen(
                             SettingsSwitch(
                                 checked = soundEnabled,
                                 onCheckedChange = {
+                                    Analytics.click(
+                                        target = "toggle_sound",
+                                        screen = AnalyticsScreen.Settings,
+                                        properties = mapOf("enabled" to it)
+                                    )
                                     soundEnabled = it
                                     preferences.setSoundEnabled(it)
                                 }
@@ -85,6 +92,11 @@ fun SettingsScreen(
                             SettingsSwitch(
                                 checked = referenceEnabled,
                                 onCheckedChange = {
+                                    Analytics.click(
+                                        target = "toggle_reference",
+                                        screen = AnalyticsScreen.Settings,
+                                        properties = mapOf("enabled" to it)
+                                    )
                                     referenceEnabled = it
                                     preferences.setReferenceEnabled(it)
                                 }

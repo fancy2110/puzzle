@@ -20,10 +20,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.data.AssetLoader
 import com.puzzle.game.data.BuiltinStoryImageSet
-import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.StoryPresets
 import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.CheckIcon
 import com.puzzle.game.ui.component.CloudButton
@@ -34,6 +35,8 @@ import com.puzzle.game.ui.adaptive.AdaptiveContent
 import com.puzzle.game.ui.theme.PuzzleColors
 import com.puzzle.game.ui.theme.FragmaDimens
 import com.puzzle.game.ui.theme.PuzzleDimens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ThemeScreen(
@@ -91,7 +94,14 @@ fun ThemeScreen(
                 StoryPickerCard(
                     story = story,
                     isSelected = isSelected,
-                    onClick = { viewModel.selectStory(story.id) }
+                    onClick = {
+                        Analytics.click(
+                            target = "select_story",
+                            screen = AnalyticsScreen.ThemePicker,
+                            properties = mapOf("story_id" to story.id)
+                        )
+                        viewModel.selectStory(story.id)
+                    }
                 )
             }
         }
@@ -144,8 +154,13 @@ private fun StoryPickerCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            val preview = remember(theme.id) {
-                loadStoryCoverPreview(story)
+            val preview by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                initialValue = null,
+                key1 = story.id
+            ) {
+                value = withContext(Dispatchers.Default) {
+                    loadStoryCoverPreview(story)
+                }
             }
             Box(
                 modifier = Modifier
@@ -154,12 +169,20 @@ private fun StoryPickerCard(
                     .clip(RoundedCornerShape(14.dp))
                     .background(theme.primary.copy(alpha = 0.18f))
             ) {
-                Image(
-                    bitmap = preview,
-                    contentDescription = theme.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+                if (preview != null) {
+                    Image(
+                        bitmap = preview!!,
+                        contentDescription = theme.name,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp).align(Alignment.Center),
+                        color = PuzzleColors.Teal,
+                        strokeWidth = 3.dp
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
@@ -201,12 +224,11 @@ private fun StoryPickerCard(
     }
 }
 
-private fun loadStoryCoverPreview(story: BuiltinStoryImageSet): androidx.compose.ui.graphics.ImageBitmap {
-    val theme = StoryPresets.storyPreviewTheme(story)
+private suspend fun loadStoryCoverPreview(story: BuiltinStoryImageSet): androidx.compose.ui.graphics.ImageBitmap? {
     val assetFile = story.pages.firstOrNull()?.assetFile
     if (assetFile != null) {
         val assetBitmap = AssetLoader.readBytes(assetFile)?.let { decodeToImageBitmap(it) }
         if (assetBitmap != null) return assetBitmap
     }
-    return PuzzlePictureGenerator.generate(theme, 400, 300)
+    return null
 }

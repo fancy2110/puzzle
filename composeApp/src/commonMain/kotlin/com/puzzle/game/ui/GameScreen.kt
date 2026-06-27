@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.PlatformBackHandler
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.engine.PuzzleConfig
@@ -90,7 +92,10 @@ fun GameScreen(
         GamePhase.GENERATING -> GeneratingScreen()
         GamePhase.PLAYING -> PlayingScreen(
             viewModel = viewModel,
-            onBack = { viewModel.pause() }
+            onBack = {
+                Analytics.click("game_top_pause", AnalyticsScreen.Game)
+                viewModel.pause()
+            }
         )
         GamePhase.COMPLETED -> CompletedScreen(
             viewModel = viewModel,
@@ -99,7 +104,10 @@ fun GameScreen(
         )
         GamePhase.ERROR -> ErrorScreen(
             message = state.errorMessage ?: "出了点问题",
-            onRetry = { viewModel.retryGame() },
+            onRetry = {
+                Analytics.click("error_retry", AnalyticsScreen.Game)
+                viewModel.retryGame()
+            },
             onGoToMenu = onGoToMenu
         )
         else -> {}
@@ -108,8 +116,14 @@ fun GameScreen(
     // Pause dialog must be drawn after the game content so it stays above the puzzle.
     if (state.isPaused) {
         PauseDialog(
-            onResume = { viewModel.resume() },
-            onQuit = onGoToMenu
+            onResume = {
+                Analytics.click("pause_resume", AnalyticsScreen.Game)
+                viewModel.resume()
+            },
+            onQuit = {
+                Analytics.click("pause_quit", AnalyticsScreen.Game)
+                onGoToMenu()
+            }
         )
     }
 
@@ -117,7 +131,10 @@ fun GameScreen(
     if (state.showCelebration) {
         CelebrationOverlay(
             pieceCount = state.pieces.size,
-            onDismiss = { viewModel.dismissCelebration() },
+            onDismiss = {
+                Analytics.click("celebration_dismiss", AnalyticsScreen.Game)
+                viewModel.dismissCelebration()
+            },
             onPlayAgain = onPlayAgain,
             onBackToMenu = onGoToMenu
         )
@@ -226,13 +243,17 @@ private fun PlayingScreen(
     }
 
     val formattedTime = formatTime(state.elapsedSeconds)
+    var dragOverlayWindowPos by remember { mutableStateOf(Offset.Zero) }
 
     PuzzleBackground {
         AdaptiveContent { spec ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(spec.pagePadding),
+                    .padding(spec.pagePadding)
+                    .onGloballyPositioned { coordinates ->
+                        dragOverlayWindowPos = coordinates.positionInWindow()
+                    },
                 contentAlignment = Alignment.TopCenter
             ) {
                 when (spec.mode) {
@@ -280,7 +301,9 @@ private fun PlayingScreen(
                     puzzleBitmap = state.puzzleBitmap,
                     pieceBitmaps = state.pieceBitmaps,
                     dragState = dragState,
-                    pieces = state.pieces
+                    pieces = state.pieces,
+                    containerWindowOffset = dragOverlayWindowPos,
+                    modifier = Modifier.align(Alignment.TopStart)
                 )
             }
         }
@@ -327,7 +350,8 @@ private fun TabletLandscapePlayingLayout(
             ) {
                 InteractionHintBar(
                     isSelected = dragState.selectedPieceId != null,
-                    showWrongHint = state.wrongDropHint
+                    showWrongHint = state.wrongDropHint,
+                    showPositionHint = state.showPositionHint
                 )
                 AdaptivePieceTray(
                     pieces = state.pieces,
@@ -339,7 +363,7 @@ private fun TabletLandscapePlayingLayout(
                     onDragEnd = { viewModel.handleDragEnd() },
                     modifier = Modifier.weight(1f)
                 )
-                BottomHint(dragState, viewModel)
+                BottomHint(state, dragState, viewModel)
             }
         }
     }
@@ -387,7 +411,7 @@ private fun TabletPortraitPlayingLayout(
             onDragEnd = { viewModel.handleDragEnd() },
             modifier = Modifier.widthIn(max = spec.trayMaxWidth)
         )
-        BottomHint(dragState, viewModel)
+        BottomHint(state, dragState, viewModel)
     }
 }
 
@@ -427,7 +451,8 @@ private fun PhoneLandscapePlayingLayout(
             Spacer(modifier = Modifier.height(40.dp))
             InteractionHintBar(
                 isSelected = dragState.selectedPieceId != null,
-                showWrongHint = state.wrongDropHint
+                showWrongHint = state.wrongDropHint,
+                showPositionHint = state.showPositionHint
             )
             Spacer(modifier = Modifier.height(4.dp))
             AdaptivePieceTray(
@@ -439,6 +464,7 @@ private fun PhoneLandscapePlayingLayout(
                 trayMode = AdaptiveTrayMode.HorizontalStrip,
                 onDragEnd = { viewModel.handleDragEnd() }
             )
+            BottomHint(state, dragState, viewModel)
         }
     }
 }
@@ -476,7 +502,7 @@ private fun PhonePortraitPlayingLayout(
             trayMode = AdaptiveTrayMode.HorizontalStrip,
             onDragEnd = { viewModel.handleDragEnd() }
         )
-        BottomHint(dragState, viewModel)
+        BottomHint(state, dragState, viewModel)
     }
 }
 
@@ -596,7 +622,8 @@ private fun PlaqueOrnament(modifier: Modifier = Modifier) {
 @Composable
 private fun InteractionHintBar(
     isSelected: Boolean,
-    showWrongHint: Boolean
+    showWrongHint: Boolean,
+    showPositionHint: Boolean
 ) {
     Box(
         modifier = Modifier
@@ -613,7 +640,11 @@ private fun InteractionHintBar(
                 textAlign = TextAlign.Center
             )
             isSelected -> Text(
-                text = "已选中碎片，点击棋盘格子放置",
+                text = if (showPositionHint) {
+                    "已选中碎片，点击提示位置放置"
+                } else {
+                    "已选中碎片，点击或拖到正确位置"
+                },
                 fontSize = 12.sp,
                 color = PuzzleColors.TealDark,
                 fontWeight = FontWeight.Medium,
@@ -631,27 +662,61 @@ private fun InteractionHintBar(
 }
 
 @Composable
-private fun BottomHint(dragState: com.puzzle.game.game.DragDropState, viewModel: GameViewModel) {
-    Box(
+private fun BottomHint(
+    state: com.puzzle.game.game.GameState,
+    dragState: com.puzzle.game.game.DragDropState,
+    viewModel: GameViewModel
+) {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(36.dp),
-        contentAlignment = Alignment.Center
+            .height(44.dp)
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        if (dragState.selectedPieceId != null) {
-            StoryButton(
-                text = "取消选择",
-                onClick = { dragState.clearSelection() },
-                modifier = Modifier.width(112.dp),
-                tone = StoryButtonTone.Secondary,
-                height = 32.dp
-            )
-        } else {
+        Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+            if (dragState.selectedPieceId != null) {
+                StoryButton(
+                    text = "取消选择",
+                    onClick = {
+                        Analytics.click("cancel_piece_selection", AnalyticsScreen.Game)
+                        dragState.clearSelection()
+                    },
+                    modifier = Modifier.width(112.dp),
+                    tone = StoryButtonTone.Secondary,
+                    height = 32.dp
+                )
+            } else {
+                Text(
+                    "点击或拖动",
+                    fontSize = 12.sp,
+                    color = PuzzleColors.Muted,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
             Text(
-                "点击或拖动",
+                text = "位置提示",
                 fontSize = 12.sp,
-                color = PuzzleColors.Muted,
-                textAlign = TextAlign.Center
+                fontWeight = FontWeight.Medium,
+                color = PuzzleColors.StoneDark
+            )
+            Switch(
+                checked = state.showPositionHint,
+                onCheckedChange = viewModel::setPositionHintEnabled,
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = PuzzleColors.Cloud,
+                    checkedTrackColor = PuzzleColors.Teal,
+                    checkedBorderColor = PuzzleColors.TealDark.copy(alpha = 0.28f),
+                    uncheckedThumbColor = PuzzleColors.Cloud,
+                    uncheckedTrackColor = PuzzleColors.Stone.copy(alpha = 0.40f),
+                    uncheckedBorderColor = PuzzleColors.Stone.copy(alpha = 0.72f)
+                )
             )
         }
     }
@@ -674,6 +739,12 @@ private fun GameBoardArea(
     val pieces = state.pieces
     val puzzleBitmap = state.puzzleBitmap
     val placedPieceIds = state.cellFilledBy.values.toSet()
+    val placedCells = remember(placedPieceIds, pieces) {
+        pieces
+            .filter { placedPieceIds.contains(it.id) }
+            .flatMap { piece -> piece.items.map { it.y to it.x } }
+            .toSet()
+    }
     var boardImageWindowPos by remember { mutableStateOf(Offset.Zero) }
     var boardImageSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -797,12 +868,6 @@ private fun GameBoardArea(
                                     modifier = Modifier
                                         .offset(x = pieceX, y = pieceY)
                                         .size(pieceW, pieceH)
-                                        .clip(RoundedCornerShape(4.dp))
-                                        .border(
-                                            1.dp,
-                                            PuzzleColors.Gold.copy(alpha = 0.58f),
-                                            RoundedCornerShape(4.dp)
-                                        )
                                 ) {
                                     if (pieceBitmap != null) {
                                         androidx.compose.foundation.Image(
@@ -830,8 +895,9 @@ private fun GameBoardArea(
                             val pieceW = displayW * (piece.pixels.width.toFloat() / imageWidth.toFloat())
                             val pieceH = displayH * (piece.pixels.height.toFloat() / imageHeight.toFloat())
                             val isDropTarget = dragState.dropTargetPieceId == piece.id
-                            val isTapTarget = dragState.selectedPieceId == piece.id
-                            if (isDropTarget || isTapTarget) {
+                            val isSelectedTarget = dragState.selectedPieceId == piece.id
+                            val showTapHint = state.showPositionHint && isSelectedTarget
+                            if (isDropTarget || isSelectedTarget) {
                                 Box(
                                     modifier = Modifier
                                         .offset(x = pieceX, y = pieceY)
@@ -847,14 +913,16 @@ private fun GameBoardArea(
                                             } else Modifier
                                         )
                                 ) {
-                                    PieceShapeOverlay(
-                                        piece = piece,
-                                        fillColor = if (isDropTarget) PuzzleColors.Teal.copy(alpha = 0.28f)
-                                        else PuzzleColors.Gold.copy(alpha = 0.16f),
-                                        strokeColor = if (isDropTarget) PuzzleColors.Teal else PuzzleColors.Gold,
-                                        strokeWidth = if (isDropTarget) 2.dp else 1.dp,
-                                        modifier = Modifier.fillMaxSize()
-                                    )
+                                    if (isDropTarget || showTapHint) {
+                                        PieceShapeOverlay(
+                                            piece = piece,
+                                            fillColor = if (isDropTarget) PuzzleColors.Teal.copy(alpha = 0.28f)
+                                            else PuzzleColors.Gold.copy(alpha = 0.16f),
+                                            strokeColor = if (isDropTarget) PuzzleColors.Teal else PuzzleColors.Gold,
+                                            strokeWidth = if (isDropTarget) 2.dp else 1.dp,
+                                            modifier = Modifier.fillMaxSize()
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -862,20 +930,22 @@ private fun GameBoardArea(
                     if (gridRows * gridCols <= 2_500) {
                         for (row in 0 until gridRows) {
                             for (col in 0 until gridCols) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth(1f / gridCols)
-                                        .fillMaxHeight(1f / gridRows)
-                                        .offset(
-                                            x = displayW * col / gridCols,
-                                            y = displayH * row / gridRows
-                                        )
-                                        .border(
-                                            width = 0.3.dp,
-                                            color = PuzzleColors.Stone.copy(alpha = 0.20f)
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {}
+                                if ((row to col) !in placedCells) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth(1f / gridCols)
+                                            .fillMaxHeight(1f / gridRows)
+                                            .offset(
+                                                x = displayW * col / gridCols,
+                                                y = displayH * row / gridRows
+                                            )
+                                            .border(
+                                                width = 0.3.dp,
+                                                color = PuzzleColors.Stone.copy(alpha = 0.20f)
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {}
+                                }
                             }
                         }
                     }
@@ -1060,22 +1130,21 @@ private fun PieceTrayCard(
             .then(
                 if (!isPlaced) {
                     Modifier.pointerInput(piece.id) {
-                        var touchAnchor = Offset.Zero
                         detectDragGestures(
                             onDragStart = { localOffset ->
-                                touchAnchor = localOffset
                                 dragState.startDrag(
                                     pieceId = piece.id,
                                     startOffset = pieceWindowPos,
                                     pieceSize = Offset(
                                         pieceIntSize.width.toFloat(),
                                         pieceIntSize.height.toFloat()
-                                    )
+                                    ),
+                                    touchOffset = localOffset
                                 )
                             },
                             onDrag = { change, _ ->
                                 change.consume()
-                                dragState.updateDrag(pieceWindowPos + change.position - touchAnchor)
+                                dragState.updateDragPointer(pieceWindowPos + change.position)
                             },
                             onDragEnd = onDragEnd,
                             onDragCancel = { dragState.cancelDrag() }

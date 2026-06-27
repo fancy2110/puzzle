@@ -20,13 +20,28 @@ object Analytics {
         )
     }
 
-    fun click(target: String, screen: AnalyticsScreen? = null) {
+    fun screenDuration(screen: AnalyticsScreen, durationMs: Long) {
+        track(
+            AnalyticsEvent.ScreenDuration,
+            mapOf(
+                "screen" to screen.id,
+                "duration_ms" to durationMs,
+                "duration_seconds" to durationMs / 1000
+            )
+        )
+    }
+
+    fun click(
+        target: String,
+        screen: AnalyticsScreen? = null,
+        properties: Map<String, Any?> = emptyMap()
+    ) {
         track(
             AnalyticsEvent.Click,
             mapOf(
                 "target" to target,
                 "screen" to screen?.id
-            )
+            ) + properties
         )
     }
 }
@@ -42,6 +57,7 @@ enum class AnalyticsScreen(val id: String) {
 
 enum class AnalyticsEvent(val id: String) {
     ScreenView("screen_view"),
+    ScreenDuration("screen_duration"),
     Click("click"),
     ThemeSelect("theme_select"),
     StoryPageSelect("story_page_select"),

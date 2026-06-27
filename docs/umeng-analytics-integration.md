@@ -2,11 +2,15 @@
 
 ## 接入方式
 
-Android 已接入友盟 U-App 与 U-APM Maven 依赖：
+Android 已接入友盟 U-App Maven 依赖：
 
 - `com.umeng.umsdk:common:9.9.2`
 - `com.umeng.umsdk:asms:1.8.7.2`
-- `com.umeng.umsdk:apm:2.0.8`
+
+Android 暂不接入 `com.umeng.umsdk:apm:2.0.8`。该版本携带的
+`libcrashsdk.so`、`libucrash-core.so` 和 `libucrash.so` 未按 16 KB ELF
+LOAD 边界对齐，不满足 targetSdk 35+ 的 Google Play 发布要求。待友盟发布
+兼容版本后再恢复 U-APM；当前 U-App 页面与业务事件统计不受影响。
 
 iOS 已补充 `iosApp/Podfile`：
 
@@ -50,21 +54,61 @@ UMENG_CHANNEL=official
 - `UMENG_APP_KEY=""`
 - `UMENG_CHANNEL=app_store`
 
-## 事件命名
+## 埋点规范
+
+### 事件命名
 
 所有事件统一使用 `puzzle_` 前缀，例如：
 
 - `puzzle_screen_view`
+- `puzzle_screen_duration`
+- `puzzle_click`
 - `puzzle_game_start`
 - `puzzle_game_complete`
 
-属性值统一在 common 层转为字符串，并限制单个值长度，避免上传超长提示词或错误堆栈。
+规则：
+
+- 事件名使用小写 snake_case。
+- 业务事件使用“对象 + 动作”，例如 `game_start`、`piece_place`。
+- 通用按钮点击统一使用 `puzzle_click`，通过 `target` 区分按钮。
+- 页面进入统一使用 `puzzle_screen_view`。
+- 页面离开统一使用 `puzzle_screen_duration`。
+- 属性名使用小写 snake_case。
+- 属性值统一在 common 层转为字符串，并限制单个值长度，避免上传超长提示词或错误堆栈。
+
+### 页面停留时长
+
+页面停留时长由 `App` 中的导航状态统一记录：
+
+- 页面进入：发送 `puzzle_screen_view`。
+- 页面离开：发送 `puzzle_screen_duration`。
+- 计时口径：从当前 `Screen` 成为栈顶开始，到该 `Screen` 不再是栈顶为止。
+- 上报字段：`screen`、`duration_ms`、`duration_seconds`。
+
+### 按钮点击
+
+关键步骤按钮统一发送 `puzzle_click`：
+
+- `target`：按钮语义，不用中文文案，例如 `start_game`、`open_settings`、`pause_resume`。
+- `screen`：按钮所在页面，例如 `menu`、`settings`、`game`。
+- 需要区分同一动作不同入口时，补充 `entry_point`，例如 AI 生成页的 `source_card` 和 `prompt_button`。
+
+当前已覆盖的关键按钮：
+
+| 页面 | target |
+| --- | --- |
+| Menu | `start_game`, `open_theme_picker`, `open_image_source`, `open_settings` |
+| ThemePicker | `back`, `select_story`, `confirm_theme` |
+| ImageSource | `back`, `image_source_builtin`, `image_source_current_theme`, `image_source_ai_generate` |
+| Settings | `back`, `settings_open_image_source`, `toggle_sound`, `toggle_reference` |
+| Game | `game_top_pause`, `pause_resume`, `pause_quit`, `cancel_piece_selection`, `position_hint_toggle`, `error_retry`, `go_to_menu`, `play_again`, `celebration_dismiss` |
 
 ## 关键路径事件
 
 | 事件 | 触发时机 | 核心属性 |
 | --- | --- | --- |
 | `puzzle_screen_view` | 页面切换 | `screen`, `source` |
+| `puzzle_screen_duration` | 页面离开 | `screen`, `duration_ms`, `duration_seconds` |
 | `puzzle_click` | 首页/设置/游戏关键按钮 | `target`, `screen` |
 | `puzzle_theme_select` | 选择故事或主题 | `story_id`, `theme_id`, `story_page_index`, `selection_type` |
 | `puzzle_story_page_select` | 首页故事分页切换 | `story_id`, `theme_id`, `story_page_index` |
@@ -89,4 +133,5 @@ UMENG_CHANNEL=official
 - Android 使用手动页面采集，页面浏览由 `puzzle_screen_view` 统一记录。
 - iOS 在 Swift 入口初始化友盟，同时把 KMP common 事件桥接到 `MobClick.event`。
 - 发布前需要完成隐私政策、SDK 清单、用户同意后初始化策略的产品确认。
-
+- 新增按钮时优先接入 `Analytics.click(...)`，不要新增只有按钮文案差异的独立事件。
+- 新增业务结果时再扩展 `AnalyticsEvent`，并同步更新本文档。

@@ -252,15 +252,7 @@ impl PuzzleEngine {
 
                     if owned.contains(&(gy, gx)) {
                         let pixel = self.img.get_pixel(source_x, source_y);
-                        let alpha = edge_alpha(
-                            source_x,
-                            source_y,
-                            block_size,
-                            &owned,
-                            self.img_width as u32,
-                            self.img_height as u32,
-                        );
-                        img.put_pixel(px, py, Rgba([pixel[0], pixel[1], pixel[2], alpha]));
+                        img.put_pixel(px, py, pixel);
                     } else {
                         img.put_pixel(px, py, Rgba([0, 0, 0, 0])); // transparent
                     }
@@ -299,39 +291,6 @@ impl PuzzleEngine {
         }
         buf
     }
-}
-
-fn edge_alpha(
-    source_x: u32,
-    source_y: u32,
-    block_size: u32,
-    owned: &std::collections::HashSet<(u32, u32)>,
-    image_width: u32,
-    image_height: u32,
-) -> u8 {
-    let has_transparent_neighbor =
-        !is_owned_pixel(source_x as i64 - 1, source_y as i64, block_size, owned, image_width, image_height)
-        || !is_owned_pixel(source_x as i64 + 1, source_y as i64, block_size, owned, image_width, image_height)
-        || !is_owned_pixel(source_x as i64, source_y as i64 - 1, block_size, owned, image_width, image_height)
-        || !is_owned_pixel(source_x as i64, source_y as i64 + 1, block_size, owned, image_width, image_height);
-
-    if has_transparent_neighbor { 140 } else { 255 }
-}
-
-fn is_owned_pixel(
-    x: i64,
-    y: i64,
-    block_size: u32,
-    owned: &std::collections::HashSet<(u32, u32)>,
-    image_width: u32,
-    image_height: u32,
-) -> bool {
-    if x < 0 || y < 0 || x >= image_width as i64 || y >= image_height as i64 {
-        return false;
-    }
-    let block_x = x as u32 / block_size;
-    let block_y = y as u32 / block_size;
-    owned.contains(&(block_y, block_x))
 }
 
 fn add_cell_to_piece(

@@ -47,7 +47,6 @@ import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.BookIcon
 import com.puzzle.game.ui.component.CelebrationOverlay
-import com.puzzle.game.ui.component.CheckIcon
 import com.puzzle.game.ui.component.CloudButton
 import com.puzzle.game.ui.component.CoralButton
 import com.puzzle.game.ui.component.ClockIcon
@@ -1037,6 +1036,9 @@ private fun AdaptivePieceTray(
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val availablePieces = remember(pieces, placedPieceIds) {
+        pieces.filterNot { placedPieceIds.contains(it.id) }
+    }
     val trayModifier = when (trayMode) {
         AdaptiveTrayMode.HorizontalStrip -> modifier
             .fillMaxWidth()
@@ -1064,12 +1066,11 @@ private fun AdaptivePieceTray(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 contentPadding = PaddingValues(horizontal = 8.dp)
             ) {
-                items(pieces, key = { it.id }) { piece ->
+                items(availablePieces, key = { it.id }) { piece ->
                     PieceTrayCard(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
                         pieceBitmap = pieceBitmaps[piece.id],
-                        isPlaced = placedPieceIds.contains(piece.id),
                         dragState = dragState,
                         onDragEnd = onDragEnd,
                         modifier = Modifier
@@ -1089,12 +1090,11 @@ private fun AdaptivePieceTray(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
             ) {
-                gridItems(pieces, key = { it.id }) { piece ->
+                gridItems(availablePieces, key = { it.id }) { piece ->
                     PieceTrayCard(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
                         pieceBitmap = pieceBitmaps[piece.id],
-                        isPlaced = placedPieceIds.contains(piece.id),
                         dragState = dragState,
                         onDragEnd = onDragEnd,
                         modifier = Modifier
@@ -1112,7 +1112,6 @@ private fun PieceTrayCard(
     piece: com.puzzle.game.engine.model.PuzzlePiece,
     puzzleBitmap: androidx.compose.ui.graphics.ImageBitmap?,
     pieceBitmap: androidx.compose.ui.graphics.ImageBitmap?,
-    isPlaced: Boolean,
     dragState: com.puzzle.game.game.DragDropState,
     onDragEnd: () -> Unit,
     modifier: Modifier = Modifier
@@ -1127,31 +1126,27 @@ private fun PieceTrayCard(
                 pieceWindowPos = coords.positionInWindow()
                 pieceIntSize = coords.size
             }
-            .then(
-                if (!isPlaced) {
-                    Modifier.pointerInput(piece.id) {
-                        detectDragGestures(
-                            onDragStart = { localOffset ->
-                                dragState.startDrag(
-                                    pieceId = piece.id,
-                                    startOffset = pieceWindowPos,
-                                    pieceSize = Offset(
-                                        pieceIntSize.width.toFloat(),
-                                        pieceIntSize.height.toFloat()
-                                    ),
-                                    touchOffset = localOffset
-                                )
-                            },
-                            onDrag = { change, _ ->
-                                change.consume()
-                                dragState.updateDragPointer(pieceWindowPos + change.position)
-                            },
-                            onDragEnd = onDragEnd,
-                            onDragCancel = { dragState.cancelDrag() }
+            .pointerInput(piece.id) {
+                detectDragGestures(
+                    onDragStart = { localOffset ->
+                        dragState.startDrag(
+                            pieceId = piece.id,
+                            startOffset = pieceWindowPos,
+                            pieceSize = Offset(
+                                pieceIntSize.width.toFloat(),
+                                pieceIntSize.height.toFloat()
+                            ),
+                            touchOffset = localOffset
                         )
-                    }
-                } else Modifier
-            )
+                    },
+                    onDrag = { change, _ ->
+                        change.consume()
+                        dragState.updateDragPointer(pieceWindowPos + change.position)
+                    },
+                    onDragEnd = onDragEnd,
+                    onDragCancel = { dragState.cancelDrag() }
+                )
+            }
             .clip(RoundedCornerShape(FragmaDimens.PieceCardRadius))
             .border(
                 width = 1.dp,
@@ -1160,13 +1155,10 @@ private fun PieceTrayCard(
                 shape = RoundedCornerShape(FragmaDimens.PieceCardRadius)
             )
             .background(
-                when {
-                    isPlaced -> PuzzleColors.Teal.copy(alpha = 0.18f)
-                    isSelected -> PuzzleColors.Teal.copy(alpha = 0.16f)
-                    else -> Color.White.copy(alpha = 0.64f)
-                }
+                if (isSelected) PuzzleColors.Teal.copy(alpha = 0.16f)
+                else Color.White.copy(alpha = 0.64f)
             )
-            .clickable(enabled = !isPlaced) {
+            .clickable {
                 if (isSelected) {
                     dragState.clearSelection()
                 } else {
@@ -1175,9 +1167,7 @@ private fun PieceTrayCard(
             },
         contentAlignment = Alignment.Center
     ) {
-        if (isPlaced) {
-            CheckIcon(modifier = Modifier.size(24.dp))
-        } else if (pieceBitmap != null) {
+        if (pieceBitmap != null) {
             Image(
                 bitmap = pieceBitmap,
                 contentDescription = "碎片",

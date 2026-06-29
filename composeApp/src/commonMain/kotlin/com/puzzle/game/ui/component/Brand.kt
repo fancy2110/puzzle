@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.ui.theme.PuzzleColors
+import com.puzzle.game.i18n.LocalAppStrings
 
 @Composable
 fun BrandMark(
@@ -103,6 +104,7 @@ fun BrandLockup(
     centered: Boolean = false,
     showSubtitle: Boolean = true
 ) {
+    val strings = LocalAppStrings.current
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(if (compact) 10.dp else 12.dp),
@@ -113,7 +115,7 @@ fun BrandLockup(
             horizontalAlignment = if (centered) Alignment.CenterHorizontally else Alignment.Start
         ) {
             Text(
-                "故事拼图",
+                strings.appName,
                 fontSize = if (compact) 28.sp else 34.sp,
                 fontWeight = FontWeight.Bold,
                 color = PuzzleColors.StoneDark,
@@ -122,7 +124,7 @@ fun BrandLockup(
             )
             if (showSubtitle) {
                 Text(
-                    "拼完整画面，读懂每一页故事",
+                    strings.appSubtitle,
                     fontSize = 13.sp,
                     color = PuzzleColors.Muted,
                     maxLines = 1,

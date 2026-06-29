@@ -25,6 +25,9 @@ expect class Preferences {
 
     fun isReferenceEnabled(): Boolean
     fun setReferenceEnabled(enabled: Boolean)
+
+    fun getLanguageCode(): String?
+    fun setLanguageCode(code: String)
 }
 
 /**

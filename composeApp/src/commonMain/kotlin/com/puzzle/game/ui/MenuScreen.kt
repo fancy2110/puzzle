@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,6 +57,9 @@ import com.puzzle.game.data.AssetLoader
 import com.puzzle.game.data.StoryPageData
 import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.i18n.LocalAppStrings
+import com.puzzle.game.i18n.LocalAppLanguage
+import com.puzzle.game.i18n.StoryLocalization
 import com.puzzle.game.ui.component.BrandMark
 import com.puzzle.game.ui.component.CloudButton
 import com.puzzle.game.ui.component.CoralButton
@@ -81,7 +85,11 @@ fun MenuScreen(
     onOpenSettings: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
-    val storyPages = viewModel.storyPages
+    val language = LocalAppLanguage.current
+    val sourceStoryPages = viewModel.storyPages
+    val storyPages = remember(sourceStoryPages, language) {
+        sourceStoryPages.map { StoryLocalization.page(it, language) }
+    }
     val pageIndex = state.selectedStoryPageIndex.coerceIn(0, storyPages.lastIndex)
     val previews by produceState<Map<String, ImageBitmap>>(
         initialValue = emptyMap(),
@@ -192,6 +200,7 @@ private fun HomeActionPanel(
     onPickImage: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     Column(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(13.dp)
@@ -202,19 +211,19 @@ private fun HomeActionPanel(
         )
 
         CoralButton(
-            text = "开始拼图",
+            text = strings.startPuzzle,
             onClick = onStartGame,
             modifier = Modifier.fillMaxWidth()
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CloudButton(
-                text = "故事库",
+                text = strings.storyLibrary,
                 onClick = onPickTheme,
                 modifier = Modifier.weight(1f)
             )
             CloudButton(
-                text = "换图片",
+                text = strings.changeImage,
                 onClick = onPickImage,
                 modifier = Modifier.weight(1f)
             )
@@ -233,6 +242,7 @@ private suspend fun loadStoryPreview(page: StoryPageData): ImageBitmap? {
 
 @Composable
 private fun HomeTopBar(onOpenSettings: () -> Unit, compact: Boolean) {
+    val strings = LocalAppStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -245,14 +255,14 @@ private fun HomeTopBar(onOpenSettings: () -> Unit, compact: Boolean) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                "故事拼图",
+                strings.appName,
                 color = PuzzleColors.TealDark,
                 fontSize = if (compact) 30.sp else 38.sp,
                 fontWeight = FontWeight.Bold,
                 maxLines = 1
             )
             Text(
-                "拼完整画面，读懂每一页故事",
+                strings.appSubtitle,
                 color = PuzzleColors.Muted,
                 fontSize = if (compact) 12.sp else 14.sp,
                 maxLines = 1,
@@ -376,6 +386,7 @@ private fun StoryPageCard(
 
 @Composable
 private fun StoryIntroPanel(storyPage: StoryPageData, compact: Boolean) {
+    val strings = LocalAppStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -391,7 +402,7 @@ private fun StoryIntroPanel(storyPage: StoryPageData, compact: Boolean) {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            StoryTitleRule("画面故事")
+            StoryTitleRule(strings.sceneStory)
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 storyPage.story,
@@ -445,6 +456,7 @@ private fun PieceCountSlider(
     pieceCount: Int,
     onPieceCountChange: (Int) -> Unit
 ) {
+    val strings = LocalAppStrings.current
     StoneSurface(modifier = Modifier.fillMaxWidth(), radius = FragmaDimens.SliderPanelRadius) {
         Column(
             modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
@@ -461,7 +473,7 @@ private fun PieceCountSlider(
                 ) {
                     PuzzlePieceIcon(modifier = Modifier.size(22.dp))
                     Text(
-                        "碎片数量",
+                        strings.pieceCount,
                         fontWeight = FontWeight.Bold,
                         color = PuzzleColors.StoneDark,
                         fontSize = 16.sp
@@ -473,7 +485,7 @@ private fun PieceCountSlider(
                     color = PuzzleColors.Cloud
                 ) {
                     Text(
-                        "$pieceCount 片",
+                        strings.pieceLabel(pieceCount),
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
                         color = PuzzleColors.TealDark,
                         fontSize = 17.sp,

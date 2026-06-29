@@ -8,6 +8,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -23,6 +25,8 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.data.Preferences
+import com.puzzle.game.i18n.AppLanguage
+import com.puzzle.game.i18n.LocalAppStrings
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.BrandMark
 import com.puzzle.game.ui.component.CloudButton
@@ -39,9 +43,12 @@ import com.puzzle.game.ui.theme.PuzzleDimens
 @Composable
 fun SettingsScreen(
     preferences: Preferences,
+    language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit,
     onBack: () -> Unit,
     onOpenImageSource: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     var soundEnabled by remember { mutableStateOf(preferences.isSoundEnabled()) }
     var referenceEnabled by remember { mutableStateOf(preferences.isReferenceEnabled()) }
 
@@ -67,8 +74,8 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     SettingRow(
-                        title = "音效",
-                        subtitle = "保留放置成功、错误提示和完成庆祝的声音反馈",
+                        title = strings.sound,
+                        subtitle = strings.soundSubtitle,
                         trailing = {
                             SettingsSwitch(
                                 checked = soundEnabled,
@@ -86,8 +93,8 @@ fun SettingsScreen(
                     )
 
                     SettingRow(
-                        title = "参考图",
-                        subtitle = "拼图时淡化显示原图，帮助孩子观察画面结构",
+                        title = strings.referenceImage,
+                        subtitle = strings.referenceImageSubtitle,
                         trailing = {
                             SettingsSwitch(
                                 checked = referenceEnabled,
@@ -105,15 +112,26 @@ fun SettingsScreen(
                     )
 
                     SettingRow(
-                        title = "图片来源",
-                        subtitle = "选择内置画面、当前主题或后续 AI 生成入口",
+                        title = strings.imageSource,
+                        subtitle = strings.imageSourceSubtitle,
                         trailing = {
                             StoryButton(
-                                text = "管理",
+                                text = strings.manage,
                                 onClick = onOpenImageSource,
                                 tone = StoryButtonTone.Secondary,
                                 height = 42.dp,
                                 modifier = Modifier.width(82.dp)
+                            )
+                        }
+                    )
+
+                    SettingRow(
+                        title = strings.language,
+                        subtitle = strings.languageSubtitle,
+                        trailing = {
+                            LanguageMenu(
+                                language = language,
+                                onLanguageChange = onLanguageChange
                             )
                         }
                     )
@@ -131,7 +149,7 @@ fun SettingsScreen(
                 color = PuzzleColors.Cloud.copy(alpha = 0.58f)
             ) {
                 Text(
-                    text = "这些设置会立即生效，并在下次打开应用时保留。",
+                    text = strings.settingsSaved,
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
                     color = PuzzleColors.Muted,
                     fontSize = 12.sp,
@@ -140,12 +158,6 @@ fun SettingsScreen(
             }
 
             Spacer(modifier = Modifier.weight(1f))
-
-            CloudButton(
-                text = "返回首页",
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            )
                 }
             }
         }
@@ -154,32 +166,64 @@ fun SettingsScreen(
 
 @Composable
 private fun SettingsTopBar(onBack: () -> Unit) {
+    val strings = LocalAppStrings.current
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        FragmaIconButton(
+            onClick = onBack,
+            size = FragmaDimens.SettingsButtonCompact
+        ) {
+            BackIcon(modifier = Modifier.size(23.dp))
+        }
         BrandMark(size = 48.dp)
         Column(modifier = Modifier.weight(1f)) {
             Text(
-                text = "设置",
+                text = strings.settings,
                 fontSize = 30.sp,
                 fontWeight = FontWeight.Bold,
                 color = PuzzleColors.StoneDark
             )
             Text(
-                text = "调整故事拼图的体验偏好",
+                text = strings.settingsSubtitle,
                 color = PuzzleColors.Muted,
                 fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
         }
-        FragmaIconButton(
-            onClick = onBack,
-            size = FragmaDimens.SettingsButtonCompact
+    }
+}
+
+@Composable
+private fun LanguageMenu(
+    language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        StoryButton(
+            text = language.nativeName,
+            onClick = { expanded = true },
+            tone = StoryButtonTone.Secondary,
+            height = 42.dp,
+            modifier = Modifier.widthIn(min = 112.dp)
+        )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
         ) {
-            BackIcon(modifier = Modifier.size(23.dp))
+            AppLanguage.entries.forEach { option ->
+                DropdownMenuItem(
+                    text = { Text(option.nativeName) },
+                    onClick = {
+                        expanded = false
+                        onLanguageChange(option)
+                    }
+                )
+            }
         }
     }
 }

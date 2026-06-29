@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
+import com.puzzle.game.i18n.LocalAppStrings
 
 @Composable
 fun PuzzleBoard(
@@ -35,6 +36,7 @@ fun PuzzleBoard(
     onCellTap: ((Int, Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     val density = LocalDensity.current
     val imageWidth = puzzleBitmap?.width ?: 800
     val imageHeight = puzzleBitmap?.height ?: 600
@@ -72,7 +74,7 @@ fun PuzzleBoard(
                 if (puzzleBitmap != null) {
                     Image(
                         bitmap = puzzleBitmap,
-                        contentDescription = "原图",
+                        contentDescription = strings.originalImage,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                         alpha = 0.5f

@@ -26,6 +26,7 @@ import com.puzzle.game.ui.component.StoryButtonTone
 import com.puzzle.game.ui.adaptive.AdaptiveContent
 import com.puzzle.game.ui.theme.PuzzleColors
 import com.puzzle.game.ui.theme.PuzzleDimens
+import com.puzzle.game.i18n.LocalAppStrings
 
 @Composable
 fun ImageSourceScreen(
@@ -34,8 +35,9 @@ fun ImageSourceScreen(
     onUseCurrent: () -> Unit,
     onGenerateAi: (String, String) -> Unit
 ) {
-    var prompt by remember {
-        mutableStateOf("月光花园里，一个小朋友和小蜗牛一起点亮温柔的小灯塔，儿童绘本插画，无文字")
+    val strings = LocalAppStrings.current
+    var prompt by remember(strings.defaultPrompt) {
+        mutableStateOf(strings.defaultPrompt)
     }
 
     PuzzleBackground {
@@ -52,24 +54,24 @@ fun ImageSourceScreen(
                         .widthIn(max = 640.dp),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-            SimpleTopBar(title = "图片来源", onBack = onBack)
+            SimpleTopBar(title = strings.imageSource, onBack = onBack)
 
             ImageSourceCard(
-                title = "内置图片",
-                subtitle = "使用已内置的主题图片，Android 和 iOS 离线可用",
-                action = "选择",
+                title = strings.builtInImages,
+                subtitle = strings.builtInImagesSubtitle,
+                action = strings.select,
                 onClick = onPickBuiltIn
             )
             ImageSourceCard(
-                title = "当前主题",
-                subtitle = "沿用首页已选主题，直接返回开始游戏",
-                action = "使用",
+                title = strings.currentTheme,
+                subtitle = strings.currentThemeSubtitle,
+                action = strings.use,
                 onClick = onUseCurrent
             )
             ImageSourceCard(
-                title = "AI 生成",
-                subtitle = "输入一句画面描述，生成后会进入拼图切割流程",
-                action = "生成",
+                title = strings.aiGenerate,
+                subtitle = strings.aiGenerateSubtitle,
+                action = strings.generate,
                 onClick = { onGenerateAi(prompt, "source_card") }
             )
 
@@ -79,7 +81,7 @@ fun ImageSourceScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "生成提示词",
+                        text = strings.generationPrompt,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -100,7 +102,7 @@ fun ImageSourceScreen(
                         )
                     )
                     StoryButton(
-                        text = "用提示词生成拼图",
+                        text = strings.generatePuzzleFromPrompt,
                         onClick = { onGenerateAi(prompt, "prompt_button") },
                         modifier = Modifier.fillMaxWidth(),
                         tone = StoryButtonTone.Primary
@@ -111,7 +113,7 @@ fun ImageSourceScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "相册导入和完整 AI 提示词流程已预留入口，优先保证当前内置图和程序图在双端稳定运行。",
+                text = strings.imageSourceFootnote,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontSize = 12.sp,
                 lineHeight = 18.sp

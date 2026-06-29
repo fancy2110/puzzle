@@ -11,10 +11,10 @@ import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -25,7 +25,9 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
@@ -43,6 +45,7 @@ import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsScreen
 import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.i18n.LocalAppStrings
 import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.BookIcon
@@ -53,7 +56,6 @@ import com.puzzle.game.ui.component.ClockIcon
 import com.puzzle.game.ui.component.DiamondIcon
 import com.puzzle.game.ui.component.FloatingDraggedPiece
 import com.puzzle.game.ui.component.FragmaIconButton
-import com.puzzle.game.ui.component.HomeIcon
 import com.puzzle.game.ui.component.PieceImageContent
 import com.puzzle.game.ui.component.PieceShapeOverlay
 import com.puzzle.game.ui.component.PauseIcon
@@ -74,9 +76,11 @@ import com.puzzle.game.ui.theme.PuzzleDimens
 fun GameScreen(
     viewModel: GameViewModel,
     onGoToMenu: () -> Unit,
-    onPlayAgain: () -> Unit
+    onContinueStory: () -> Unit,
+    onChooseStory: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val strings = LocalAppStrings.current
 
     PlatformBackHandler(enabled = true) {
         when {
@@ -98,11 +102,12 @@ fun GameScreen(
         )
         GamePhase.COMPLETED -> CompletedScreen(
             viewModel = viewModel,
-            onPlayAgain = onPlayAgain,
-            onGoToMenu = onGoToMenu
+            onContinueStory = onContinueStory,
+            onChooseStory = onChooseStory,
+            onBack = onGoToMenu
         )
         GamePhase.ERROR -> ErrorScreen(
-            message = state.errorMessage ?: "出了点问题",
+            message = strings.somethingWentWrong,
             onRetry = {
                 Analytics.click("error_retry", AnalyticsScreen.Game)
                 viewModel.retryGame()
@@ -130,12 +135,13 @@ fun GameScreen(
     if (state.showCelebration) {
         CelebrationOverlay(
             pieceCount = state.pieces.size,
+            hasNextScene = viewModel.hasNextStoryPage(),
             onDismiss = {
                 Analytics.click("celebration_dismiss", AnalyticsScreen.Game)
                 viewModel.dismissCelebration()
             },
-            onPlayAgain = onPlayAgain,
-            onBackToMenu = onGoToMenu
+            onContinueStory = onContinueStory,
+            onChooseStory = onChooseStory
         )
     }
 }
@@ -147,6 +153,7 @@ private fun PauseDialog(
     onResume: () -> Unit,
     onQuit: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -163,22 +170,22 @@ private fun PauseDialog(
                 .width(312.dp)
                 .padding(24.dp),
             icon = { PauseIcon(modifier = Modifier.size(34.dp), color = PuzzleColors.CoralDark) },
-            title = "确定要退出吗？",
-            message = "当前进度将丢失"
+            title = strings.pauseTitle,
+            message = strings.pauseMessage
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 StoryButton(
-                    text = "继续",
+                    text = strings.continueGame,
                     onClick = onResume,
                     modifier = Modifier.weight(1f),
                     tone = StoryButtonTone.Secondary,
                     height = 50.dp
                 )
                 StoryButton(
-                    text = "退出",
+                    text = strings.quit,
                     onClick = onQuit,
                     modifier = Modifier.weight(1f),
                     tone = StoryButtonTone.Danger,
@@ -193,6 +200,7 @@ private fun PauseDialog(
 
 @Composable
 private fun GeneratingScreen() {
+    val strings = LocalAppStrings.current
     PuzzleBackground {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -210,14 +218,14 @@ private fun GeneratingScreen() {
                     )
                     Spacer(modifier = Modifier.height(18.dp))
                     Text(
-                        "正在准备拼图",
+                        strings.preparingPuzzle,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = PuzzleColors.StoneDark
                     )
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "整理画面，生成碎片",
+                        strings.preparingPieces,
                         fontSize = 13.sp,
                         color = PuzzleColors.Muted
                     )
@@ -540,6 +548,7 @@ private fun ProgressPlaque(
     totalCount: Int,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     Surface(
         modifier = modifier
             .height(FragmaDimens.TopControlHeight)
@@ -557,7 +566,7 @@ private fun ProgressPlaque(
                 DiamondIcon(modifier = Modifier.size(10.dp))
                 BookIcon(modifier = Modifier.size(24.dp))
                 Text(
-                    text = "已拼 $filledCount/$totalCount",
+                    text = strings.progress(filledCount, totalCount),
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = PuzzleColors.StoneDark,
@@ -624,6 +633,7 @@ private fun InteractionHintBar(
     showWrongHint: Boolean,
     showPositionHint: Boolean
 ) {
+    val strings = LocalAppStrings.current
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -632,18 +642,14 @@ private fun InteractionHintBar(
     ) {
         when {
             showWrongHint -> Text(
-                "再试试",
+                strings.tryAgain,
                 fontSize = 13.sp,
                 color = PuzzleColors.ErrorSoft,
                 fontWeight = FontWeight.Medium,
                 textAlign = TextAlign.Center
             )
             isSelected -> Text(
-                text = if (showPositionHint) {
-                    "已选中碎片，点击提示位置放置"
-                } else {
-                    "已选中碎片，点击或拖到正确位置"
-                },
+                text = if (showPositionHint) strings.selectedHintOn else strings.selectedHintOff,
                 fontSize = 12.sp,
                 color = PuzzleColors.TealDark,
                 fontWeight = FontWeight.Medium,
@@ -666,6 +672,7 @@ private fun BottomHint(
     dragState: com.puzzle.game.game.DragDropState,
     viewModel: GameViewModel
 ) {
+    val strings = LocalAppStrings.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -677,7 +684,7 @@ private fun BottomHint(
         Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
             if (dragState.selectedPieceId != null) {
                 StoryButton(
-                    text = "取消选择",
+                    text = strings.cancelSelection,
                     onClick = {
                         Analytics.click("cancel_piece_selection", AnalyticsScreen.Game)
                         dragState.clearSelection()
@@ -688,7 +695,7 @@ private fun BottomHint(
                 )
             } else {
                 Text(
-                    "点击或拖动",
+                    strings.tapOrDrag,
                     fontSize = 12.sp,
                     color = PuzzleColors.Muted,
                     textAlign = TextAlign.Center
@@ -700,7 +707,7 @@ private fun BottomHint(
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
-                text = "位置提示",
+                text = strings.positionHint,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
                 color = PuzzleColors.StoneDark
@@ -730,6 +737,7 @@ private fun GameBoardArea(
     viewModel: GameViewModel,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     val imageWidth = state.puzzleBitmap?.width ?: 800
     val imageHeight = state.puzzleBitmap?.height ?: 600
     val blockSize = PuzzleConfig.PIXEL_BLOCK_SIZE
@@ -847,7 +855,7 @@ private fun GameBoardArea(
                     if (puzzleBitmap != null) {
                         androidx.compose.foundation.Image(
                             bitmap = puzzleBitmap,
-                            contentDescription = "原图",
+                            contentDescription = strings.originalImage,
                             modifier = Modifier.fillMaxSize(),
                             contentScale = ContentScale.Fit,
                             alpha = 0.34f
@@ -855,35 +863,13 @@ private fun GameBoardArea(
                     }
 
                     if (puzzleBitmap != null) {
-                        pieces
-                            .filter { placedPieceIds.contains(it.id) }
-                            .forEach { piece ->
-                                val pieceBitmap = state.pieceBitmaps[piece.id]
-                                val pieceX = displayW * (piece.pixels.left.toFloat() / imageWidth.toFloat())
-                                val pieceY = displayH * (piece.pixels.top.toFloat() / imageHeight.toFloat())
-                                val pieceW = displayW * (piece.pixels.width.toFloat() / imageWidth.toFloat())
-                                val pieceH = displayH * (piece.pixels.height.toFloat() / imageHeight.toFloat())
-                                Box(
-                                    modifier = Modifier
-                                        .offset(x = pieceX, y = pieceY)
-                                        .size(pieceW, pieceH)
-                                ) {
-                                    if (pieceBitmap != null) {
-                                        androidx.compose.foundation.Image(
-                                            bitmap = pieceBitmap,
-                                            contentDescription = "已放置碎片",
-                                            modifier = Modifier.fillMaxSize(),
-                                            contentScale = ContentScale.FillBounds
-                                        )
-                                    } else {
-                                        PieceImageContent(
-                                            piece = piece,
-                                            puzzleBitmap = puzzleBitmap,
-                                            modifier = Modifier.fillMaxSize()
-                                        )
-                                    }
-                                }
-                            }
+                        PlacedPiecesLayer(
+                            puzzleBitmap = puzzleBitmap,
+                            pieces = pieces.filter { placedPieceIds.contains(it.id) },
+                            imageWidth = imageWidth,
+                            imageHeight = imageHeight,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
 
                     pieces
@@ -950,6 +936,55 @@ private fun GameBoardArea(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlacedPiecesLayer(
+    puzzleBitmap: androidx.compose.ui.graphics.ImageBitmap,
+    pieces: List<com.puzzle.game.engine.model.PuzzlePiece>,
+    imageWidth: Int,
+    imageHeight: Int,
+    modifier: Modifier = Modifier
+) {
+    if (pieces.isEmpty() || imageWidth <= 0 || imageHeight <= 0) return
+
+    Canvas(modifier = modifier) {
+        val scaleX = size.width / imageWidth.toFloat()
+        val scaleY = size.height / imageHeight.toFloat()
+        val placedMask = Path().apply {
+            pieces.forEach { piece ->
+                if (piece.outline.size >= 3) {
+                    piece.outline.forEachIndexed { index, point ->
+                        val x = point.x * scaleX
+                        val y = point.y * scaleY
+                        if (index == 0) moveTo(x, y) else lineTo(x, y)
+                    }
+                    close()
+                } else {
+                    addRect(
+                        androidx.compose.ui.geometry.Rect(
+                            left = piece.pixels.left * scaleX,
+                            top = piece.pixels.top * scaleY,
+                            right = piece.pixels.right * scaleX,
+                            bottom = piece.pixels.bottom * scaleY
+                        )
+                    )
+                }
+            }
+        }
+
+        clipPath(placedMask) {
+            drawImage(
+                image = puzzleBitmap,
+                dstOffset = androidx.compose.ui.unit.IntOffset.Zero,
+                dstSize = IntSize(
+                    size.width.toInt().coerceAtLeast(1),
+                    size.height.toInt().coerceAtLeast(1)
+                ),
+                filterQuality = FilterQuality.High
+            )
         }
     }
 }
@@ -1039,10 +1074,20 @@ private fun AdaptivePieceTray(
     val availablePieces = remember(pieces, placedPieceIds) {
         pieces.filterNot { placedPieceIds.contains(it.id) }
     }
+    val horizontalCardMaxHeight = 212.dp
+    val horizontalTrayHeight = remember(pieces) {
+        val tallestCard = pieces.maxOfOrNull { piece ->
+            piece.trayCardHeight(
+                width = FragmaDimens.PieceCardWidth,
+                maxHeight = horizontalCardMaxHeight
+            )
+        } ?: 0.dp
+        (tallestCard + 28.dp).coerceAtLeast(FragmaDimens.PieceTrayHeight)
+    }
     val trayModifier = when (trayMode) {
         AdaptiveTrayMode.HorizontalStrip -> modifier
             .fillMaxWidth()
-            .height(FragmaDimens.PieceTrayHeight)
+            .height(horizontalTrayHeight)
         AdaptiveTrayMode.BottomGrid -> modifier
             .fillMaxWidth()
             .height(220.dp)
@@ -1064,6 +1109,7 @@ private fun AdaptivePieceTray(
                     .fillMaxSize()
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
                 contentPadding = PaddingValues(horizontal = 8.dp)
             ) {
                 items(availablePieces, key = { it.id }) { piece ->
@@ -1075,22 +1121,26 @@ private fun AdaptivePieceTray(
                         onDragEnd = onDragEnd,
                         modifier = Modifier
                             .width(FragmaDimens.PieceCardWidth)
-                            .fillMaxHeight()
+                            .height(
+                                piece.trayCardHeight(
+                                    width = FragmaDimens.PieceCardWidth,
+                                    maxHeight = horizontalCardMaxHeight
+                                )
+                            )
                     )
                 }
             }
 
             AdaptiveTrayMode.BottomGrid,
-            AdaptiveTrayMode.SideGrid -> LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 104.dp),
+            AdaptiveTrayMode.SideGrid -> LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Adaptive(minSize = 104.dp),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                    .fillMaxSize(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp)
+                verticalItemSpacing = 12.dp,
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 18.dp)
             ) {
-                gridItems(availablePieces, key = { it.id }) { piece ->
+                staggeredItems(availablePieces, key = { it.id }) { piece ->
                     PieceTrayCard(
                         piece = piece,
                         puzzleBitmap = puzzleBitmap,
@@ -1099,7 +1149,8 @@ private fun AdaptivePieceTray(
                         onDragEnd = onDragEnd,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .aspectRatio(0.92f)
+                            .aspectRatio(piece.trayAspectRatio())
+                            .heightIn(min = 56.dp)
                     )
                 }
             }
@@ -1170,8 +1221,8 @@ private fun PieceTrayCard(
         if (pieceBitmap != null) {
             Image(
                 bitmap = pieceBitmap,
-                contentDescription = "碎片",
-                modifier = Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(10.dp)),
+                contentDescription = LocalAppStrings.current.puzzlePiece,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)),
                 contentScale = ContentScale.Fit
             )
         } else {
@@ -1179,7 +1230,7 @@ private fun PieceTrayCard(
                 piece = piece,
                 puzzleBitmap = puzzleBitmap,
                 cardSize = 100,
-                modifier = Modifier.fillMaxSize().padding(6.dp).clip(RoundedCornerShape(10.dp))
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp))
             )
         }
         if (isSelected) {
@@ -1196,6 +1247,17 @@ private fun PieceTrayCard(
             }
         }
     }
+}
+
+private fun com.puzzle.game.engine.model.PuzzlePiece.trayAspectRatio(): Float {
+    return width.coerceAtLeast(1).toFloat() / height.coerceAtLeast(1).toFloat()
+}
+
+private fun com.puzzle.game.engine.model.PuzzlePiece.trayCardHeight(
+    width: Dp,
+    maxHeight: Dp
+): Dp {
+    return (width / trayAspectRatio()).coerceIn(56.dp, maxHeight)
 }
 
 @Composable
@@ -1236,12 +1298,15 @@ private fun ScrollTrayDecoration(modifier: Modifier = Modifier) {
 @Composable
 private fun CompletedScreen(
     viewModel: GameViewModel,
-    onPlayAgain: () -> Unit,
-    onGoToMenu: () -> Unit
+    onContinueStory: () -> Unit,
+    onChooseStory: () -> Unit,
+    onBack: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val strings = LocalAppStrings.current
     val theme = state.selectedTheme
     val completedBitmap = state.puzzleBitmap
+    val hasNextScene = viewModel.hasNextStoryPage()
 
     PuzzleBackground {
         AdaptiveContent { spec ->
@@ -1254,13 +1319,13 @@ private fun CompletedScreen(
             ) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 FragmaIconButton(
-                    onClick = onGoToMenu,
+                    onClick = onBack,
                     modifier = Modifier.size(54.dp)
                 ) {
-                    HomeIcon(modifier = Modifier.size(25.dp))
+                    BackIcon(modifier = Modifier.size(25.dp))
                 }
                 Text(
-                    text = "完成拼图",
+                    text = if (hasNextScene) strings.completedTitle else strings.storyComplete,
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center,
                     fontSize = 28.sp,
@@ -1281,7 +1346,7 @@ private fun CompletedScreen(
                     if (completedBitmap != null) {
                         Image(
                             bitmap = completedBitmap,
-                            contentDescription = "完成的拼图",
+                            contentDescription = strings.completedImage,
                             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
                             contentScale = ContentScale.Crop
                         )
@@ -1298,16 +1363,22 @@ private fun CompletedScreen(
                     modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
                     horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    StatItem(value = formatTime(state.elapsedSeconds), label = "用时")
-                    StatItem(value = "${state.pieces.size}片", label = "碎片")
-                    StatItem(value = "100%", label = "完成")
+                    StatItem(value = formatTime(state.elapsedSeconds), label = strings.timeUsed)
+                    StatItem(value = strings.pieceLabel(state.pieces.size), label = strings.pieces)
+                    StatItem(value = "100%", label = strings.complete)
                 }
             }
 
             Spacer(modifier = Modifier.height(22.dp))
-            CoralButton("再来一局", onPlayAgain, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(12.dp))
-            CloudButton("换个主题", onGoToMenu, modifier = Modifier.fillMaxWidth())
+            CoralButton(
+                text = if (hasNextScene) strings.nextScene else strings.chooseAnotherStory,
+                onClick = if (hasNextScene) onContinueStory else onChooseStory,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (hasNextScene) {
+                Spacer(modifier = Modifier.height(12.dp))
+                CloudButton(strings.chooseAnotherStory, onChooseStory, modifier = Modifier.fillMaxWidth())
+            }
             }
         }
     }
@@ -1330,6 +1401,7 @@ private fun ErrorScreen(
     onRetry: () -> Unit,
     onGoToMenu: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     PuzzleBackground {
         AdaptiveContent { spec ->
             Column(
@@ -1337,8 +1409,12 @@ private fun ErrorScreen(
                     .fillMaxSize()
                     .padding(spec.pagePadding)
                     .widthIn(max = 520.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+            SimpleTopBar(title = strings.somethingWentWrong, onBack = onGoToMenu)
+            Box(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.Center
             ) {
             StoneSurface(modifier = Modifier.fillMaxWidth()) {
                 Column(
@@ -1352,10 +1428,9 @@ private fun ErrorScreen(
                         color = PuzzleColors.Muted
                     )
                     Spacer(modifier = Modifier.height(24.dp))
-                    CoralButton("重试", onRetry, modifier = Modifier.fillMaxWidth())
-                    Spacer(modifier = Modifier.height(10.dp))
-                    CloudButton("返回首页", onGoToMenu, modifier = Modifier.fillMaxWidth())
+                    CoralButton(strings.retry, onRetry, modifier = Modifier.fillMaxWidth())
                 }
+            }
             }
             }
         }

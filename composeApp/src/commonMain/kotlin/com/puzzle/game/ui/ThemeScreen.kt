@@ -25,6 +25,9 @@ import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsScreen
+import com.puzzle.game.i18n.LocalAppStrings
+import com.puzzle.game.i18n.LocalAppLanguage
+import com.puzzle.game.i18n.StoryLocalization
 import com.puzzle.game.ui.component.BackIcon
 import com.puzzle.game.ui.component.CheckIcon
 import com.puzzle.game.ui.component.CloudButton
@@ -44,6 +47,7 @@ fun ThemeScreen(
     onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     val state by viewModel.state.collectAsState()
     val stories = viewModel.storySets
 
@@ -72,7 +76,7 @@ fun ThemeScreen(
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "故事库",
+                text = strings.storyLibrary,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = PuzzleColors.StoneDark
@@ -109,13 +113,13 @@ fun ThemeScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         CoralButton(
-            text = "开始这个故事",
+            text = strings.startThisStory,
             onClick = onConfirm,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
         CloudButton(
-            text = "确认选择",
+            text = strings.confirmSelection,
             onClick = onConfirm,
             modifier = Modifier.fillMaxWidth()
         )
@@ -131,6 +135,11 @@ private fun StoryPickerCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
+    val language = LocalAppLanguage.current
+    val localizedStory = remember(story.id, language) {
+        StoryLocalization.story(story, language)
+    }
     val theme = StoryPresets.storyPreviewTheme(story)
     Card(
         onClick = onClick,
@@ -172,7 +181,7 @@ private fun StoryPickerCard(
                 if (preview != null) {
                     Image(
                         bitmap = preview!!,
-                        contentDescription = theme.name,
+                        contentDescription = localizedStory.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -186,14 +195,14 @@ private fun StoryPickerCard(
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = story.title,
+                text = localizedStory.title,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = PuzzleColors.StoneDark
             )
             Text(
-                text = "${story.origin} · ${story.ageRange}",
+                text = "${localizedStory.origin} · ${localizedStory.ageRange}",
                 fontSize = 11.sp,
                 color = PuzzleColors.Muted,
                 maxLines = 1,
@@ -213,7 +222,7 @@ private fun StoryPickerCard(
                         CheckIcon(modifier = Modifier.size(13.dp), color = Color.White)
                     }
                     Text(
-                        text = "${story.pages.size}幕",
+                        text = strings.actLabel(story.pages.size),
                         fontSize = 13.sp,
                         color = if (isSelected) Color.White else PuzzleColors.Muted,
                         fontWeight = FontWeight.Bold

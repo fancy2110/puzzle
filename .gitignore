@@ -19,6 +19,10 @@ Pods/
 target/
 output/
 *.png
+!design/app-icon/*.png
+!composeApp/src/androidMain/rijksmuseum_launcher-playstore.png
+!composeApp/src/androidMain/res/mipmap-*/ic_launcher*.png
+!iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/*.png
 !composeApp/src/commonMain/composeResources/files/demo1.png
 !composeApp/src/commonMain/composeResources/files/stories/**/*.png
 *.jpg

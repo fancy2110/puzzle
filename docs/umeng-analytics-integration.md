@@ -100,7 +100,8 @@ UMENG_CHANNEL=official
 | Menu | `start_game`, `open_theme_picker`, `open_image_source`, `open_settings` |
 | ThemePicker | `back`, `select_story`, `confirm_theme` |
 | ImageSource | `back`, `image_source_builtin`, `image_source_current_theme`, `image_source_ai_generate` |
-| Settings | `back`, `settings_open_image_source`, `toggle_sound`, `toggle_reference` |
+| Settings | `back`, `settings_open_image_source`, `toggle_sound`, `toggle_reference`, `change_language` |
+| Game | `go_to_menu`, `next_story_page`, `choose_another_story` |
 | Game | `game_top_pause`, `pause_resume`, `pause_quit`, `cancel_piece_selection`, `position_hint_toggle`, `error_retry`, `go_to_menu`, `play_again`, `celebration_dismiss` |
 
 ## 关键路径事件

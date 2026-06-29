@@ -142,6 +142,18 @@ class GameViewModel : ViewModel() {
         selectStoryPage(_state.value.selectedStoryPageIndex + delta)
     }
 
+    fun hasNextStoryPage(): Boolean {
+        return _state.value.selectedStoryPageIndex < storyPages.lastIndex
+    }
+
+    fun startNextStoryPage(): Boolean {
+        val nextIndex = _state.value.selectedStoryPageIndex + 1
+        if (nextIndex !in storyPages.indices) return false
+        selectStoryPage(nextIndex)
+        startGame()
+        return true
+    }
+
     /**
      * Start a game. If the selected theme has an assetFile (native image),
      * route to the Rust native splitter. Otherwise use the Kotlin procedural path.

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalDensity
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
+import com.puzzle.game.i18n.LocalAppStrings
 import kotlin.math.roundToInt
 
 // ── Piece image renderer ─────────────────────────────────
@@ -219,6 +220,7 @@ fun FloatingDraggedPiece(
     containerWindowOffset: Offset = Offset.Zero,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     if (!dragState.isDragging || dragState.draggedPieceId == null) return
     val pieceId = dragState.draggedPieceId ?: return
     val piece = pieces.firstOrNull { it.id == pieceId } ?: return
@@ -241,7 +243,7 @@ fun FloatingDraggedPiece(
         if (pieceBitmap != null) {
             Image(
                 bitmap = pieceBitmap,
-                contentDescription = "拖拽碎片",
+                contentDescription = strings.draggedPiece,
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit
             )

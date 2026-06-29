@@ -15,11 +15,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.puzzle.game.ui.component.BrandMark
 import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.i18n.LocalAppStrings
 import com.puzzle.game.ui.theme.PuzzleColors
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
+    val strings = LocalAppStrings.current
     var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
@@ -53,14 +55,14 @@ fun SplashScreen(onFinished: () -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(22.dp))
                 Text(
-                    text = "故事拼图",
+                    text = strings.appName,
                     fontSize = 34.sp,
                     fontWeight = FontWeight.Bold,
                     color = PuzzleColors.StoneDark
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "拼完整画面，读懂每一页故事",
+                    text = strings.appSubtitle,
                     fontSize = 14.sp,
                     color = PuzzleColors.Muted
                 )
@@ -70,7 +72,7 @@ fun SplashScreen(onFinished: () -> Unit) {
                     shape = RoundedCornerShape(50)
                 ) {
                     Text(
-                        text = "正在打开今日画面",
+                        text = strings.splashLoading,
                         modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
                         color = PuzzleColors.TealDark,
                         fontSize = 13.sp,

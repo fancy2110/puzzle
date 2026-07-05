@@ -42,7 +42,7 @@ experiments/rust-splitter/  — Rust CLI for offline image splitting experiments
 - **Compose Multiplatform** 1.10.3
 - **Material 3**
 - **Ktor** 3.1.3 (HTTP client for AI APIs)
-- **Coil** 3.0.4 (image loading)
+- **Coil** 3.4.0 (image loading)
 
 ## Build
 
@@ -54,11 +54,21 @@ experiments/rust-splitter/  — Rust CLI for offline image splitting experiments
 
 ### iOS
 
-Open in Xcode or run:
+Always open `iosApp/iosApp.xcworkspace` in Xcode. The workspace is the canonical
+entry point for both the app and CocoaPods integrations.
+
+Build for an iPad simulator from the command line:
 
 ```bash
-./gradlew :composeApp:iosSimulatorArm64Test
+xcodebuild \
+  -workspace iosApp/iosApp.xcworkspace \
+  -scheme iosApp \
+  -configuration Debug \
+  -destination 'platform=iOS Simulator,name=iPad (A16)' \
+  build
 ```
+
+The iOS target supports iPhone and iPad in portrait and landscape orientations.
 
 ## Algorithm
 

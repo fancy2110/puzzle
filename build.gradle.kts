@@ -11,10 +11,10 @@ tasks.register("buildNativeAndroid") {
     group = "native"
     description = "Build puzzle-core .so files for Android (requires Rust + NDK)"
     doLast {
-        exec {
+        providers.exec {
             workingDir = file("native")
             commandLine("bash", "build_android.sh")
-        }
+        }.result.get()
     }
 }
 
@@ -23,10 +23,10 @@ tasks.register("buildNativeIos") {
     group = "native"
     description = "Build puzzle-core .a / XCFramework for iOS (requires Rust + Xcode)"
     doLast {
-        exec {
+        providers.exec {
             workingDir = file("native")
             commandLine("bash", "build_ios.sh")
-        }
+        }.result.get()
     }
 }
 

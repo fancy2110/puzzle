@@ -19,7 +19,6 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
@@ -41,6 +40,16 @@ kotlin {
                 packageName("puzzle_core")
                 includeDirs(
                     project.file("../native/puzzle-core/include")
+                )
+                val (libraryDir, libraryName) = when (iosTarget.name) {
+                    "iosArm64" -> "ios-arm64" to "libpuzzle_core-ios-arm64.a"
+                    else -> "ios-arm64_x86_64-simulator" to "libpuzzle_core-ios-sim.a"
+                }
+                extraOpts(
+                    "-libraryPath",
+                    project.file("../native/ios-libs/PuzzleCore.xcframework/$libraryDir").absolutePath,
+                    "-staticLibrary",
+                    libraryName
                 )
             }
         }
@@ -138,37 +147,40 @@ tasks.register("iosSimulatorArm64Run") {
     dependsOn("linkDebugFrameworkIosSimulatorArm64")
     doLast {
         val xcrun = "/usr/bin/xcrun"
-        val appPath = "${rootProject.projectDir}/iosApp/iosApp.xcodeproj"
+        val deviceName = "iPad (A16)"
+        val iosDirectory = file("${rootProject.projectDir}/iosApp")
+        val derivedData = file("${iosDirectory}/build")
 
         // Boot simulator if not running
-        exec {
-            commandLine(xcrun, "simctl", "boot", "iPhone 17 Pro")
+        providers.exec {
+            commandLine(xcrun, "simctl", "boot", deviceName)
             isIgnoreExitValue = true
-        }
+        }.result.get()
         // Open simulator
-        exec {
+        providers.exec {
             commandLine("open", "-a", "Simulator")
-        }
-        // Build and run via xcodebuild
-        exec {
-            workingDir = file("${rootProject.projectDir}/iosApp")
+        }.result.get()
+        // Build through the workspace so CocoaPods integrations are preserved.
+        providers.exec {
+            workingDir = iosDirectory
             commandLine(
                 xcrun, "xcodebuild",
-                "-project", "iosApp.xcodeproj",
+                "-workspace", "iosApp.xcworkspace",
                 "-scheme", "iosApp",
                 "-configuration", "Debug",
-                "-destination", "platform=iOS Simulator,name=iPhone 17 Pro",
+                "-destination", "platform=iOS Simulator,name=$deviceName",
+                "-derivedDataPath", derivedData.absolutePath,
                 "build"
             )
-        }
+        }.result.get()
         // Install and launch
-        exec {
+        providers.exec {
             commandLine(xcrun, "simctl", "install", "booted",
-                "${rootProject.projectDir}/iosApp/build/Debug-iphonesimulator/iosApp.app"
+                "${derivedData}/Build/Products/Debug-iphonesimulator/iosApp.app"
             )
-        }
-        exec {
+        }.result.get()
+        providers.exec {
             commandLine(xcrun, "simctl", "launch", "booted", "com.puzzle.game")
-        }
+        }.result.get()
     }
 }

@@ -8,6 +8,8 @@ captures/
 .externalNativeBuild/
 .cxx/
 *.xcworkspace
+!iosApp/iosApp.xcworkspace/
+!iosApp/iosApp.xcworkspace/**
 xcuserdata/
 DerivedData/
 Pods/

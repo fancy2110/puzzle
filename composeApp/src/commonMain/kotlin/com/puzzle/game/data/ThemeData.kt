@@ -10,7 +10,7 @@ data class ThemeData(
     val secondary: Color,
     val accent: Color,
     val description: String,
-    /** If non-null, load this asset file and use native Rust splitting */
+    /** If non-null, load this asset file and split it with the Kotlin engine */
     val assetFile: String? = null
 )
 
@@ -23,7 +23,7 @@ object ThemePresets {
             primary = Color(0xFF607D8B),
             secondary = Color(0xFFCFD8DC),
             accent = Color(0xFFFF7043),
-            description = "demo1.png — Rust native splitter",
+            description = "demo1.png — 内置真实图片",
             assetFile = "demo1.png"
         ),
         ThemeData(

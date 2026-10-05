@@ -53,4 +53,18 @@ actual class Preferences {
     actual fun setReferenceEnabled(enabled: Boolean) {
         defaults.setBool(enabled, forKey = "reference_enabled")
     }
+
+    actual fun getLanguageCode(): String? =
+        defaults.stringForKey("language_code")
+
+    actual fun setLanguageCode(code: String) {
+        defaults.setObject(code, forKey = "language_code")
+    }
+
+    actual fun getPrivacyConsentVersion(): String? =
+        defaults.stringForKey("privacy_consent_version")
+
+    actual fun setPrivacyConsentVersion(version: String) {
+        defaults.setObject(version, forKey = "privacy_consent_version")
+    }
 }

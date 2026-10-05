@@ -1,0 +1,14 @@
+<svg width="350" height="126" viewBox="0 0 350 126" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><filter id="shadow" x="-14" y="-8" width="378" height="162"><feDropShadow dx="0" dy="12" stdDeviation="10" flood-color="#43301B" flood-opacity=".15"/></filter></defs>
+  <rect x="1" y="1" width="348" height="124" rx="26" fill="#FFF9F0" stroke="#D9CBB6" filter="url(#shadow)"/>
+  <text x="38" y="36" fill="#7A6750" font-size="18" font-weight="850" font-family="PingFang SC, sans-serif">✣ 碎片数量</text>
+  <rect x="155" y="17" width="72" height="40" rx="18" fill="#FFF9F0" stroke="#D9CBB6"/>
+  <text x="191" y="43" text-anchor="middle" fill="#356D6A" font-size="20" font-weight="900" font-family="PingFang SC, sans-serif">120片</text>
+  <rect x="40" y="73" width="270" height="15" rx="8" fill="#D9CBB6" opacity=".58"/>
+  <rect x="40" y="73" width="126" height="15" rx="8" fill="#7CAEA5"/>
+  <circle cx="166" cy="80" r="20" fill="#F5D8B5" stroke="#CDA45A"/>
+  <circle cx="166" cy="80" r="9" fill="#E98166"/>
+  <g fill="#8F806E" font-size="13" font-family="PingFang SC, sans-serif">
+    <text x="38" y="112">10</text><text x="105" y="112">80</text><text x="166" y="112" text-anchor="middle">150</text><text x="235" y="112">220</text><text x="295" y="112">300</text>
+  </g>
+</svg>

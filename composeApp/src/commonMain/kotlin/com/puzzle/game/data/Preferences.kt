@@ -25,6 +25,13 @@ expect class Preferences {
 
     fun isReferenceEnabled(): Boolean
     fun setReferenceEnabled(enabled: Boolean)
+
+    fun getLanguageCode(): String?
+    fun setLanguageCode(code: String)
+
+    /** Version of the privacy policy the user has consented to; null = no consent yet. */
+    fun getPrivacyConsentVersion(): String?
+    fun setPrivacyConsentVersion(version: String)
 }
 
 /**

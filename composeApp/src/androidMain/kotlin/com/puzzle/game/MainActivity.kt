@@ -4,16 +4,18 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.puzzle.game.data.AssetLoader
+import com.puzzle.game.analytics.PlatformAnalytics
+import com.puzzle.game.audio.SoundManagerFactory
 import com.puzzle.game.data.PreferencesFactory
 import com.puzzle.game.initCacheDir
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
-        AssetLoader.init(this)
         PreferencesFactory.init(this)
+        SoundManagerFactory.init(this)
         initCacheDir(this)
+        PlatformAnalytics.attach(this)
         super.onCreate(savedInstanceState)
         setContent {
             App()

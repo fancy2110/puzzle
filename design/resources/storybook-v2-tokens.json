@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "name": "storybook-puzzle-v2",
+  "colors": {
+    "paper": "#FFFCF6",
+    "mist": "#F7F2EA",
+    "cloud": "#FFF9F0",
+    "stone": "#D9CBB6",
+    "stoneDark": "#7A6750",
+    "muted": "#8F806E",
+    "teal": "#7CAEA5",
+    "tealDark": "#356D6A",
+    "coral": "#E98166",
+    "coralDark": "#B85B44",
+    "gold": "#CDA45A",
+    "errorSoft": "#C76A5A",
+    "glowTeal": "#BDF4EA"
+  },
+  "radius": {
+    "small": 10,
+    "card": 18,
+    "storybookCard": 22,
+    "control": 24,
+    "pill": 50
+  },
+  "spacing": {
+    "pagePadding": 18,
+    "compactPadding": 10,
+    "sectionGap": 14,
+    "cardPadding": 12,
+    "controlGap": 10
+  },
+  "typography": {
+    "brandTitle": { "size": 34, "weight": "bold" },
+    "pageTitle": { "size": 30, "weight": "bold" },
+    "cardTitle": { "size": 21, "weight": "bold" },
+    "body": { "size": 13, "weight": "regular" },
+    "caption": { "size": 12, "weight": "regular" },
+    "button": { "size": 20, "weight": "bold" }
+  },
+  "difficultySlider": {
+    "min": 10,
+    "max": 300,
+    "default": 120,
+    "ticks": [10, 80, 150, 220, 300],
+    "recommendedRange": [80, 180]
+  },
+  "motion": {
+    "pagerSnapMs": 260,
+    "selectedGlowMs": 160,
+    "splashFadeMs": 600
+  },
+  "assets": {
+    "homeConcept": "../mockups/home-story-pager-concept.png",
+    "gameConcept": "../mockups/game-book-canvas-concept.png",
+    "brandMarkSvg": "brand-mark.svg",
+    "bookCanvasFrameSvg": "book-canvas-frame.svg"
+  }
+}

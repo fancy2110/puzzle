@@ -5,6 +5,7 @@ data class PuzzlePiece(
     val pixels: Rect = Rect(),
     val blocks: Rect = Rect(),
     val items: MutableList<Position> = mutableListOf(),
+    val outline: List<Position> = emptyList(),
     var isPlaced: Boolean = false
 ) {
     val width: Int get() = pixels.width

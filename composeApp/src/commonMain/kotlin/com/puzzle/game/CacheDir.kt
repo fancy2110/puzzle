@@ -6,6 +6,6 @@ package com.puzzle.game
  * Android: [Context.cacheDir] — auto-cleared on low storage.
  * iOS:     NSCachesDirectory — not iCloud-backed, persists during runtime.
  *
- * Used for temporary files like puzzle piece PNGs saved by the Rust engine.
+ * Used for temporary files during image and game processing.
  */
 expect fun platformCacheDir(): String

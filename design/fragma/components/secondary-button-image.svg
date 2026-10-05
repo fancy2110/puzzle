@@ -1,0 +1,7 @@
+<svg width="166" height="52" viewBox="0 0 166 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="164" height="50" rx="24" fill="#FFF9F0" stroke="#D9CBB6"/>
+  <rect x="32" y="15" width="24" height="22" rx="3" fill="#7CAEA5" stroke="#356D6A"/>
+  <circle cx="49" cy="21" r="3" fill="#FFF9F0"/>
+  <path d="M35 35L42 27L47 32L52 26L56 35H35Z" fill="#FFF9F0"/>
+  <text x="100" y="33" text-anchor="middle" fill="#7A6750" font-size="18" font-weight="850" font-family="PingFang SC, sans-serif">换图片</text>
+</svg>

@@ -19,12 +19,12 @@ kotlin {
     }
 
     listOf(
-        iosX64(),
         iosArm64(),
         iosSimulatorArm64()
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
+            binaryOption("bundleId", "com.fancy2110.game.puzzle.composeapp")
             isStatic = true
         }
         iosTarget.compilations.all {
@@ -34,23 +34,9 @@ kotlin {
                 }
             }
         }
-        // CInterop for puzzle-core native library
-        iosTarget.compilations.getByName("main").cinterops {
-            val puzzleCore by creating {
-                defFile(project.file("../native/puzzle_core.def"))
-                packageName("puzzle_core")
-                includeDirs(
-                    project.file("../native/puzzle-core/include")
-                )
-            }
-        }
     }
 
-    // JNI libs directory for Android
     sourceSets {
-        androidMain {
-            resources.srcDirs("src/androidMain/jniLibs")
-        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
@@ -82,6 +68,8 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.umeng.common)
+            implementation(libs.umeng.asms)
         }
 
         iosMain.dependencies {
@@ -104,6 +92,9 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0.0"
+        manifestPlaceholders["UMENG_APP_KEY"] = providers.gradleProperty("UMENG_ANDROID_APP_KEY").orElse("").get()
+        manifestPlaceholders["UMENG_CHANNEL"] = providers.gradleProperty("UMENG_CHANNEL").orElse("official").get()
+        manifestPlaceholders["UMENG_ANALYTICS_ENABLED"] = providers.gradleProperty("UMENG_ANALYTICS_ENABLED").orElse("false").get()
     }
 
     compileOptions {
@@ -133,37 +124,40 @@ tasks.register("iosSimulatorArm64Run") {
     dependsOn("linkDebugFrameworkIosSimulatorArm64")
     doLast {
         val xcrun = "/usr/bin/xcrun"
-        val appPath = "${rootProject.projectDir}/iosApp/iosApp.xcodeproj"
+        val deviceName = "iPad (A16)"
+        val iosDirectory = file("${rootProject.projectDir}/iosApp")
+        val derivedData = file("${iosDirectory}/build")
 
         // Boot simulator if not running
-        exec {
-            commandLine(xcrun, "simctl", "boot", "iPhone 17 Pro")
+        providers.exec {
+            commandLine(xcrun, "simctl", "boot", deviceName)
             isIgnoreExitValue = true
-        }
+        }.result.get()
         // Open simulator
-        exec {
+        providers.exec {
             commandLine("open", "-a", "Simulator")
-        }
-        // Build and run via xcodebuild
-        exec {
-            workingDir = file("${rootProject.projectDir}/iosApp")
+        }.result.get()
+        // Build through the workspace so CocoaPods integrations are preserved.
+        providers.exec {
+            workingDir = iosDirectory
             commandLine(
                 xcrun, "xcodebuild",
-                "-project", "iosApp.xcodeproj",
+                "-workspace", "iosApp.xcworkspace",
                 "-scheme", "iosApp",
                 "-configuration", "Debug",
-                "-destination", "platform=iOS Simulator,name=iPhone 17 Pro",
+                "-destination", "platform=iOS Simulator,name=$deviceName",
+                "-derivedDataPath", derivedData.absolutePath,
                 "build"
             )
-        }
+        }.result.get()
         // Install and launch
-        exec {
+        providers.exec {
             commandLine(xcrun, "simctl", "install", "booted",
-                "${rootProject.projectDir}/iosApp/build/Debug-iphonesimulator/iosApp.app"
+                "${derivedData}/Build/Products/Debug-iphonesimulator/iosApp.app"
             )
-        }
-        exec {
+        }.result.get()
+        providers.exec {
             commandLine(xcrun, "simctl", "launch", "booted", "com.puzzle.game")
-        }
+        }.result.get()
     }
 }

@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>故事拼图 V2 - Source Based Design Spec</title>
+  <style>
+    :root {
+      --bg: #efe7d9;
+      --paper: #fff9f0;
+      --ink: #6f5e49;
+      --muted: #8f806e;
+      --teal: #356d6a;
+      --teal-2: #7caea5;
+      --coral: #e98166;
+      --gold: #cda45a;
+      --line: #1f8b86;
+      --panel: rgba(255, 249, 240, .92);
+      --shadow: 0 18px 34px rgba(65, 45, 25, .16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 8% 8%, rgba(205, 164, 90, .18), transparent 28%),
+        radial-gradient(circle at 88% 20%, rgba(124, 174, 165, .16), transparent 25%),
+        linear-gradient(135deg, #fbf3e5, #e8ddd0 48%, #eaf1ee);
+    }
+
+    main {
+      width: 1720px;
+      margin: 0 auto;
+      padding: 56px 64px 100px;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--teal);
+      font-size: 50px;
+      letter-spacing: 0;
+    }
+
+    .lead {
+      margin: 14px 0 34px;
+      max-width: 1100px;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.7;
+    }
+
+    .section-title {
+      margin: 46px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: var(--teal);
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(31, 139, 134, .5), transparent);
+    }
+
+    .board-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 42px;
+      align-items: start;
+    }
+
+    .board {
+      position: relative;
+      min-height: 1240px;
+      border-radius: 28px;
+      padding: 26px;
+      background:
+        linear-gradient(90deg, rgba(31,139,134,.09) 1px, transparent 1px),
+        linear-gradient(rgba(31,139,134,.07) 1px, transparent 1px),
+        rgba(255,255,255,.44);
+      background-size: 24px 24px;
+      border: 1px dashed rgba(31, 139, 134, .38);
+    }
+
+    .board-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: var(--teal);
+      color: white;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .mockup-stage {
+      position: relative;
+      width: 432px;
+      margin: 28px auto 0;
+      filter: drop-shadow(0 18px 28px rgba(65,45,25,.18));
+    }
+
+    .mockup-stage.home {
+      height: 910.5px;
+    }
+
+    .mockup-stage.game {
+      width: 426.5px;
+      height: 922px;
+    }
+
+    .mockup {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 20px;
+      background: var(--paper);
+    }
+
+    .hotspot {
+      position: absolute;
+      border: 2px solid rgba(31,139,134,.90);
+      background: rgba(31,139,134,.08);
+      border-radius: 12px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,.68) inset;
+    }
+
+    .hotspot.gold {
+      border-color: rgba(205,164,90,.95);
+      background: rgba(205,164,90,.12);
+    }
+
+    .hotspot.coral {
+      border-color: rgba(233,129,102,.95);
+      background: rgba(233,129,102,.12);
+    }
+
+    .tag {
+      position: absolute;
+      max-width: 210px;
+      padding: 10px 12px;
+      border-radius: 14px;
+      background: var(--panel);
+      border: 1px solid rgba(31,139,134,.22);
+      box-shadow: var(--shadow);
+      color: var(--ink);
+      font-size: 12px;
+      line-height: 1.45;
+      font-weight: 720;
+      z-index: 3;
+    }
+
+    .tag strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--teal);
+      font-size: 13px;
+    }
+
+    .tag::before {
+      content: "";
+      position: absolute;
+      background: var(--line);
+    }
+
+    .tag::after {
+      content: "";
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--line);
+    }
+
+    .right-tag::before { left: -76px; top: 21px; width: 70px; height: 1px; }
+    .right-tag::after { left: -82px; top: 17px; }
+    .left-tag::before { right: -76px; top: 21px; width: 70px; height: 1px; }
+    .left-tag::after { right: -82px; top: 17px; }
+    .top-tag::before { left: 22px; bottom: -72px; width: 1px; height: 70px; }
+    .top-tag::after { left: 18px; bottom: -78px; }
+
+    .measure {
+      position: absolute;
+      color: var(--line);
+      font-size: 11px;
+      font-weight: 900;
+      z-index: 4;
+      background: rgba(255,249,240,.82);
+      border-radius: 999px;
+      padding: 2px 7px;
+      border: 1px solid rgba(31,139,134,.22);
+    }
+
+    .measure-line {
+      position: absolute;
+      background: var(--line);
+      z-index: 3;
+    }
+
+    .asset-panel {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .asset-card {
+      border-radius: 20px;
+      background: rgba(255,249,240,.84);
+      border: 1px solid rgba(111,94,73,.18);
+      box-shadow: 0 10px 22px rgba(65,45,25,.10);
+      padding: 14px;
+      min-height: 188px;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+    }
+
+    .asset-preview {
+      min-height: 112px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background:
+        linear-gradient(45deg, rgba(217,203,182,.34) 25%, transparent 25%),
+        linear-gradient(-45deg, rgba(217,203,182,.34) 25%, transparent 25%),
+        rgba(255,255,255,.55);
+      background-size: 24px 24px;
+      overflow: hidden;
+    }
+
+    .asset-preview img {
+      max-width: 100%;
+      max-height: 160px;
+      display: block;
+      object-fit: contain;
+    }
+
+    .asset-meta {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .asset-meta strong {
+      display: block;
+      color: var(--teal);
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+
+    .relation-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .relation {
+      padding: 18px;
+      min-height: 138px;
+      border-radius: 20px;
+      background: rgba(255,249,240,.86);
+      border: 1px solid rgba(31,139,134,.24);
+      box-shadow: 0 10px 22px rgba(65,45,25,.10);
+    }
+
+    .relation strong {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--teal);
+      font-size: 17px;
+    }
+
+    .relation span {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .spec-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      overflow: hidden;
+      border-radius: 20px;
+      background: rgba(255,249,240,.86);
+      border: 1px solid rgba(111,94,73,.18);
+      box-shadow: 0 10px 22px rgba(65,45,25,.10);
+      font-size: 13px;
+    }
+
+    .spec-table th,
+    .spec-table td {
+      padding: 13px 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(111,94,73,.12);
+      vertical-align: top;
+    }
+
+    .spec-table th {
+      color: var(--teal);
+      background: rgba(124,174,165,.12);
+      font-size: 13px;
+    }
+
+    .spec-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    code {
+      padding: 2px 6px;
+      border-radius: 8px;
+      background: rgba(53,109,106,.10);
+      color: var(--teal);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>故事拼图 V2 · 原设计稿元素提取与标注</h1>
+    <p class="lead">
+      本规范稿不再重新绘制 UI，而是直接基于最终设计稿 PNG 提取资源。首页源图为
+      <code>home-story-pager-concept.png</code>（864×1821），拼图页源图为
+      <code>game-book-canvas-concept.png</code>（853×1844）。标注坐标以源图像素为准，工程实现时按 390pt 画板比例换算到 dp。
+    </p>
+
+    <div class="section-title">01. 原设计稿画板标注</div>
+    <section class="board-grid">
+      <div class="board">
+        <div class="board-title">Home / Source overlay</div>
+        <div class="mockup-stage home">
+          <img class="mockup" src="extracted-assets/home/home-full.png" alt="Home design source" />
+
+          <div class="hotspot" style="left:29px;top:38px;width:75px;height:75px;"></div>
+          <div class="hotspot" style="left:358px;top:39px;width:60px;height:60px;"></div>
+          <div class="hotspot gold" style="left:56.5px;top:124px;width:320px;height:449px;border-radius:18px;"></div>
+          <div class="hotspot" style="left:76.5px;top:142px;width:280px;height:305px;border-radius:15px;"></div>
+          <div class="hotspot" style="left:75.5px;top:444px;width:280px;height:95px;border-radius:12px;"></div>
+          <div class="hotspot" style="left:31px;top:610px;width:370px;height:111px;border-radius:15px;"></div>
+          <div class="hotspot coral" style="left:64px;top:735px;width:305px;height:62px;border-radius:16px;"></div>
+          <div class="hotspot" style="left:54px;top:804px;width:166px;height:58px;border-radius:16px;"></div>
+          <div class="hotspot" style="left:215px;top:804px;width:166px;height:58px;border-radius:16px;"></div>
+
+          <div class="tag left-tag" style="left:-210px;top:52px;"><strong>TopBar</strong>Logo 150px / 设置 120px；实现约 62dp / 58dp，间距 16dp。</div>
+          <div class="tag right-tag" style="right:-240px;top:170px;"><strong>StoryPager</strong>主卡源区域 640×898px；中间页必须是真实 Pager，左右露出邻页。</div>
+          <div class="tag right-tag" style="right:-240px;top:440px;"><strong>Story Copy</strong>画面故事标题、分隔线、正文都来自同一文案面板。</div>
+          <div class="tag left-tag" style="left:-220px;top:650px;"><strong>Piece Slider</strong>源区域 740×222px；包含标签、数值胶囊、轨道、刻度。</div>
+          <div class="tag right-tag" style="right:-220px;top:780px;"><strong>Actions</strong>主按钮与二级按钮使用原设计裁切资源作为视觉参照。</div>
+
+          <div class="measure-line" style="left:20px;top:14px;width:1px;height:28px;"></div>
+          <div class="measure" style="left:28px;top:15px;">safe top 28</div>
+          <div class="measure-line" style="left:56px;top:592px;width:320px;height:1px;"></div>
+          <div class="measure" style="left:185px;top:570px;">card width ≈ 320pt</div>
+          <div class="measure-line" style="left:400px;top:572px;width:1px;height:38px;"></div>
+          <div class="measure" style="left:410px;top:584px;">22pt gap</div>
+        </div>
+      </div>
+
+      <div class="board">
+        <div class="board-title">Puzzle / Source overlay</div>
+        <div class="mockup-stage game">
+          <img class="mockup" src="extracted-assets/game/game-full.png" alt="Puzzle design source" />
+
+          <div class="hotspot" style="left:21.5px;top:35px;width:48px;height:48px;"></div>
+          <div class="hotspot" style="left:124px;top:29px;width:185px;height:49px;border-radius:18px;"></div>
+          <div class="hotspot" style="left:341px;top:38px;width:75px;height:45px;border-radius:14px;"></div>
+          <div class="hotspot gold" style="left:7px;top:115px;width:412px;height:520px;border-radius:14px;"></div>
+          <div class="hotspot" style="left:47.5px;top:178px;width:345px;height:395px;border-radius:4px;"></div>
+          <div class="hotspot" style="left:11px;top:695px;width:405px;height:130px;border-radius:12px;"></div>
+          <div class="hotspot" style="left:132px;top:857px;width:160px;height:60px;border-radius:10px;"></div>
+
+          <div class="tag left-tag" style="left:-220px;top:42px;"><strong>Top Controls</strong>返回键、书本进度、计时器都从源图裁出，不用文本符号替代。</div>
+          <div class="tag right-tag" style="right:-244px;top:238px;"><strong>Book Canvas</strong>书页、台座、角饰、书签为装饰层；内部图区才是 drop zone。</div>
+          <div class="tag right-tag" style="right:-244px;top:470px;"><strong>Board Image</strong>源区域 690×790px，显示 ghost image + 裂纹高亮效果。</div>
+          <div class="tag left-tag" style="left:-220px;top:748px;"><strong>Piece Tray</strong>卷轴容器 810×260px；候选卡片选中态不改变尺寸。</div>
+
+          <div class="measure-line" style="left:0;top:99px;width:426px;height:1px;"></div>
+          <div class="measure" style="left:150px;top:77px;">top controls height ≈ 54pt</div>
+          <div class="measure-line" style="left:422px;top:115px;width:1px;height:520px;"></div>
+          <div class="measure" style="left:432px;top:356px;">book canvas ≈ 520pt</div>
+          <div class="measure-line" style="left:12px;top:680px;width:405px;height:1px;"></div>
+          <div class="measure" style="left:158px;top:658px;">tray gap ≈ 10pt</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-title">02. 从原设计中提取的资源</div>
+    <section class="asset-panel">
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/logo-card.png" alt=""></div><div class="asset-meta"><strong>home/logo-card.png</strong>品牌 Logo 卡片，源坐标 x58 y76 w150 h150。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/settings-button.png" alt=""></div><div class="asset-meta"><strong>home/settings-button.png</strong>设置按钮，源坐标 x716 y78 w120 h120。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/story-pager-card.png" alt=""></div><div class="asset-meta"><strong>home/story-pager-card.png</strong>首页故事 Pager 主卡，含图像与故事区。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/story-image.png" alt=""></div><div class="asset-meta"><strong>home/story-image.png</strong>首页主图资源，后续可作为主题默认图。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/story-copy-panel.png" alt=""></div><div class="asset-meta"><strong>home/story-copy-panel.png</strong>画面故事标题、分隔线、正文排版样式。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/piece-count-slider-panel.png" alt=""></div><div class="asset-meta"><strong>home/piece-count-slider-panel.png</strong>碎片数量面板，包含滑杆和刻度。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/start-button.png" alt=""></div><div class="asset-meta"><strong>home/start-button.png</strong>主按钮样式，珊瑚色浮雕质感。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/home/change-theme-button.png" alt=""></div><div class="asset-meta"><strong>home/change-theme-button.png</strong>二级按钮样式：换主题。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/back-button.png" alt=""></div><div class="asset-meta"><strong>game/back-button.png</strong>拼图页返回按钮。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/progress-plaque.png" alt=""></div><div class="asset-meta"><strong>game/progress-plaque.png</strong>进度徽牌，含书本 icon。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/timer-plaque.png" alt=""></div><div class="asset-meta"><strong>game/timer-plaque.png</strong>计时器徽牌，含时钟 icon。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/book-canvas.png" alt=""></div><div class="asset-meta"><strong>game/book-canvas.png</strong>书页画布整体，包括台座、角饰、书签。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/board-image-cracks.png" alt=""></div><div class="asset-meta"><strong>game/board-image-cracks.png</strong>棋盘图区，作为 drop zone 视觉标尺。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/piece-tray-scroll.png" alt=""></div><div class="asset-meta"><strong>game/piece-tray-scroll.png</strong>底部卷轴候选栏。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/selected-piece-card.png" alt=""></div><div class="asset-meta"><strong>game/selected-piece-card.png</strong>候选碎片选中态。</div></div>
+      <div class="asset-card"><div class="asset-preview"><img src="extracted-assets/game/bottom-hint.png" alt=""></div><div class="asset-meta"><strong>game/bottom-hint.png</strong>底部提示文本与装饰。</div></div>
+    </section>
+
+    <div class="section-title">03. 组合关系与工程映射</div>
+    <section class="relation-grid">
+      <div class="relation"><strong>HomeFrame</strong><span>原背景 → TopBar → HorizontalPager(5 pages) → Indicator → PieceCountPanel → PrimaryButton → SecondaryButtons。Pager 主卡使用 `story-pager-card` 作为视觉参考，工程实现需要拆成可变内容层。</span></div>
+      <div class="relation"><strong>StoryPager</strong><span>主卡宽约 320pt，左右露出邻页约 55pt。图片区与故事区是同一个卡片内部层级，不能拆成两个无关卡片。</span></div>
+      <div class="relation"><strong>PieceCountPanel</strong><span>滑杆面板源图是完整组件，但工程应拆为背景容器、label、value pill、track、thumb、tick labels，保证 10-300 连续拖动。</span></div>
+      <div class="relation"><strong>PuzzleTopControls</strong><span>返回键、进度徽牌、计时器分别映射 `back-button`、`progress-plaque`、`timer-plaque`。需要还原尺寸、圆角、阴影和图标，而非纯文字按钮。</span></div>
+      <div class="relation"><strong>BookCanvas</strong><span>`book-canvas` 是外观参考；实际实现必须保持装饰层和真实棋盘层分离。`board-image-cracks` 对应可放置区域和裂纹高亮。</span></div>
+      <div class="relation"><strong>PieceTray</strong><span>`piece-tray-scroll` 定义候选栏整体质感；碎片卡从 `selected-piece-card` 和默认卡片提取状态。选中动画只叠加描边/光晕，不改变布局。</span></div>
+    </section>
+
+    <div class="section-title">04. 源坐标与尺寸换算</div>
+    <table class="spec-table">
+      <thead>
+        <tr>
+          <th>页面</th>
+          <th>原图尺寸</th>
+          <th>工程画板</th>
+          <th>换算方式</th>
+          <th>关键原则</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>首页</td>
+          <td>864 × 1821 px</td>
+          <td>390 × 822 pt 左右</td>
+          <td>px ÷ 2.215 ≈ dp</td>
+          <td>主卡、滑杆、按钮按源图比例还原；背景和底部装饰可做裁切/平铺。</td>
+        </tr>
+        <tr>
+          <td>拼图页</td>
+          <td>853 × 1844 px</td>
+          <td>390 × 843 pt 左右</td>
+          <td>px ÷ 2.187 ≈ dp</td>
+          <td>顶部控件必须还原，书页装饰不参与 drop zone 坐标计算。</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

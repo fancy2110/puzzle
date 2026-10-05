@@ -55,4 +55,18 @@ actual class Preferences(context: Context) {
     actual fun setReferenceEnabled(enabled: Boolean) {
         prefs.edit().putBoolean("reference_enabled", enabled).apply()
     }
+
+    actual fun getLanguageCode(): String? =
+        prefs.getString("language_code", null)
+
+    actual fun setLanguageCode(code: String) {
+        prefs.edit().putString("language_code", code).apply()
+    }
+
+    actual fun getPrivacyConsentVersion(): String? =
+        prefs.getString("privacy_consent_version", null)
+
+    actual fun setPrivacyConsentVersion(version: String) {
+        prefs.edit().putString("privacy_consent_version", version).apply()
+    }
 }

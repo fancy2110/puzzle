@@ -1,59 +1,85 @@
 package com.puzzle.game.ui
 
 import androidx.compose.animation.core.*
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.ui.component.BrandMark
+import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.i18n.LocalAppStrings
+import com.puzzle.game.ui.theme.PuzzleColors
 import kotlinx.coroutines.delay
 
 @Composable
 fun SplashScreen(onFinished: () -> Unit) {
+    val strings = LocalAppStrings.current
+    var visible by remember { mutableStateOf(false) }
     val alpha by animateFloatAsState(
-        targetValue = 1f,
+        targetValue = if (visible) 1f else 0f,
         animationSpec = tween(600),
         label = "splash_fade"
     )
+    val markScale by animateFloatAsState(
+        targetValue = if (visible) 1f else 0.92f,
+        animationSpec = spring(dampingRatio = 0.72f, stiffness = Spring.StiffnessLow),
+        label = "splash_mark_scale"
+    )
 
     LaunchedEffect(Unit) {
-        delay(1500)
+        visible = true
+        delay(1300)
         onFinished()
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.alpha(alpha)
+    PuzzleBackground {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(28.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "🧩",
-                fontSize = 64.sp
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-            Text(
-                text = "Puzzle",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "把碎片拼成美好",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.alpha(alpha)
+            ) {
+                BrandMark(
+                    size = 104.dp,
+                    modifier = Modifier.scale(markScale)
+                )
+                Spacer(modifier = Modifier.height(22.dp))
+                Text(
+                    text = strings.appName,
+                    fontSize = 34.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PuzzleColors.StoneDark
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = strings.appSubtitle,
+                    fontSize = 14.sp,
+                    color = PuzzleColors.Muted
+                )
+                Spacer(modifier = Modifier.height(28.dp))
+                Surface(
+                    color = PuzzleColors.Cloud.copy(alpha = 0.72f),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text(
+                        text = strings.splashLoading,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 8.dp),
+                        color = PuzzleColors.TealDark,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
         }
     }
 }

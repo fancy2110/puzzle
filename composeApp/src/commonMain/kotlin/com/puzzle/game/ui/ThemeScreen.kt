@@ -18,14 +18,28 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.puzzle.game.data.PuzzlePictureGenerator
-import com.puzzle.game.data.ThemeData
+import com.puzzle.game.data.AssetLoader
+import com.puzzle.game.data.BuiltinStoryImageSet
+import com.puzzle.game.data.StoryPresets
+import com.puzzle.game.decodeToImageBitmap
 import com.puzzle.game.game.GameViewModel
+import com.puzzle.game.analytics.Analytics
+import com.puzzle.game.analytics.AnalyticsScreen
+import com.puzzle.game.i18n.LocalAppStrings
+import com.puzzle.game.i18n.LocalAppLanguage
+import com.puzzle.game.i18n.StoryLocalization
+import com.puzzle.game.ui.component.BackIcon
+import com.puzzle.game.ui.component.CheckIcon
 import com.puzzle.game.ui.component.CloudButton
 import com.puzzle.game.ui.component.CoralButton
+import com.puzzle.game.ui.component.FragmaIconButton
 import com.puzzle.game.ui.component.PuzzleBackground
+import com.puzzle.game.ui.adaptive.AdaptiveContent
 import com.puzzle.game.ui.theme.PuzzleColors
+import com.puzzle.game.ui.theme.FragmaDimens
 import com.puzzle.game.ui.theme.PuzzleDimens
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable
 fun ThemeScreen(
@@ -33,23 +47,36 @@ fun ThemeScreen(
     onBack: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     val state by viewModel.state.collectAsState()
-    val themes = viewModel.themes
+    val stories = viewModel.storySets
 
     PuzzleBackground {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(PuzzleDimens.PagePadding)
-        ) {
+        AdaptiveContent { spec ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(spec.pagePadding),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .widthIn(max = spec.contentMaxWidth)
+                ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            TextButton(onClick = onBack) {
-                Text("‹", fontSize = 30.sp, color = PuzzleColors.StoneDark)
+            FragmaIconButton(
+                onClick = onBack,
+                size = FragmaDimens.SettingsButtonCompact
+            ) {
+                BackIcon(modifier = Modifier.size(23.dp))
             }
             Spacer(modifier = Modifier.weight(1f))
             Text(
-                text = "选择画面",
+                text = strings.storyLibrary,
                 fontSize = 26.sp,
                 fontWeight = FontWeight.Bold,
                 color = PuzzleColors.StoneDark
@@ -61,17 +88,24 @@ fun ThemeScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+            columns = GridCells.Adaptive(minSize = 160.dp),
             modifier = Modifier.fillMaxWidth().weight(1f),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            items(themes, key = { it.id }) { theme ->
-                val isSelected = state.selectedTheme?.id == theme.id
-                ThemePickerCard(
-                    theme = theme,
+            items(stories, key = { it.id }) { story ->
+                val isSelected = state.selectedStoryId == story.id
+                StoryPickerCard(
+                    story = story,
                     isSelected = isSelected,
-                    onClick = { viewModel.selectTheme(theme.id) }
+                    onClick = {
+                        Analytics.click(
+                            target = "select_story",
+                            screen = AnalyticsScreen.ThemePicker,
+                            properties = mapOf("story_id" to story.id)
+                        )
+                        viewModel.selectStory(story.id)
+                    }
                 )
             }
         }
@@ -79,26 +113,34 @@ fun ThemeScreen(
         Spacer(modifier = Modifier.height(18.dp))
 
         CoralButton(
-            text = "开始这张",
+            text = strings.startThisStory,
             onClick = onConfirm,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(8.dp))
         CloudButton(
-            text = "确认选择",
+            text = strings.confirmSelection,
             onClick = onConfirm,
             modifier = Modifier.fillMaxWidth()
         )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun ThemePickerCard(
-    theme: ThemeData,
+private fun StoryPickerCard(
+    story: BuiltinStoryImageSet,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
+    val language = LocalAppLanguage.current
+    val localizedStory = remember(story.id, language) {
+        StoryLocalization.story(story, language)
+    }
+    val theme = StoryPresets.storyPreviewTheme(story)
     Card(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth().aspectRatio(0.72f),
@@ -121,8 +163,13 @@ private fun ThemePickerCard(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            val preview = remember(theme.id) {
-                PuzzlePictureGenerator.generate(theme, 400, 300)
+            val preview by produceState<androidx.compose.ui.graphics.ImageBitmap?>(
+                initialValue = null,
+                key1 = story.id
+            ) {
+                value = withContext(Dispatchers.Default) {
+                    loadStoryCoverPreview(story)
+                }
             }
             Box(
                 modifier = Modifier
@@ -131,34 +178,66 @@ private fun ThemePickerCard(
                     .clip(RoundedCornerShape(14.dp))
                     .background(theme.primary.copy(alpha = 0.18f))
             ) {
-                Image(
-                    bitmap = preview,
-                    contentDescription = theme.name,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
+                if (preview != null) {
+                    Image(
+                        bitmap = preview!!,
+                        contentDescription = localizedStory.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(28.dp).align(Alignment.Center),
+                        color = PuzzleColors.Teal,
+                        strokeWidth = 3.dp
+                    )
+                }
             }
             Spacer(modifier = Modifier.height(10.dp))
             Text(
-                text = theme.name,
-                fontSize = 19.sp,
+                text = localizedStory.title,
+                fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
                 color = PuzzleColors.StoneDark
+            )
+            Text(
+                text = "${localizedStory.origin} · ${localizedStory.ageRange}",
+                fontSize = 11.sp,
+                color = PuzzleColors.Muted,
+                maxLines = 1,
+                textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
             Surface(
                 shape = RoundedCornerShape(50),
                 color = if (isSelected) PuzzleColors.Coral else PuzzleColors.Stone.copy(alpha = 0.45f)
             ) {
-                Text(
-                    text = if (isSelected) "✓ 6片" else "6片",
-                    fontSize = 13.sp,
-                    color = if (isSelected) Color.White else PuzzleColors.Muted,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp)
-                )
+                Row(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    if (isSelected) {
+                        CheckIcon(modifier = Modifier.size(13.dp), color = Color.White)
+                    }
+                    Text(
+                        text = strings.actLabel(story.pages.size),
+                        fontSize = 13.sp,
+                        color = if (isSelected) Color.White else PuzzleColors.Muted,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
     }
+}
+
+private suspend fun loadStoryCoverPreview(story: BuiltinStoryImageSet): androidx.compose.ui.graphics.ImageBitmap? {
+    val assetFile = story.pages.firstOrNull()?.assetFile
+    if (assetFile != null) {
+        val assetBitmap = AssetLoader.readBytes(assetFile)?.let { decodeToImageBitmap(it) }
+        if (assetBitmap != null) return assetBitmap
+    }
+    return null
 }

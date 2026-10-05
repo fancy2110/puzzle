@@ -1,0 +1,27 @@
+<svg width="368" height="150" viewBox="0 0 368 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="366" height="148" rx="22" fill="#FFF9F0" stroke="#D9CBB6"/>
+  <rect x="1" y="1" width="24" height="148" rx="16" fill="#D9CBB6" opacity=".55"/>
+  <rect x="343" y="1" width="24" height="148" rx="16" fill="#D9CBB6" opacity=".55"/>
+  <path d="M20 112H52V150L36 138L20 150V112Z" fill="#426F91"/>
+  <g transform="translate(34 15)">
+    <rect width="90" height="120" rx="14" fill="white" fill-opacity=".58" stroke="#7CAEA5" stroke-width="2"/>
+    <path d="M32 0L45 13L32 26L19 13L32 0Z" fill="#7CAEA5" stroke="white" stroke-width="4"/>
+    <path d="M22 32L76 16L88 62L66 112L24 102L6 54L22 32Z" fill="url(#piece)"/>
+  </g>
+  <g transform="translate(138 15)">
+    <rect width="90" height="120" rx="14" fill="white" fill-opacity=".38" stroke="#D9CBB6"/>
+    <path d="M18 24L74 10L88 56L70 112L24 102L6 54L18 24Z" fill="url(#piece)"/>
+  </g>
+  <g transform="translate(242 15)">
+    <rect width="90" height="120" rx="14" fill="white" fill-opacity=".38" stroke="#D9CBB6"/>
+    <path d="M24 18L82 26L88 78L62 112L20 96L6 42L24 18Z" fill="url(#piece)"/>
+  </g>
+  <defs>
+    <linearGradient id="piece" x1="0" y1="0" x2="92" y2="120">
+      <stop stop-color="#1D5674"/>
+      <stop offset=".45" stop-color="#ECE7DE"/>
+      <stop offset=".7" stop-color="#D9A44E"/>
+      <stop offset="1" stop-color="#426F91"/>
+    </linearGradient>
+  </defs>
+</svg>

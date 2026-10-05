@@ -13,6 +13,7 @@ class DragDropState {
     var dropTargetCell: Pair<Int, Int>? by mutableStateOf(null)
     var dropTargetPieceId: String? by mutableStateOf(null)
     var dropOverlapRatio: Float by mutableStateOf(0f)
+    private var touchAnchor = Offset.Zero
 
     /** Tap-to-select mode: simpler interaction for kids */
     var selectedPieceId: String? by mutableStateOf(null)
@@ -35,21 +36,27 @@ class DragDropState {
         selectedPieceId = null
     }
 
-    fun startDrag(pieceId: String, startOffset: Offset, pieceSize: Offset) {
+    fun startDrag(pieceId: String, startOffset: Offset, pieceSize: Offset, touchOffset: Offset) {
         draggedPieceId = pieceId
         dragOffset = startOffset
         dragPieceSize = pieceSize
+        touchAnchor = touchOffset
         isDragging = true
         selectedPieceId = null
     }
 
-    fun updateDrag(offset: Offset) {
-        dragOffset = offset
+    fun updateDragPointer(pointerPositionInWindow: Offset) {
+        val offset = pointerPositionInWindow - touchAnchor
+        if (dragOffset != offset) {
+            dragOffset = offset
+        }
     }
 
     fun updateDropTarget(pieceId: String?, overlapRatio: Float = 0f) {
-        dropTargetPieceId = pieceId
-        dropOverlapRatio = overlapRatio
+        if (dropTargetPieceId != pieceId || kotlin.math.abs(dropOverlapRatio - overlapRatio) > 0.02f) {
+            dropTargetPieceId = pieceId
+            dropOverlapRatio = overlapRatio
+        }
     }
 
     fun endDrag(): DragResult? {
@@ -60,6 +67,7 @@ class DragDropState {
         dropTargetCell = null
         dropTargetPieceId = null
         dropOverlapRatio = 0f
+        touchAnchor = Offset.Zero
 
         if (pieceId != null && target != null) {
             return DragResult(pieceId, target)
@@ -73,6 +81,7 @@ class DragDropState {
         dropTargetCell = null
         dropTargetPieceId = null
         dropOverlapRatio = 0f
+        touchAnchor = Offset.Zero
     }
 }
 

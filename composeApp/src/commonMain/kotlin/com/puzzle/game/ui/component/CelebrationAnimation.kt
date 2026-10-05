@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -16,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.i18n.LocalAppStrings
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.random.Random
@@ -33,10 +33,12 @@ data class StarParticle(
 @Composable
 fun CelebrationOverlay(
     pieceCount: Int,
+    hasNextScene: Boolean,
     onDismiss: () -> Unit,
-    onPlayAgain: () -> Unit,
-    onBackToMenu: () -> Unit
+    onContinueStory: () -> Unit,
+    onChooseStory: () -> Unit
 ) {
+    val strings = LocalAppStrings.current
     val animatedAlpha by animateFloatAsState(
         targetValue = 1f,
         animationSpec = tween(400),
@@ -117,38 +119,47 @@ fun CelebrationOverlay(
 
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp)
+            modifier = Modifier
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .padding(32.dp)
         ) {
-            Text(text = "🎉", fontSize = 72.sp)
+            Box(
+                modifier = Modifier.size(78.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                DiamondIcon(modifier = Modifier.size(70.dp), color = MaterialTheme.colorScheme.tertiary)
+                PuzzlePieceIcon(modifier = Modifier.size(34.dp), color = MaterialTheme.colorScheme.primary)
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
-                text = "太棒了！",
+                text = strings.great,
                 fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "你完成了${pieceCount}块拼图！",
+                text = strings.completionMessage(pieceCount),
                 fontSize = 18.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Spacer(modifier = Modifier.height(28.dp))
 
-            androidx.compose.material3.Button(
-                onClick = onPlayAgain,
+            StoryButton(
+                text = if (hasNextScene) strings.nextScene else strings.chooseAnotherStory,
+                onClick = if (hasNextScene) onContinueStory else onChooseStory,
                 modifier = Modifier.fillMaxWidth(0.55f).height(50.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("再来一局", fontSize = 20.sp)
-            }
-            Spacer(modifier = Modifier.height(10.dp))
-            androidx.compose.material3.OutlinedButton(
-                onClick = onBackToMenu,
-                modifier = Modifier.fillMaxWidth(0.55f).height(50.dp),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text("返回菜单", fontSize = 20.sp)
+                height = 50.dp
+            )
+            if (hasNextScene) {
+                Spacer(modifier = Modifier.height(10.dp))
+                StoryButton(
+                    text = strings.chooseAnotherStory,
+                    onClick = onChooseStory,
+                    modifier = Modifier.fillMaxWidth(0.55f).height(50.dp),
+                    tone = StoryButtonTone.Secondary,
+                    height = 50.dp
+                )
             }
         }
     }

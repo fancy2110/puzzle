@@ -19,9 +19,17 @@ targets:
       base:
         INFOPLIST_FILE: iosApp/Info.plist
         PRODUCT_BUNDLE_IDENTIFIER: com.puzzle.game
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: "NO"
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: "NO"
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: "YES"
+        INFOPLIST_KEY_CADisableMinimumFrameDurationOnPhone: "YES"
+        ENABLE_USER_SCRIPT_SANDBOXING: "NO"
+        UMENG_ANALYTICS_ENABLED: "false"
+        UMENG_APP_KEY: ""
+        UMENG_CHANNEL: "app_store"
         FRAMEWORK_SEARCH_PATHS:
-          - "$(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework"
-          - "$(SRCROOT)/../composeApp/build/bin/iosArm64/debugFramework"
+          - "$(SRCROOT)/../composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)"
         OTHER_LINKER_FLAGS:
           - "$(inherited)"
           - "-framework"
@@ -30,7 +38,7 @@ targets:
       - name: "Build Kotlin Framework"
         script: |
           cd "$SRCROOT/.."
-          ./gradlew :composeApp:linkDebugFrameworkIosSimulatorArm64
+          ./gradlew :composeApp:embedAndSignAppleFrameworkForXcode
         basedOnDependencyAnalysis: false
         inputFiles: []
         outputFiles: []

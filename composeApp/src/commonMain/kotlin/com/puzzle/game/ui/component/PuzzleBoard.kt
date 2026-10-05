@@ -22,8 +22,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.puzzle.game.engine.PuzzleConfig
 import com.puzzle.game.engine.model.PuzzlePiece
 import com.puzzle.game.game.DragDropState
+import com.puzzle.game.i18n.LocalAppStrings
 
 @Composable
 fun PuzzleBoard(
@@ -34,12 +36,13 @@ fun PuzzleBoard(
     onCellTap: ((Int, Int) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     val density = LocalDensity.current
     val imageWidth = puzzleBitmap?.width ?: 800
     val imageHeight = puzzleBitmap?.height ?: 600
-    val blockSize = 64
-    val gridCols = (imageWidth / blockSize) + 1
-    val gridRows = (imageHeight / blockSize) + 1
+    val blockSize = PuzzleConfig.PIXEL_BLOCK_SIZE
+    val gridCols = ceilDiv(imageWidth, blockSize)
+    val gridRows = ceilDiv(imageHeight, blockSize)
 
     Box(
         modifier = modifier
@@ -71,67 +74,70 @@ fun PuzzleBoard(
                 if (puzzleBitmap != null) {
                     Image(
                         bitmap = puzzleBitmap,
-                        contentDescription = "原图",
+                        contentDescription = strings.originalImage,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Fit,
                         alpha = 0.5f
                     )
                 }
 
-                for (row in 0 until gridRows) {
-                    for (col in 0 until gridCols) {
-                        val isFilled = placedPieceIds.any { pid ->
-                            val piece = pieces.firstOrNull { it.id == pid }
-                            piece?.items?.any { it.y == row && it.x == col } == true
-                        }
-                        val isDropTarget = dragState.dropTargetCell == Pair(row, col)
+                if (gridRows * gridCols <= 2_500) {
+                    for (row in 0 until gridRows) {
+                        for (col in 0 until gridCols) {
+                            val isFilled = placedPieceIds.any { pid ->
+                                val piece = pieces.firstOrNull { it.id == pid }
+                                piece?.items?.any { it.y == row && it.x == col } == true
+                            }
+                            val isDropTarget = dragState.dropTargetCell == Pair(row, col)
 
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth(1f / gridCols)
-                                .fillMaxHeight(1f / gridRows)
-                                .offset(
-                                    x = displayW * col / gridCols,
-                                    y = displayH * row / gridRows
-                                )
-                                .onGloballyPositioned { coords ->
-                                    if (dragState.isDragging) {
-                                        val pos = coords.positionInWindow()
-                                        val cx = dragState.dragOffset.x + dragState.dragPieceSize.x / 2
-                                        val cy = dragState.dragOffset.y + dragState.dragPieceSize.y / 2
-                                        if (cx in pos.x..(pos.x + coords.size.width) &&
-                                            cy in pos.y..(pos.y + coords.size.height)
-                                        ) {
-                                            dragState.dropTargetCell = Pair(row, col)
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(1f / gridCols)
+                                    .fillMaxHeight(1f / gridRows)
+                                    .offset(
+                                        x = displayW * col / gridCols,
+                                        y = displayH * row / gridRows
+                                    )
+                                    .onGloballyPositioned { coords ->
+                                        if (dragState.isDragging) {
+                                            val pos = coords.positionInWindow()
+                                            val cx = dragState.dragOffset.x + dragState.dragPieceSize.x / 2
+                                            val cy = dragState.dragOffset.y + dragState.dragPieceSize.y / 2
+                                            if (cx in pos.x..(pos.x + coords.size.width) &&
+                                                cy in pos.y..(pos.y + coords.size.height)
+                                            ) {
+                                                dragState.dropTargetCell = Pair(row, col)
+                                            }
                                         }
                                     }
+                                    .then(
+                                        if (onCellTap != null) {
+                                            Modifier.clickable { onCellTap(row, col) }
+                                        } else Modifier
+                                    )
+                                    .background(
+                                        when {
+                                            isDropTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                                            isFilled -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                                            else -> Color.Transparent
+                                        }
+                                    )
+                                    .border(
+                                        width = if (isDropTarget) 1.5.dp else 0.3.dp,
+                                        color = when {
+                                            isDropTarget -> MaterialTheme.colorScheme.primary
+                                            isFilled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+                                            else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isFilled) {
+                                    CheckIcon(
+                                        modifier = Modifier.size(12.dp),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                                .then(
-                                    if (onCellTap != null) {
-                                        Modifier.clickable { onCellTap(row, col) }
-                                    } else Modifier
-                                )
-                                .background(
-                                    when {
-                                        isDropTarget -> MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
-                                        isFilled -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-                                        else -> Color.Transparent
-                                    }
-                                )
-                                .border(
-                                    width = if (isDropTarget) 1.5.dp else 0.3.dp,
-                                    color = when {
-                                        isDropTarget -> MaterialTheme.colorScheme.primary
-                                        isFilled -> MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
-                                        else -> MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isFilled) {
-                                Text("✓", fontSize = 10.sp,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    textAlign = TextAlign.Center)
                             }
                         }
                     }
@@ -139,4 +145,8 @@ fun PuzzleBoard(
             }
         }
     }
+}
+
+private fun ceilDiv(value: Int, divisor: Int): Int {
+    return ((value + divisor - 1) / divisor).coerceAtLeast(1)
 }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compose Design Reconstruction"
+  short_description: "Restore annotated designs in Compose Multiplatform"
+  default_prompt: "Use the project design system and visual validation workflow to implement this screen in Compose Multiplatform."

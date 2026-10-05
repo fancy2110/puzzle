@@ -151,7 +151,6 @@ puzzle_game_quit
 | `game` | `ai_image_download` | AI 图片下载 |
 | `game` | `image_decode` | PNG/JPEG 解码 |
 | `game` | `kotlin_split` | Kotlin 碎片切割 |
-| `game` | `native_split` | Native 碎片切割 |
 | `game` | `procedural_generate_split` | 程序图生成与切割 |
 | `game` | `prepare_total` | 点击开始到可交互总耗时 |
 

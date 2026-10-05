@@ -21,8 +21,6 @@ composeApp/
 │   ├── androidMain/  — Android entry point
 │   └── iosMain/      — iOS entry point
 └── build.gradle.kts
-
-experiments/rust-splitter/  — Rust CLI for offline image splitting experiments
 ```
 
 ## Project Structure

@@ -34,33 +34,9 @@ kotlin {
                 }
             }
         }
-        // CInterop for puzzle-core native library
-        iosTarget.compilations.getByName("main").cinterops {
-            val puzzleCore by creating {
-                defFile(project.file("../native/puzzle_core.def"))
-                packageName("puzzle_core")
-                includeDirs(
-                    project.file("../native/puzzle-core/include")
-                )
-                val (libraryDir, libraryName) = when (iosTarget.name) {
-                    "iosArm64" -> "ios-arm64" to "libpuzzle_core-ios-arm64.a"
-                    else -> "ios-arm64_x86_64-simulator" to "libpuzzle_core-ios-sim.a"
-                }
-                extraOpts(
-                    "-libraryPath",
-                    project.file("../native/ios-libs/PuzzleCore.xcframework/$libraryDir").absolutePath,
-                    "-staticLibrary",
-                    libraryName
-                )
-            }
-        }
     }
 
-    // JNI libs directory for Android
     sourceSets {
-        androidMain {
-            resources.srcDirs("src/androidMain/jniLibs")
-        }
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)

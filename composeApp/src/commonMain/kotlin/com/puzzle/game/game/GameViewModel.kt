@@ -15,12 +15,10 @@ import com.puzzle.game.data.StoryPresets
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
-import com.puzzle.game.platformCacheDir
 import com.puzzle.game.readFileBytes
 import com.puzzle.game.engine.PuzzleEngine
 import com.puzzle.game.engine.PieceBitmapGenerator
 import com.puzzle.game.engine.PuzzleConfig
-import com.puzzle.game.native.NativeSplitAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -50,7 +48,6 @@ class GameViewModel : ViewModel() {
     val sfxEvents: SharedFlow<Sfx> = _sfxEvents.asSharedFlow()
 
     private val engine = PuzzleEngine()
-    private val nativeAdapter = NativeSplitAdapter()
     private val aiGenerator = AIImageGenerator()
     val dragDropState = DragDropState()
 
@@ -172,8 +169,8 @@ class GameViewModel : ViewModel() {
     }
 
     /**
-     * Start a game. If the selected theme has an assetFile (native image),
-     * route to the Rust native splitter. Otherwise use the Kotlin procedural path.
+     * Start a game. Built-in story images go through the Kotlin image splitter;
+     * themes without an asset use the Kotlin procedural path.
      * All I/O and computation runs off the main thread to avoid ANR.
      */
     fun startGame() {
@@ -194,7 +191,7 @@ class GameViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
-                // If theme has a built-in asset image, try native Rust splitter first
+                // Built-in story image: load and split with the Kotlin engine
                 if (assetFile != null) {
                     val loadStartedAt = TimeSource.Monotonic.markNow()
                     val bytes = withContext(Dispatchers.Default) {
@@ -251,7 +248,7 @@ class GameViewModel : ViewModel() {
     }
 
     /**
-     * Start a game with raw image bytes (Native/Rust path).
+     * Start a game with raw image bytes.
      * Use this for AI-generated images, photos, or any PNG/JPEG data.
      * Safe to call from main thread — runs I/O in coroutine.
      *
@@ -385,47 +382,13 @@ class GameViewModel : ViewModel() {
      * Called from startGame() and startGameWithImage().
      */
     private suspend fun startGameWithImageInternal(imageBytes: ByteArray, pieceCount: Int) {
-        val imgSize = "${imageBytes.size / 1024}KB"
         val decodeStartedAt = TimeSource.Monotonic.markNow()
         val bitmap = withContext(Dispatchers.Default) {
             decodeToImageBitmap(imageBytes)
         } ?: throw IllegalArgumentException("无法解码图片")
         trackGameTiming("image_decode", decodeStartedAt.elapsedNow().inWholeMilliseconds)
 
-        if (blockSize == PuzzleConfig.PIXEL_BLOCK_SIZE) {
-            startGameWithBitmapInternal(bitmap, pieceCount)
-            return
-        }
-
-        val nativeStartedAt = TimeSource.Monotonic.markNow()
-        val success = withContext(Dispatchers.Default) {
-            nativeAdapter.loadAndSplit(imageBytes, pieceCount, blockSize, platformCacheDir())
-        }
-        trackGameTiming(
-            operation = "native_split",
-            durationMs = nativeStartedAt.elapsedNow().inWholeMilliseconds,
-            properties = mapOf("success" to success)
-        )
-        if (!success) {
-            PuzzleLog.w("GameVM", "Native split failed ($imgSize), falling back to Kotlin engine")
-            startGameWithBitmapInternal(bitmap, pieceCount)
-            return
-        }
-
-        val (imgW, imgH) = nativeAdapter.imageSize
-        val nativePieceBitmaps = nativeAdapter.pieceBitmaps.ifEmpty {
-            generatePieceBitmapsIfAffordable(bitmap, nativeAdapter.pieces)
-        }
-        applyNewGame(
-            pieces = nativeAdapter.pieces,
-            bitmap = bitmap,
-            pieceBitmaps = nativePieceBitmaps,
-            imageWidth = imgW,
-            imageHeight = imgH,
-            blockSize = blockSize,
-            customPositions = nativeAdapter.correctPositions
-        )
-        startTimer()
+        startGameWithBitmapInternal(bitmap, pieceCount)
     }
 
     // ── Shared game setup ────────────────────────────────
@@ -530,7 +493,6 @@ class GameViewModel : ViewModel() {
     }
 
     private fun resetForNewGame() {
-        nativeAdapter.close()
         dragDropState.cancelDrag()
         dragDropState.clearSelection()
         stopTimer()
@@ -719,7 +681,6 @@ class GameViewModel : ViewModel() {
 
     fun resetGame() {
         stopTimer()
-        nativeAdapter.close()
         _state.update { GameState() }
     }
 
@@ -740,7 +701,6 @@ class GameViewModel : ViewModel() {
             )
         }
         stopTimer()
-        nativeAdapter.close()
         dragDropState.cancelDrag()
         dragDropState.clearSelection()
         _state.update {

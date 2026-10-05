@@ -1,3 +1,0 @@
-package = puzzle_core
-headers = puzzle_core.h
-headerFilter = puzzle_core.h

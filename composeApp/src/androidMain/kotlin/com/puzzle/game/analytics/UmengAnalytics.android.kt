@@ -1,6 +1,7 @@
 package com.puzzle.game.analytics
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Bundle
 import com.puzzle.logger.PuzzleLog
 import com.umeng.analytics.MobclickAgent
@@ -8,20 +9,39 @@ import com.umeng.commonsdk.UMConfigure
 
 actual object PlatformAnalytics {
     private var appContext: Context? = null
-    private var enabled: Boolean = false
+    private var appKey: String = ""
+    private var channel: String = "official"
+    private var analyticsEnabled: Boolean = false
+    private var initialized: Boolean = false
 
-    fun initialize(context: Context) {
+    /**
+     * Reads configuration from the manifest without starting the Umeng SDK.
+     * Safe to call at process start, before privacy consent is given.
+     */
+    fun attach(context: Context) {
         val application = context.applicationContext
-        val metaData = application.packageManager
-            .getApplicationInfo(application.packageName, android.content.pm.PackageManager.GET_META_DATA)
-            .metaData ?: Bundle.EMPTY
-        val appKey = metaData.getString("UMENG_APPKEY").orEmpty()
-        val channel = metaData.getString("UMENG_CHANNEL").orEmpty().ifBlank { "official" }
-        val shouldEnable = metaData.getString("UMENG_ANALYTICS_ENABLED").orEmpty().toBooleanStrictOrNull() == true
+        val metaData = try {
+            application.packageManager
+                .getApplicationInfo(application.packageName, PackageManager.GET_META_DATA)
+                .metaData ?: Bundle.EMPTY
+        } catch (error: Exception) {
+            PuzzleLog.e("Analytics", "Unable to read analytics metadata", error)
+            Bundle.EMPTY
+        }
 
         appContext = application
-        enabled = shouldEnable && appKey.isNotBlank()
-        if (!enabled) {
+        appKey = metaData.getString("UMENG_APPKEY").orEmpty()
+        channel = metaData.getString("UMENG_CHANNEL").orEmpty().ifBlank { "official" }
+        analyticsEnabled =
+            metaData.getString("UMENG_ANALYTICS_ENABLED").orEmpty().toBooleanStrictOrNull() == true
+    }
+
+    actual fun initialize() {
+        if (initialized) return
+        initialized = true
+
+        val application = appContext
+        if (application == null || !analyticsEnabled || appKey.isBlank()) {
             PuzzleLog.i("Analytics", "Umeng Android analytics disabled or missing app key")
             return
         }
@@ -34,7 +54,7 @@ actual object PlatformAnalytics {
 
     actual fun trackEvent(name: String, properties: Map<String, String>) {
         val context = appContext
-        if (!enabled || context == null) return
+        if (!initialized || !analyticsEnabled || context == null) return
         MobclickAgent.onEventObject(context, name, properties)
     }
 }

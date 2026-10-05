@@ -15,7 +15,7 @@ class MainActivity : ComponentActivity() {
         PreferencesFactory.init(this)
         SoundManagerFactory.init(this)
         initCacheDir(this)
-        PlatformAnalytics.initialize(this)
+        PlatformAnalytics.attach(this)
         super.onCreate(savedInstanceState)
         setContent {
             App()

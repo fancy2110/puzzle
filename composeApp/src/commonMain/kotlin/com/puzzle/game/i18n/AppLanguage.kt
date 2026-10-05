@@ -80,7 +80,19 @@ data class AppStrings(
     val chooseAnotherStory: String,
     val retry: String,
     val backToMenu: String,
-    val somethingWentWrong: String
+    val somethingWentWrong: String,
+    val privacyPolicy: String,
+    val privacyPolicySubtitle: String,
+    val view: String,
+    val consentTitle: String,
+    val consentMessage: String,
+    val consentAgree: String,
+    val consentDisagree: String,
+    val consentViewPolicy: String,
+    val consentDeclineTitle: String,
+    val consentDeclineMessage: String,
+    val consentDeclineBack: String,
+    val consentDeclineQuit: String
 ) {
     fun pieceLabel(count: Int): String = when (this) {
         EnglishStrings -> if (count == 1) "$count piece" else "$count pieces"
@@ -169,7 +181,19 @@ private val SimplifiedChineseStrings = AppStrings(
     chooseAnotherStory = "选择其他故事",
     retry = "重试",
     backToMenu = "返回首页",
-    somethingWentWrong = "出了点问题"
+    somethingWentWrong = "出了点问题",
+    privacyPolicy = "隐私政策",
+    privacyPolicySubtitle = "了解我们收集的信息、儿童保护规则与联系方式",
+    view = "查看",
+    consentTitle = "欢迎使用故事拼图",
+    consentMessage = "本应用不需要注册账号。在监护人同意后，我们会通过统计 SDK 匿名收集设备信息与使用情况，用于改进产品；不会收集相册、通讯录或精确位置，也不包含广告。",
+    consentAgree = "同意并继续",
+    consentDisagree = "暂不同意",
+    consentViewPolicy = "查看《隐私政策与儿童信息保护规则》",
+    consentDeclineTitle = "需要监护人同意",
+    consentDeclineMessage = "如果不同意，本应用将无法继续使用。拼图功能本身不需要收集信息，统计分析仅在同意后开启。",
+    consentDeclineBack = "再想想",
+    consentDeclineQuit = "仍要退出"
 )
 
 private val EnglishStrings = AppStrings(
@@ -237,7 +261,19 @@ private val EnglishStrings = AppStrings(
     chooseAnotherStory = "Choose Another Story",
     retry = "Retry",
     backToMenu = "Back to Home",
-    somethingWentWrong = "Something went wrong"
+    somethingWentWrong = "Something went wrong",
+    privacyPolicy = "Privacy Policy",
+    privacyPolicySubtitle = "What we collect, child protection rules, and how to contact us",
+    view = "View",
+    consentTitle = "Welcome to Story Puzzle",
+    consentMessage = "No account is needed. With a guardian's consent, we anonymously collect device and usage information through an analytics SDK to improve the App. We never access photos, contacts, or precise location, and the App has no ads.",
+    consentAgree = "Agree and Continue",
+    consentDisagree = "Not Now",
+    consentViewPolicy = "Read the Privacy Policy",
+    consentDeclineTitle = "Guardian Consent Required",
+    consentDeclineMessage = "Without consent the App cannot continue. The puzzle itself collects no information; analytics is enabled only after consent.",
+    consentDeclineBack = "Go Back",
+    consentDeclineQuit = "Quit Anyway"
 )
 
 private val JapaneseStrings = AppStrings(
@@ -305,7 +341,19 @@ private val JapaneseStrings = AppStrings(
     chooseAnotherStory = "別の物語を選ぶ",
     retry = "再試行",
     backToMenu = "ホームへ戻る",
-    somethingWentWrong = "問題が発生しました"
+    somethingWentWrong = "問題が発生しました",
+    privacyPolicy = "プライバシーポリシー",
+    privacyPolicySubtitle = "収集する情報、子どもの保護ルール、連絡先を確認できます",
+    view = "見る",
+    consentTitle = "ものがたりパズルへようこそ",
+    consentMessage = "アカウント登録は不要です。保護者の同意後に、分析 SDK を通じて端末情報と利用状況を匿名で収集し、サービス改善に役立てます。写真、連絡先、正確な位置情報は収集せず、広告もありません。",
+    consentAgree = "同意して続ける",
+    consentDisagree = "同意しない",
+    consentViewPolicy = "プライバシーポリシーを読む",
+    consentDeclineTitle = "保護者の同意が必要です",
+    consentDeclineMessage = "同意がない場合、アプリをご利用いただけません。パズル機能自体は情報を収集せず、分析は同意後にのみ開始されます。",
+    consentDeclineBack = "戻る",
+    consentDeclineQuit = "終了する"
 )
 
 private val TraditionalChineseStrings = AppStrings(
@@ -373,7 +421,19 @@ private val TraditionalChineseStrings = AppStrings(
     chooseAnotherStory = "選擇其他故事",
     retry = "重試",
     backToMenu = "返回首頁",
-    somethingWentWrong = "出了點問題"
+    somethingWentWrong = "出了點問題",
+    privacyPolicy = "隱私權政策",
+    privacyPolicySubtitle = "了解我們收集的資訊、兒童保護規則與聯絡方式",
+    view = "查看",
+    consentTitle = "歡迎使用故事拼圖",
+    consentMessage = "本應用不需要註冊帳號。在監護人同意後，我們會透過統計 SDK 匿名收集裝置資訊與使用情況，用於改進產品；不會收集相簿、通訊錄或精確位置，也不包含廣告。",
+    consentAgree = "同意並繼續",
+    consentDisagree = "暫不同意",
+    consentViewPolicy = "查看《隱私權政策與兒童資訊保護規則》",
+    consentDeclineTitle = "需要監護人同意",
+    consentDeclineMessage = "如果不同意，本應用將無法繼續使用。拼圖功能本身不需要收集資訊，統計分析僅在同意後開啟。",
+    consentDeclineBack = "再想想",
+    consentDeclineQuit = "仍要退出"
 )
 
 val LocalAppLanguage = staticCompositionLocalOf { AppLanguage.SimplifiedChinese }

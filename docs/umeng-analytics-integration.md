@@ -207,7 +207,9 @@ UMENG_APP_KEY=your_ios_app_key
 UMENG_CHANNEL=app_store
 ```
 
-发布阻断项：当前开关开启后会在平台入口初始化 SDK，但 App 尚未提供首次启动隐私政策确认与撤回入口。正式发布前必须改为“预初始化 -> 监护人/用户同意 -> 正式初始化”，拒绝时不得初始化或上报。儿童产品还应由法务确认监护人同意、SDK 清单和儿童个人信息规则。
+合规初始化（已实现）：App 启动时只做“预初始化”——Android 端 `PlatformAnalytics.attach()` 仅读取 manifest 配置，iOS 端只注册 Kotlin 回调钩子，均不启动友盟 SDK。首次启动展示监护人同意门（`ConsentGate`，系统返回键不可绕过），同意后调用 `PlatformAnalytics.initialize()` 正式初始化并记录同意版本（`privacy_consent_version`），拒绝则不初始化、不上报并退出 App（iOS 仅提供返回同意路径）。隐私政策以简中/繁中/英文/日文四种语言打包在应用内，并在设置页提供入口。政策版本变更（`PrivacyConsent.VERSION`）会再次触发同意门。
+
+待办：正式发布前仍需法务确认监护人同意文案、SDK 清单公示页和儿童个人信息保护规则。
 
 ## 8. 友盟 SDK 调研与决策
 
@@ -243,6 +245,8 @@ UMENG_CHANNEL=app_store
 7. 事件中没有 prompt、URL、路径、碎片 ID 和异常堆栈。
 8. Android APK/AAB 中所有 arm64-v8a、x86_64 ELF 通过 16 KB 对齐检查。
 9. 用户拒绝隐私政策时，友盟 SDK 不正式初始化、不上报。
+10. 首次启动必现同意门；同意版本与当前 `PrivacyConsent.VERSION` 一致时再次启动不再展示。
+11. 同意门展示期间日志中不存在任何 `puzzle_` 事件或友盟初始化记录。
 
 ## 10. 官方参考
 

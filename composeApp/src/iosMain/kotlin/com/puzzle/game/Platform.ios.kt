@@ -9,5 +9,7 @@ class IOSPlatform : Platform {
 
 actual fun getPlatform(): Platform = IOSPlatform()
 
+actual fun exitApplication() = Unit
+
 @Composable
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) = Unit

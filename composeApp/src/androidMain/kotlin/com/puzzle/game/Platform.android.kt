@@ -9,6 +9,10 @@ class AndroidPlatform : Platform {
 
 actual fun getPlatform(): Platform = AndroidPlatform()
 
+actual fun exitApplication() {
+    android.os.Process.killProcess(android.os.Process.myPid())
+}
+
 @Composable
 actual fun PlatformBackHandler(enabled: Boolean, onBack: () -> Unit) {
     BackHandler(enabled = enabled, onBack = onBack)

@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.sp
 import com.puzzle.game.PlatformBackHandler
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsScreen
+import com.puzzle.game.audio.LocalSfxPlayer
+import com.puzzle.game.audio.Sfx
 import com.puzzle.game.game.GamePhase
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.i18n.LocalAppStrings
@@ -1168,6 +1170,7 @@ private fun PieceTrayCard(
     modifier: Modifier = Modifier
 ) {
     val isSelected = dragState.selectedPieceId == piece.id
+    val sfxPlayer = LocalSfxPlayer.current
     var pieceWindowPos by remember { mutableStateOf(Offset.Zero) }
     var pieceIntSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -1180,6 +1183,7 @@ private fun PieceTrayCard(
             .pointerInput(piece.id) {
                 detectDragGestures(
                     onDragStart = { localOffset ->
+                        sfxPlayer.play(Sfx.PieceSelect)
                         dragState.startDrag(
                             pieceId = piece.id,
                             startOffset = pieceWindowPos,
@@ -1211,8 +1215,10 @@ private fun PieceTrayCard(
             )
             .clickable {
                 if (isSelected) {
+                    sfxPlayer.play(Sfx.ButtonClick)
                     dragState.clearSelection()
                 } else {
+                    sfxPlayer.play(Sfx.PieceSelect)
                     dragState.tapSelect(piece.id)
                 }
             },

@@ -4,7 +4,7 @@ import ComposeApp
 @main
 struct iOSApp: App {
     init() {
-        UmengAnalyticsBridge.configure()
+        UmengAnalyticsBridge.configureTracker()
     }
 
     var body: some Scene {

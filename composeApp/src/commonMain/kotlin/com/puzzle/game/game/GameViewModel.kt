@@ -7,6 +7,7 @@ import com.puzzle.game.ai.AIImageGenerator
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsEvent
 import com.puzzle.game.analytics.AnalyticsScreen
+import com.puzzle.game.audio.Sfx
 import com.puzzle.logger.PuzzleLog
 import com.puzzle.game.data.BuiltinStoryImageSet
 import com.puzzle.game.data.PuzzlePictureGenerator
@@ -23,7 +24,10 @@ import com.puzzle.game.native.NativeSplitAdapter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
@@ -41,6 +45,9 @@ class GameViewModel : ViewModel() {
 
     private val _state = MutableStateFlow(GameState())
     val state: StateFlow<GameState> = _state
+
+    private val _sfxEvents = MutableSharedFlow<Sfx>(extraBufferCapacity = 6)
+    val sfxEvents: SharedFlow<Sfx> = _sfxEvents.asSharedFlow()
 
     private val engine = PuzzleEngine()
     private val nativeAdapter = NativeSplitAdapter()
@@ -638,6 +645,7 @@ class GameViewModel : ViewModel() {
             if (placedCount == 1 || allPlaced) {
                 Analytics.track(AnalyticsEvent.PiecePlace, eventProperties)
             }
+            _sfxEvents.tryEmit(Sfx.PiecePlace)
             reportProgressMilestones(placedCount, totalCount, inputMethod)
 
             val newCellFilled = before.cellFilledBy.toMutableMap().apply { put(pieceId, pieceId) }
@@ -661,10 +669,12 @@ class GameViewModel : ViewModel() {
                 if (before.selectedStoryPageIndex == storyPages.lastIndex) {
                     Analytics.track(AnalyticsEvent.StoryComplete, completionProperties)
                 }
+                _sfxEvents.tryEmit(Sfx.Complete)
             }
         } else {
             val current = _state.value
             wrongPlacementCount++
+            _sfxEvents.tryEmit(Sfx.PieceWrong)
             Analytics.track(
                 AnalyticsEvent.PiecePlace,
                 baseGameProperties(

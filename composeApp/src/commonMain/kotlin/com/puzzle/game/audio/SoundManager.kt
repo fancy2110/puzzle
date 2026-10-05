@@ -1,7 +1,8 @@
 package com.puzzle.game.audio
 
-/**
- * Cross-platform sound effects.
+/*
+ * SoundManager - cross-platform sound management
+ *
  * Uses expect/actual for platform-specific implementations.
  */
 expect class SoundManager {

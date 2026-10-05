@@ -48,7 +48,8 @@ fun SettingsScreen(
     onSoundEnabledChange: (Boolean) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     onBack: () -> Unit,
-    onOpenImageSource: () -> Unit
+    onOpenImageSource: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit
 ) {
     val strings = LocalAppStrings.current
     var referenceEnabled by remember { mutableStateOf(preferences.isReferenceEnabled()) }
@@ -132,6 +133,20 @@ fun SettingsScreen(
                             LanguageMenu(
                                 language = language,
                                 onLanguageChange = onLanguageChange
+                            )
+                        }
+                    )
+
+                    SettingRow(
+                        title = strings.privacyPolicy,
+                        subtitle = strings.privacyPolicySubtitle,
+                        trailing = {
+                            StoryButton(
+                                text = strings.view,
+                                onClick = onOpenPrivacyPolicy,
+                                tone = StoryButtonTone.Secondary,
+                                height = 42.dp,
+                                modifier = Modifier.width(82.dp)
                             )
                         }
                     )

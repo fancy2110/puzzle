@@ -156,6 +156,8 @@ enum class AnalyticsEvent(val id: String) {
 }
 
 expect object PlatformAnalytics {
+    /** Initializes the underlying SDK. Called only after privacy consent. */
+    fun initialize()
     fun trackEvent(name: String, properties: Map<String, String>)
 }
 

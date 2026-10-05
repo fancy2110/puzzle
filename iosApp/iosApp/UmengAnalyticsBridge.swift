@@ -10,10 +10,10 @@ enum UmengAnalyticsBridge {
         let appKey = Bundle.main.object(forInfoDictionaryKey: "UMENG_APP_KEY") as? String ?? ""
         let channel = Bundle.main.object(forInfoDictionaryKey: "UMENG_CHANNEL") as? String ?? "app_store"
         let enabledValue = Bundle.main.object(forInfoDictionaryKey: "UMENG_ANALYTICS_ENABLED") as? String ?? "false"
-        let enabled = enabledValue.lowercased() == "true"
+        let enabled = enabledValue.lowercased() == "true" && !appKey.isEmpty
 
         #if canImport(UMCommon)
-        if enabled && !appKey.isEmpty {
+        if enabled {
             UMConfigure.initWithAppkey(appKey, channel: channel)
             #if DEBUG
             UMConfigure.setLogEnabled(true)

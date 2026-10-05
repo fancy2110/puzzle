@@ -3,14 +3,19 @@ package com.puzzle.game
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.puzzle.game.analytics.Analytics
 import com.puzzle.game.analytics.AnalyticsScreen
+import com.puzzle.game.audio.SoundManagerFactory
 import com.puzzle.game.data.PreferencesFactory
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.i18n.AppLanguage
@@ -34,8 +39,42 @@ fun App() {
         val navViewModel = remember { NavigationViewModel() }
         val gameViewModel: GameViewModel = viewModel { GameViewModel() }
         val preferences = remember { PreferencesFactory.create() }
+        val soundManager = remember { SoundManagerFactory.create() }
+        var soundEnabled by remember { mutableStateOf(preferences.isSoundEnabled()) }
         var language by remember {
             mutableStateOf(AppLanguage.fromCode(preferences.getLanguageCode()))
+        }
+        val appStartedAt = remember { TimeSource.Monotonic.markNow() }
+        val lifecycleOwner = LocalLifecycleOwner.current
+
+        LaunchedEffect(language) {
+            Analytics.appLaunch(language.code)
+            Analytics.setLanguage(language.code)
+        }
+
+        LaunchedEffect(soundEnabled) {
+            soundManager.setBackgroundMusicEnabled(soundEnabled)
+        }
+
+        DisposableEffect(soundManager) {
+            onDispose {
+                soundManager.release()
+            }
+        }
+
+        DisposableEffect(lifecycleOwner, soundManager) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> soundManager.resumeBackgroundMusic()
+                    Lifecycle.Event.ON_PAUSE,
+                    Lifecycle.Event.ON_STOP -> soundManager.pauseBackgroundMusic()
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose {
+                lifecycleOwner.lifecycle.removeObserver(observer)
+            }
         }
 
         val screenStack by navViewModel.screenStack.collectAsState()
@@ -43,8 +82,9 @@ fun App() {
 
         DisposableEffect(currentScreen) {
             val analyticsScreen = currentScreen?.analyticsScreen()
+            val sourceScreen = screenStack.dropLast(1).lastOrNull()?.analyticsScreen()?.id
             val enteredAt = TimeSource.Monotonic.markNow()
-            analyticsScreen?.let { Analytics.screen(it) }
+            analyticsScreen?.let { Analytics.screen(it, source = sourceScreen) }
             onDispose {
                 analyticsScreen?.let {
                     Analytics.screenDuration(
@@ -63,6 +103,7 @@ fun App() {
                 Screen.Splash -> {
                     SplashScreen(
                         onFinished = {
+                            Analytics.appReady(appStartedAt.elapsedNow().inWholeMilliseconds)
                             navViewModel.replaceWith(Screen.Menu)
                         }
                     )
@@ -123,15 +164,6 @@ fun App() {
                         onUseCurrent = {
                             Analytics.click("image_source_current_theme", AnalyticsScreen.ImageSource)
                             navViewModel.goBackTo(Screen.Menu)
-                        },
-                        onGenerateAi = { prompt, entryPoint ->
-                            Analytics.click(
-                                target = "image_source_ai_generate",
-                                screen = AnalyticsScreen.ImageSource,
-                                properties = mapOf("entry_point" to entryPoint)
-                            )
-                            gameViewModel.startAIGame(prompt)
-                            navViewModel.navigateTo(Screen.Game)
                         }
                     )
                 }
@@ -140,6 +172,11 @@ fun App() {
                     SettingsScreen(
                         preferences = preferences,
                         language = language,
+                        soundEnabled = soundEnabled,
+                        onSoundEnabledChange = { enabled ->
+                            soundEnabled = enabled
+                            preferences.setSoundEnabled(enabled)
+                        },
                         onLanguageChange = { selectedLanguage ->
                             language = selectedLanguage
                             preferences.setLanguageCode(selectedLanguage.code)
@@ -184,6 +221,7 @@ fun App() {
                 null -> {
                     SplashScreen(
                         onFinished = {
+                            Analytics.appReady(appStartedAt.elapsedNow().inWholeMilliseconds)
                             navViewModel.replaceWith(Screen.Menu)
                         }
                     )

@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>游戏框架设计指引工具</title>
+<style>
+  :root {
+    --mist: #F7F2EA;
+    --cloud: #FFF9F0;
+    --stone: #D9CBB6;
+    --stone-dark: #7A6750;
+    --muted: #8F806E;
+    --teal: #7CAEA5;
+    --teal-dark: #356D6A;
+    --coral: #E98166;
+    --coral-dark: #B85B44;
+    --gold: #CDA45A;
+    --err: #C76A5A;
+    --radius: 18px;
+    --shadow: 0 2px 10px rgba(122, 103, 80, .12);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--mist);
+    color: var(--stone-dark);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  header {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 12px 20px;
+    background: var(--cloud);
+    border-bottom: 1px solid var(--stone);
+    position: sticky; top: 0; z-index: 20;
+  }
+  header h1 {
+    font-size: 17px; font-weight: 800; color: var(--teal-dark);
+    letter-spacing: .5px;
+  }
+  header h1 span { color: var(--coral); }
+  header .spacer { flex: 1; }
+  .stat {
+    font-size: 12px; color: var(--muted);
+    background: var(--mist); border: 1px solid var(--stone);
+    padding: 3px 10px; border-radius: 999px;
+  }
+  .stat b { color: var(--teal-dark); }
+  .btn {
+    font: inherit; cursor: pointer; border-radius: 999px;
+    padding: 6px 14px; border: 1px solid var(--stone);
+    background: var(--cloud); color: var(--stone-dark); font-weight: 600;
+    transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .btn.primary:hover { background: var(--coral-dark); }
+  .btn.small { padding: 3px 10px; font-size: 12px; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 430px 1fr;
+    gap: 14px;
+    padding: 14px 20px 30px;
+    height: calc(100vh - 60px);
+  }
+  @media (max-width: 960px) {
+    .layout { grid-template-columns: 1fr; height: auto; }
+  }
+
+  .panel {
+    background: var(--cloud);
+    border: 1px solid var(--stone);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- 表单 ---------- */
+  aside { overflow-y: auto; padding: 6px 14px 20px; }
+  details { border-bottom: 1px dashed var(--stone); }
+  details:last-child { border-bottom: none; }
+  summary {
+    cursor: pointer; list-style: none; user-select: none;
+    padding: 13px 2px; font-weight: 800; color: var(--teal-dark);
+    display: flex; align-items: center; gap: 8px;
+  }
+  summary::before {
+    content: "▸"; color: var(--coral); font-size: 12px; transition: transform .15s;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary .tag {
+    margin-left: auto; font-size: 11px; font-weight: 600;
+    color: var(--muted); background: var(--mist); border: 1px solid var(--stone);
+    padding: 1px 8px; border-radius: 999px;
+  }
+  .field { margin: 8px 2px 12px; }
+  .field label {
+    display: block; font-size: 12px; font-weight: 700; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .field .hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; font: inherit; color: var(--stone-dark);
+    background: var(--mist); border: 1px solid var(--stone);
+    border-radius: 10px; padding: 7px 10px; outline: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--teal); }
+  textarea { resize: vertical; min-height: 52px; }
+  select { width: auto; min-width: 140px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .row > * { flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    border: 1px solid var(--stone); border-radius: 999px;
+    padding: 3px 10px; font-size: 12px; cursor: pointer;
+    background: var(--mist); user-select: none;
+  }
+  .chip input { accent-color: var(--teal); cursor: pointer; }
+  .chip.on { background: #E4EFEC; border-color: var(--teal); color: var(--teal-dark); }
+
+  .scene-row {
+    border: 1px solid var(--stone); border-radius: 12px;
+    padding: 8px 10px; margin: 6px 0; background: var(--mist);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .scene-row.disabled { opacity: .45; }
+  .scene-row .top { display: flex; align-items: center; gap: 8px; }
+  .scene-row .top input[type=checkbox] { accent-color: var(--teal); width: 15px; height: 15px; cursor: pointer; }
+  .scene-row .top .nm { flex: 1; font-weight: 700; }
+  .scene-row .top .del { color: var(--err); cursor: pointer; border: none; background: none; font-size: 14px; }
+  .scene-row .sub { display: flex; gap: 6px; }
+  .scene-row input[type=text] { font-size: 12px; padding: 4px 8px; }
+  .scene-row .prio { width: 64px; flex: 0 0 auto; }
+  .mini { font-size: 11px; color: var(--muted); }
+
+  .token-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .token-grid .field { margin-bottom: 0; }
+  .hexrow { display: flex; gap: 6px; align-items: center; }
+  .hexrow input[type=color] {
+    width: 40px; height: 32px; padding: 2px; border: 1px solid var(--stone);
+    border-radius: 8px; background: var(--mist); cursor: pointer; flex: 0 0 auto;
+  }
+
+  /* ---------- 输出 ---------- */
+  main { display: flex; flex-direction: column; min-height: 0; }
+  .tabs {
+    display: flex; gap: 6px; padding: 10px 14px 0;
+    border-bottom: 1px solid var(--stone); flex-wrap: wrap;
+  }
+  .tab {
+    font: inherit; cursor: pointer; border: 1px solid transparent;
+    background: none; color: var(--muted); font-weight: 700;
+    padding: 8px 14px; border-radius: 12px 12px 0 0;
+  }
+  .tab.active { background: var(--mist); border-color: var(--stone); border-bottom-color: var(--mist); color: var(--teal-dark); }
+  .tabbar-right { margin-left: auto; display: flex; gap: 6px; align-items: center; padding-right: 4px; }
+  .output {
+    flex: 1; overflow: auto; padding: 14px; min-height: 0;
+  }
+  pre.code {
+    background: var(--mist); border: 1px solid var(--stone);
+    border-radius: 12px; padding: 14px; white-space: pre-wrap;
+    word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12.5px; line-height: 1.55; color: #4C4236;
+  }
+  .blk { margin-bottom: 14px; }
+  .blk-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .blk-head .t { font-weight: 800; color: var(--teal-dark); }
+  .blk-head .sub { font-size: 11px; color: var(--muted); }
+  .blk-head .spacer { flex: 1; }
+  .empty { color: var(--muted); font-style: italic; padding: 20px 0; text-align: center; }
+  .ok { color: var(--teal-dark); font-size: 12px; }
+  footer { font-size: 11px; color: var(--muted); padding: 8px 14px; border-top: 1px dashed var(--stone); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🧩 游戏框架<span>设计指引</span>工具</h1>
+  <span class="stat">场景 <b id="stat-scenes">0</b></span>
+  <span class="stat">待生成原型 <b id="stat-gen">0</b></span>
+  <span class="stat">状态 <b id="stat-save">就绪</b></span>
+  <span class="spacer"></span>
+  <button class="btn" id="btn-example" title="载入儿童拼图示例配置">载入示例</button>
+  <button class="btn" id="btn-clear" title="清空表单">清空</button>
+  <button class="btn" id="btn-export" title="导出当前配置 JSON">导出配置</button>
+  <button class="btn" id="btn-import" title="导入配置 JSON">导入配置</button>
+  <input type="file" id="file-import" accept="application/json,.json" style="display:none">
+</header>
+
+<div class="layout">
+  <!-- ================= 表单 ================= -->
+  <aside class="panel" id="form">
+    <details open>
+      <summary>1 · 框架结构 <span class="tag">场景地图</span></summary>
+      <div class="field"><label>游戏名称</label><input type="text" id="f-name" placeholder="如：儿童故事拼图"></div>
+      <div class="field"><label>一句话定位</label><input type="text" id="f-tagline" placeholder="给谁玩、玩什么"></div>
+      <div class="row">
+        <div class="field" style="flex:2"><label>目标人群</label><input type="text" id="f-audience" placeholder="如：3-8 岁儿童及家长"></div>
+        <div class="field" style="flex:1"><label>平台形态</label>
+          <select id="f-platform">
+            <option value="移动竖屏 9:16">移动竖屏 9:16</option>
+            <option value="移动横屏 16:9">移动横屏 16:9</option>
+            <option value="桌面 Web 16:9">桌面 Web 16:9</option>
+            <option value="多端自适应">多端自适应</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>场景清单（勾选启用，可改名称/用途/组件/优先级，勾选「出原型」才会生成该屏 Prompt）</label>
+        <div id="scene-list"></div>
+        <button class="btn small" id="btn-add-scene" style="margin-top:6px">+ 添加自定义场景</button>
+      </div>
+      <div class="field">
+        <label>导航规则（每行一条：源 → 目标）</label>
+        <textarea id="f-nav" placeholder="主菜单 → 游戏主场景&#10;游戏主场景 → 暂停"></textarea>
+        <div class="hint"><button class="btn small" id="btn-nav-auto">按场景顺序生成默认导航</button>（自动补常见往返）</div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>2 · 基础模式 <span class="tag">玩法模式</span></summary>
+      <div class="field"><label>模式原型（可多选）</label>
+        <div class="chips" id="chips-modes"></div>
+      </div>
+      <div class="field"><label>会话模型 — 一局如何开始</label><input type="text" id="f-sess-start" placeholder="如：选择画面与片数后进入"></div>
+      <div class="field"><label>会话模型 — 一局如何结束</label><input type="text" id="f-sess-end" placeholder="如：全部碎片归位"></div>
+      <div class="field"><label>会话模型 — 计分方式</label><input type="text" id="f-sess-score" placeholder="如：用时与提示次数"></div>
+      <div class="field"><label>会话模型 — 重玩机制</label><input type="text" id="f-sess-replay" placeholder="如：再来一局 / 换画面"></div>
+      <div class="field"><label>输入方式（可多选）</label>
+        <div class="chips" id="chips-inputs"></div>
+      </div>
+    </details>
+
+    <details open>
+      <summary>3 · 画面风格 <span class="tag">视觉契约</span></summary>
+      <div class="field"><label>风格预设（选择后自动填充令牌，可再手改；选「自定义」保留当前值）</label>
+        <select id="f-style-preset"></select>
+      </div>
+      <div class="field"><label>情绪关键词（逗号分隔）</label><input type="text" id="f-mood" placeholder="如：安静、触感、童趣、高级感"></div>
+      <div class="token-grid">
+        <div class="field"><label>背景色</label><div class="hexrow"><input type="color" data-tok="bg"><input type="text" data-tokhex="bg" placeholder="#F7F2EA"></div></div>
+        <div class="field"><label>表面/面板色</label><div class="hexrow"><input type="color" data-tok="surface"><input type="text" data-tokhex="surface" placeholder="#FFF9F0"></div></div>
+        <div class="field"><label>主按钮色</label><div class="hexrow"><input type="color" data-tok="primary"><input type="text" data-tokhex="primary" placeholder="#E98166"></div></div>
+        <div class="field"><label>强调/选中色</label><div class="hexrow"><input type="color" data-tok="accent"><input type="text" data-tokhex="accent" placeholder="#7CAEA5"></div></div>
+        <div class="field"><label>成功色</label><div class="hexrow"><input type="color" data-tok="success"><input type="text" data-tokhex="success" placeholder="#5B9E8F"></div></div>
+        <div class="field"><label>错误色</label><div class="hexrow"><input type="color" data-tok="error"><input type="text" data-tokhex="error" placeholder="#C76A5A"></div></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="field" style="flex:1"><label>圆角</label><input type="number" id="f-radius" min="0" max="60" step="2" value="24"></div>
+        <div class="field" style="flex:1"><label>主字重</label>
+          <select id="f-weight"><option>400</option><option>500</option><option selected>600</option><option>700</option><option>800</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Chrome 规则（可多选）</label>
+        <div class="chips" id="chips-chrome"></div>
+      </div>
+      <div class="field"><label>额外 Chrome 规则</label><textarea id="f-chrome-extra" placeholder="每行一条，如：进度条使用金色点缀"></textarea></div>
+      <div class="field"><label>负面约束（逗号分隔，写入每个 Prompt）</label><input type="text" id="f-negatives" placeholder="emoji, 默认紫色, 文字乱码, 内容溢出安全区, 水印"></div>
+    </details>
+
+    <details open>
+      <summary>4 · 布局与适配 <span class="tag">安全区</span></summary>
+      <div class="field"><label>画布方向</label>
+        <select id="f-orientation">
+          <option value="竖屏 9:16（设计稿 1080×1920）">竖屏 9:16（1080×1920）</option>
+          <option value="横屏 16:9（设计稿 1920×1080）">横屏 16:9（1920×1080）</option>
+          <option value="桌面 16:9（1440×900）">桌面 16:9（1440×900）</option>
+          <option value="自适应（多端）">自适应（多端）</option>
+        </select>
+      </div>
+      <div class="field"><label>HUD 分区（可多选）</label>
+        <div class="chips" id="chips-hud"></div>
+      </div>
+      <div class="field"><label>安全区说明</label><textarea id="f-safearea" placeholder="顶部避开刘海/状态栏，底部避开手势条，核心交互居中"></textarea></div>
+    </details>
+
+    <details open>
+      <summary>5 · 交互与反馈 <span class="tag">状态矩阵</span></summary>
+      <div class="field"><label>手势词汇（可多选）</label>
+        <div class="chips" id="chips-gestures"></div>
+      </div>
+      <div class="field"><label>需要出原型的组件状态（可多选）</label>
+        <div class="chips" id="chips-states"></div>
+      </div>
+      <div class="field"><label>反馈风格（动效/音效描述）</label><textarea id="f-feedback" placeholder="如：轻柔缓动约 200ms；放置成功轻微咔嗒音与青绿高亮；完成时星星粒子庆祝；错误软提示「再试试」"></textarea></div>
+    </details>
+
+    <details open>
+      <summary>6 · 技术约束 <span class="tag">实现边界</span></summary>
+      <div class="field"><label>目标平台（可多选）</label>
+        <div class="chips" id="chips-platforms"></div>
+      </div>
+      <div class="field"><label>引擎 / 框架</label><input type="text" id="f-engine" placeholder="如：Kotlin Multiplatform + Compose Multiplatform (Material 3)"></div>
+      <div class="field"><label>设计稿分辨率上限</label><input type="text" id="f-resolution" placeholder="如：1080×1920 竖屏"></div>
+      <div class="field"><label>无障碍要求（可多选）</label>
+        <div class="chips" id="chips-a11y"></div>
+      </div>
+      <div class="field"><label>性能约束</label><textarea id="f-perf" placeholder="如：300 片时不全量预生成位图，候选栏按需渲染"></textarea></div>
+    </details>
+  </aside>
+
+  <!-- ================= 输出 ================= -->
+  <main class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="guide">📋 设计指引</button>
+      <button class="tab" data-tab="contract">📦 视觉契约</button>
+      <button class="tab" data-tab="prompts">🎨 逐屏 Prompt</button>
+      <button class="tab" data-tab="checklist">✅ 验收清单</button>
+      <div class="tabbar-right">
+        <button class="btn small" id="btn-copy-tab">复制本页</button>
+        <button class="btn small" id="btn-download-tab">下载</button>
+      </div>
+    </div>
+    <div class="output" id="output"></div>
+    <footer>
+      用法：先填左侧 6 个维度（或「载入示例」）→ 右侧实时生成三件套 → 「逐屏 Prompt」逐屏喂给 AI 生图 →
+      首屏锚定后其余屏以它为风格参照 → 每屏过「验收清单」，不过则把差异追加到 Prompt 重新生成。配置自动保存在本机浏览器。
+    </footer>
+  </main>
+</div>
+
+<script>
+"use strict";
+/* ================= 常量 ================= */
+const LS_KEY = "gfd-tool-state-v1";
+
+const SCENE_CATALOG = [
+  { type: "启动/加载",  name: "启动/加载页", purpose: "品牌展示与资源加载", components: "品牌 Logo, 加载进度, 版本号" },
+  { type: "主菜单",     name: "主菜单",     purpose: "第一入口：开始游戏、进入模式与设置", components: "品牌标题, 开始按钮, 设置入口, 模式入口" },
+  { type: "模式选择",   name: "模式选择",   purpose: "选择游戏模式（关卡/无尽/限时等）", components: "模式卡片, 模式说明, 返回" },
+  { type: "关卡选择",   name: "关卡选择",   purpose: "选择关卡或进度点", components: "关卡网格/地图, 锁定态, 返回" },
+  { type: "游戏主场景", name: "游戏主场景", purpose: "核心玩法发生地", components: "棋盘/舞台, HUD(返回/进度/计时), 操作托盘" },
+  { type: "暂停",       name: "暂停弹层",   purpose: "游戏中暂停：继续/重开/退出", components: "遮罩, 继续, 重开, 退出, 设置" },
+  { type: "结算/完成",  name: "结算/完成页", purpose: "一局结束的结果反馈", components: "成绩(时间/分数), 再来一局, 换关卡, 分享" },
+  { type: "设置",       name: "设置页",     purpose: "音效/音乐/无障碍/关于", components: "开关列表, 返回" },
+  { type: "商店/图鉴",  name: "商店/图鉴",  purpose: "购买或查看收集内容", components: "商品列表, 货币, 收藏网格" },
+  { type: "排行榜",     name: "排行榜",     purpose: "展示玩家排名", components: "榜单, 玩家头像, 切换页签" },
+  { type: "剧情/过场",  name: "剧情/过场",  purpose: "推进故事叙述", components: "插画, 对话气泡, 跳过按钮" },
+];
+
+const MODE_ARCHETYPES = ["关卡制", "无尽模式", "限时挑战", "沙盒自由", "故事剧情", "单局闯关", "多人联机"];
+const INPUT_OPTIONS = ["点击", "拖拽", "长按", "滑动", "双击", "键盘", "倾斜/体感"];
+const CHROME_RULES = [
+  "避免 emoji 界面",
+  "避免系统默认紫色",
+  "避免重渐变/玻璃拟态滥用",
+  "每屏仅一个主行动按钮",
+  "低对比描边、柔和表面",
+  "点击区不小于 48dp",
+];
+const HUD_ZONES = ["顶栏（返回/进度/计时）", "中央舞台区", "底部托盘/操作区", "侧边栏（横屏）", "悬浮按钮区"];
+const STATE_OPTIONS = ["默认", "悬停", "按下", "禁用", "选中", "错误", "成功"];
+const PLATFORM_OPTIONS = ["Android", "iOS", "Web (H5)", "桌面"];
+const A11Y_OPTIONS = ["点击区 ≥48dp", "文字对比度达标", "支持大字模式", "无音效也可完整游玩", "色盲友好配色"];
+
+const STYLE_PRESETS = {
+  "治愈扁平": {
+    mood: "安静、柔和、触感、圆润、童趣、高级感",
+    tokens: { bg: "#F7F2EA", surface: "#FFF9F0", primary: "#E98166", accent: "#7CAEA5", success: "#5B9E8F", error: "#C76A5A" },
+    radius: 24, weight: "600",
+    chrome: ["避免 emoji 界面", "避免系统默认紫色", "避免重渐变/玻璃拟态滥用", "每屏仅一个主行动按钮", "低对比描边、柔和表面", "点击区不小于 48dp"],
+  },
+  "低多边形": {
+    mood: "几何、明快、游戏感、光照分明、利落",
+    tokens: { bg: "#EAF2F5", surface: "#F8FBFD", primary: "#3D7EA6", accent: "#E9A13B", success: "#4CAF7D", error: "#D9534F" },
+    radius: 12, weight: "700",
+    chrome: ["每屏仅一个主行动按钮", "使用硬边阴影表达层次", "避免过度圆角", "点击区不小于 48dp"],
+  },
+  "手绘水彩": {
+    mood: "柔和、文艺、纸张质感、留白、手作感",
+    tokens: { bg: "#FBF6EE", surface: "#FFFFFF", primary: "#7A9E7E", accent: "#C9A063", success: "#6B8E6E", error: "#C07A6A" },
+    radius: 20, weight: "500",
+    chrome: ["避免 emoji 界面", "避免重渐变", "每屏仅一个主行动按钮", "允许轻微纸张纹理"],
+  },
+  "像素复古": {
+    mood: "怀旧、8bit、鲜明、网格、街机感",
+    tokens: { bg: "#1E1E3A", surface: "#2B2B55", primary: "#FFD23F", accent: "#3EC1D3", success: "#6FCF97", error: "#FF6B6B" },
+    radius: 4, weight: "700",
+    chrome: ["使用像素块边缘", "每屏仅一个主行动按钮", "避免抗锯齿圆角", "点击区不小于 48dp"],
+  },
+  "卡通渲染": {
+    mood: "活力、高饱和、夸张、明快、吸睛",
+    tokens: { bg: "#FFF4E0", surface: "#FFFFFF", primary: "#FF8C42", accent: "#4ECDC4", success: "#7BC950", error: "#FF5A5F" },
+    radius: 28, weight: "800",
+    chrome: ["避免 emoji 界面", "每屏仅一个主行动按钮", "描边粗 2-3px 增强识别", "点击区不小于 48dp"],
+  },
+  "国风水墨": {
+    mood: "雅致、留白、水墨、意境、古韵",
+    tokens: { bg: "#F4EFE6", surface: "#FBF8F1", primary: "#8C3B2E", accent: "#4A6B5D", success: "#5C7A6A", error: "#A34A3A" },
+    radius: 8, weight: "500",
+    chrome: ["避免 emoji 界面", "避免高饱和霓虹色", "每屏仅一个主行动按钮", "允许印章/书法点缀"],
+  },
+};
+STYLE_PRESETS["自定义"] = null;
+
+/* ================= 小工具 ================= */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s == null ? "" : s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+
+function buildChips(containerId, options, sel) {
+  const box = $(containerId);
+  box.innerHTML = "";
+  options.forEach((opt) => {
+    const on = sel.includes(opt);
+    const c = document.createElement("label");
+    c.className = "chip" + (on ? " on" : "");
+    c.innerHTML = `<input type="checkbox" value="${esc(opt)}" ${on ? "checked" : ""}><span>${esc(opt)}</span>`;
+    c.querySelector("input").addEventListener("change", () => {
+      c.classList.toggle("on", c.querySelector("input").checked);
+      onAnyChange();
+    });
+    box.appendChild(c);
+  });
+}
+function readChips(containerId) {
+  return Array.from($(containerId).querySelectorAll("input:checked")).map((i) => i.value);
+}
+
+/* ================= 场景列表 ================= */
+let scenes = []; // {type, name, purpose, components, enabled, priority, gen, custom}
+
+function renderSceneList() {
+  const box = $("scene-list");
+  box.innerHTML = "";
+  scenes.forEach((s, idx) => {
+    const row = document.createElement("div");
+    row.className = "scene-row" + (s.enabled ? "" : " disabled");
+    row.dataset.idx = idx;
+    row.innerHTML = `
+      <div class="top">
+        <input type="checkbox" class="chk-enable" ${s.enabled ? "checked" : ""} title="启用该场景">
+        <input type="text" class="nm" value="${esc(s.name)}">
+        <span class="mini">${esc(s.type)}</span>
+        <label class="mini" style="white-space:nowrap"><input type="checkbox" class="chk-gen" ${s.gen ? "checked" : ""}> 出原型</label>
+        <select class="prio" title="原型生成优先级">
+          ${[1, 2, 3, 4, 5].map((p) => `<option value="${p}" ${s.priority === p ? "selected" : ""}>P${p}</option>`).join("")}
+        </select>
+        ${s.custom ? `<button class="del" title="删除">✕</button>` : ""}
+      </div>
+      <div class="sub">
+        <input type="text" class="purpose" placeholder="用途/玩家任务" value="${esc(s.purpose)}">
+      </div>
+      <div class="sub">
+        <input type="text" class="components" placeholder="核心组件（逗号分隔）" value="${esc(s.components)}">
+      </div>`;
+    row.querySelector(".chk-enable").addEventListener("change", (e) => {
+      s.enabled = e.target.checked;
+      row.classList.toggle("disabled", !s.enabled);
+      onAnyChange();
+    });
+    row.querySelector(".chk-gen").addEventListener("change", () => { s.gen = !s.gen; onAnyChange(); });
+    row.querySelector(".nm").addEventListener("input", (e) => { s.name = e.target.value; onAnyChange(); });
+    row.querySelector(".purpose").addEventListener("input", (e) => { s.purpose = e.target.value; onAnyChange(); });
+    row.querySelector(".components").addEventListener("input", (e) => { s.components = e.target.value; onAnyChange(); });
+    row.querySelector(".prio").addEventListener("change", (e) => { s.priority = Number(e.target.value); onAnyChange(); });
+    const del = row.querySelector(".del");
+    if (del) del.addEventListener("click", () => { scenes = scenes.filter((_, i) => i !== idx); renderSceneList(); onAnyChange(); });
+    box.appendChild(row);
+  });
+}
+
+function addCustomScene() {
+  scenes.push({ type: "自定义", name: "新场景", purpose: "该场景的玩家任务", components: "组件 A, 组件 B", enabled: true, priority: 3, gen: true, custom: true });
+  renderSceneList();
+  onAnyChange();
+}
+
+/* ================= 收集状态 ================= */
+function collect() {
+  const tok = (k) => {
+    const c = document.querySelector(`input[data-tok="${k}"]`);
+    const t = document.querySelector(`input[data-tokhex="${k}"]`);
+    return (t && t.value.trim()) || (c && c.value) || "";
+  };
+  const activeScenes = scenes.filter((s) => s.enabled);
+  return {
+    meta: {
+      name: $("f-name").value.trim() || "未命名游戏",
+      tagline: $("f-tagline").value.trim(),
+      audience: $("f-audience").value.trim(),
+      platform: $("f-platform").value,
+      date: new Date().toLocaleDateString("zh-CN"),
+    },
+    framework: {
+      scenes: activeScenes.map((s) => ({ type: s.type, name: s.name, purpose: s.purpose, components: s.components.split(/[,，]/).map((x) => x.trim()).filter(Boolean), priority: s.priority, gen: s.gen })),
+      allScenes: scenes,
+      nav: $("f-nav").value.trim(),
+    },
+    modes: {
+      archetypes: readChips("chips-modes"),
+      session: { start: $("f-sess-start").value.trim(), end: $("f-sess-end").value.trim(), score: $("f-sess-score").value.trim(), replay: $("f-sess-replay").value.trim() },
+      inputs: readChips("chips-inputs"),
+    },
+    visual: {
+      preset: $("f-style-preset").value,
+      mood: $("f-mood").value.trim(),
+      tokens: {
+        bg: tok("bg"), surface: tok("surface"), primary: tok("primary"),
+        accent: tok("accent"), success: tok("success"), error: tok("error"),
+        radius: $("f-radius").value || "24", weight: $("f-weight").value,
+      },
+      chrome: readChips("chips-chrome"),
+      chromeExtra: $("f-chrome-extra").value.trim(),
+      negatives: $("f-negatives").value.split(/[,，]/).map((x) => x.trim()).filter(Boolean),
+    },
+    layout: {
+      orientation: $("f-orientation").value,
+      hud: readChips("chips-hud"),
+      safeArea: $("f-safearea").value.trim(),
+    },
+    interaction: {
+      gestures: readChips("chips-gestures"),
+      states: readChips("chips-states"),
+      feedback: $("f-feedback").value.trim(),
+    },
+    constraints: {
+      platforms: readChips("chips-platforms"),
+      engine: $("f-engine").value.trim(),
+      resolution: $("f-resolution").value.trim(),
+      a11y: readChips("chips-a11y"),
+      perf: $("f-perf").value.trim(),
+    },
+  };
+}
+
+/* ================= 输出生成 ================= */
+function navLines(state) {
+  return state.framework.nav.split("\n").map((l) => l.trim()).filter(Boolean);
+}
+function sceneFlow(state) {
+  return state.framework.scenes.map((s) => s.name).join("  →  ");
+}
+function lineList(items) {
+  return items.length ? items.map((x) => "- " + x).join("\n") : "- （未填写）";
+}
+
+function renderGuide(s) {
+  const md = [];
+  md.push(`# ${s.meta.name} — 设计指引（Design Guide）`);
+  md.push(`> ${s.meta.tagline || "（补一句定位）"}  `);
+  md.push(`> 目标人群：${s.meta.audience || "（未填写）"} · 平台形态：${s.meta.platform} · 生成日期：${s.meta.date}`);
+  md.push("");
+  md.push(`## 1. 框架结构`);
+  md.push(`### 场景清单（共 ${s.framework.scenes.length} 屏）`);
+  md.push(`| 场景 | 类型 | 玩家任务 | 核心组件 | 优先级 | 出原型 |`);
+  md.push(`| --- | --- | --- | --- | --- | --- |`);
+  s.framework.scenes.forEach((sc) => {
+    md.push(`| ${sc.name} | ${sc.type} | ${sc.purpose || "—"} | ${sc.components.join("、") || "—"} | P${sc.priority} | ${sc.gen ? "✅" : "—"} |`);
+  });
+  md.push("");
+  md.push(`### 场景流程图`);
+  md.push("```text");
+  md.push(sceneFlow(s));
+  md.push("```");
+  md.push("");
+  md.push(`### 导航规则`);
+  md.push(navLines(s).length ? navLines(s).map((l) => "- " + l).join("\n") : "- （未填写，可点「按场景顺序生成默认导航」）");
+  md.push("");
+  md.push(`## 2. 基础模式`);
+  md.push(`- 模式原型：${s.modes.archetypes.length ? s.modes.archetypes.join("、") : "（未选）"}`);
+  md.push(`- 输入方式：${s.modes.inputs.length ? s.modes.inputs.join("、") : "（未选）"}`);
+  md.push(`### 会话模型`);
+  md.push(`- 一局开始：${s.modes.session.start || "（未填写）"}`);
+  md.push(`- 一局结束：${s.modes.session.end || "（未填写）"}`);
+  md.push(`- 计分方式：${s.modes.session.score || "（未填写）"}`);
+  md.push(`- 重玩机制：${s.modes.session.replay || "（未填写）"}`);
+  md.push("");
+  md.push(`## 3. 画面风格`);
+  md.push(`- 风格预设：${s.visual.preset}`);
+  md.push(`- 情绪关键词：${s.visual.mood || "（未填写）"}`);
+  md.push(`### 设计令牌`);
+  md.push(`| 令牌 | 值 | 用途 |`);
+  md.push(`| --- | --- | --- |`);
+  md.push(`| 背景色 | ${s.visual.tokens.bg} | 全屏底色 |`);
+  md.push(`| 表面/面板色 | ${s.visual.tokens.surface} | 卡片、托盘、弹层 |`);
+  md.push(`| 主按钮色 | ${s.visual.tokens.primary} | 唯一主行动按钮 |`);
+  md.push(`| 强调/选中色 | ${s.visual.tokens.accent} | 选中态、落点高亮 |`);
+  md.push(`| 成功色 | ${s.visual.tokens.success} | 成功反馈 |`);
+  md.push(`| 错误色 | ${s.visual.tokens.error} | 错误/重试反馈 |`);
+  md.push(`| 圆角 | ${s.visual.tokens.radius}px | 卡片/控件 |`);
+  md.push(`| 主字重 | ${s.visual.tokens.weight} | 标题与正文 |`);
+  md.push(`### Chrome 规则`);
+  md.push(s.visual.chrome.length ? s.visual.chrome.map((c) => "- " + c).join("\n") : "- （未选）");
+  if (s.visual.chromeExtra) md.push(lineList(s.visual.chromeExtra.split("\n").map((x) => x.trim()).filter(Boolean)));
+  md.push(`### 负面约束（写入每个生图 Prompt）`);
+  md.push(s.visual.negatives.length ? s.visual.negatives.map((n) => "- " + n).join("\n") : "- （未填写）");
+  md.push("");
+  md.push(`## 4. 布局与适配`);
+  md.push(`- 画布：${s.layout.orientation}`);
+  md.push(`- HUD 分区：${s.layout.hud.length ? s.layout.hud.join("、") : "（未选）"}`);
+  md.push(`- 安全区：${s.layout.safeArea || "（未填写）"}`);
+  md.push("");
+  md.push(`## 5. 交互与反馈`);
+  md.push(`- 手势词汇：${s.interaction.gestures.length ? s.interaction.gestures.join("、") : "（未选）"}`);
+  md.push(`- 需要出原型的组件状态：${s.interaction.states.length ? s.interaction.states.join("、") : "（未选）"}`);
+  md.push(`- 反馈风格：${s.interaction.feedback || "（未填写）"}`);
+  md.push("");
+  md.push(`## 6. 技术约束`);
+  md.push(`- 目标平台：${s.constraints.platforms.length ? s.constraints.platforms.join("、") : "（未选）"}`);
+  md.push(`- 引擎/框架：${s.constraints.engine || "（未填写）"}`);
+  md.push(`- 设计稿分辨率：${s.constraints.resolution || "（未填写）"}`);
+  md.push(`- 无障碍：${s.constraints.a11y.length ? s.constraints.a11y.join("、") : "（未填写）"}`);
+  md.push(`- 性能约束：${s.constraints.perf || "（未填写）"}`);
+  md.push("");
+  md.push(`## 7. 高保证生图工作流（给 AI 的执行协议）`);
+  md.push(`1. **契约先行**：视觉契约 JSON 已锁定所有令牌值，任何屏的生成都不得偏离。`);
+  md.push(`2. **首屏锚定**：先精修 1 张英雄屏（建议「${s.framework.scenes.find((x) => x.gen)?.name || "主菜单"}」），验收通过后再生成其余屏。`);
+  md.push(`3. **逐屏生成**：其余屏以首屏为风格参照（图生图/风格参考），严格使用「逐屏 Prompt」中的组件与布局规格。`);
+  md.push(`4. **逐屏验收**：每张图必须通过「验收清单」；未通过时，复制该屏 Prompt 并追加【修改点】列出差异，重新生成。`);
+  md.push(`5. **版本留档**：同一页面结构可换风格预设出多版对比，保留版本号与来源。`);
+  return md.join("\n");
+}
+
+function renderContract(s) {
+  const contract = {
+    $schema: "game-framework-design-contract/v1",
+    meta: {
+      name: s.meta.name, tagline: s.meta.tagline, audience: s.meta.audience,
+      platform: s.meta.platform, generatedAt: s.meta.date,
+    },
+    framework: {
+      sceneFlow: s.framework.scenes.map((x) => x.name),
+      scenes: s.framework.scenes.map((sc) => ({
+        id: sc.name, type: sc.type, purpose: sc.purpose,
+        components: sc.components, priority: sc.priority, genPrototype: sc.gen,
+      })),
+      navigation: navLines(s),
+    },
+    modes: {
+      archetypes: s.modes.archetypes,
+      session: s.modes.session,
+      inputs: s.modes.inputs,
+    },
+    visual: {
+      style: s.visual.preset,
+      mood: s.visual.mood.split(/[,，]/).map((x) => x.trim()).filter(Boolean),
+      tokens: {
+        colors: {
+          background: s.visual.tokens.bg, surface: s.visual.tokens.surface,
+          primary: s.visual.tokens.primary, accent: s.visual.tokens.accent,
+          success: s.visual.tokens.success, error: s.visual.tokens.error,
+        },
+        radius: Number(s.visual.tokens.radius) || 24,
+        fontWeight: s.visual.tokens.weight,
+      },
+      chromeRules: s.visual.chrome.concat(s.visual.chromeExtra ? s.visual.chromeExtra.split("\n").map((x) => x.trim()).filter(Boolean) : []),
+      negativeConstraints: s.visual.negatives,
+    },
+    layout: {
+      canvas: s.layout.orientation,
+      hudZones: s.layout.hud,
+      safeArea: s.layout.safeArea,
+    },
+    interaction: {
+      gestures: s.interaction.gestures,
+      prototypeStates: s.interaction.states,
+      feedback: s.interaction.feedback,
+    },
+    constraints: {
+      platforms: s.constraints.platforms,
+      engine: s.constraints.engine,
+      maxResolution: s.constraints.resolution,
+      accessibility: s.constraints.a11y,
+      performance: s.constraints.perf,
+    },
+  };
+  return JSON.stringify(contract, null, 2);
+}
+
+function anchorBlock(s) {
+  const t = s.visual.tokens;
+  const lines = [];
+  lines.push(`【角色】你是资深游戏 UI/UX 设计师，为「${s.meta.name}」生成高保真游戏界面原型图。每屏必须严格遵循本协议，禁止自行发挥偏离。`);
+  lines.push(`【画布】${s.layout.orientation}。${s.layout.safeArea || "内容避让安全区。"}`);
+  lines.push(`【视觉契约·色板】背景 ${t.bg}；面板/表面 ${t.surface}；主按钮 ${t.primary}（每屏仅一个主行动按钮用此色）；强调/选中 ${t.accent}；成功 ${t.success}；错误 ${t.error}。`);
+  lines.push(`【视觉契约·风格】${s.visual.preset}风格；情绪：${s.visual.mood || "（依预设）"}；圆角 ${t.radius}px；主字重 ${t.weight}。`);
+  if (s.visual.chrome.length) lines.push(`【Chrome 规则】${s.visual.chrome.join("；")}。`);
+  if (s.visual.chromeExtra) lines.push(`【Chrome 规则·补充】${s.visual.chromeExtra.split("\n").map((x) => x.trim()).filter(Boolean).join("；")}。`);
+  if (s.visual.negatives.length) lines.push(`【负面约束】禁止：${s.visual.negatives.join("、")}。`);
+  if (s.constraints.engine) lines.push(`【技术约束】实现引擎 ${s.constraints.engine}；设计稿分辨率上限 ${s.constraints.resolution || "（默认）"}；${s.constraints.a11y.join("；") || "无障碍按平台规范"}。`);
+  return lines.join("\n");
+}
+
+function scenePrompt(s, sc, idx) {
+  const t = s.visual.tokens;
+  const lines = [];
+  lines.push(`【场景 ${idx}/${s.framework.scenes.filter((x) => x.gen).length}】${sc.name}（${sc.type}）— 生成优先级 P${sc.priority}`);
+  lines.push(`【玩家任务】${sc.purpose || "（该屏的主要玩家任务）"}`);
+  lines.push(`【核心组件】${sc.components.join("、") || "（该屏必需的组件清单）"}`);
+  lines.push(`【HUD 分区】${s.layout.hud.length ? s.layout.hud.join("；") : "顶栏 + 中央舞台 + 底部操作区"}。`);
+  lines.push(`【本屏要点】与首屏锚定图保持同一视觉契约（背景 ${t.bg} / 主按钮 ${t.primary} / 圆角 ${t.radius}px），组件位置不得越过安全区。`);
+  lines.push(`【输出】单屏 UI 原型图，横版或竖版与画布一致，无文字乱码、无水印。`);
+  return lines.join("\n");
+}
+
+function renderPrompts(s) {
+  const genScenes = s.framework.scenes.filter((x) => x.gen);
+  const anchor = anchorBlock(s);
+  const body = genScenes.map((sc, i) => `${scenePrompt(s, sc, i + 1)}`).join("\n\n");
+  const tail = `【工作流】此屏生成后请对照验收清单自检；若某条不满足，回复【修改点】差异列表，我据此重新生成该屏。`;
+  return { anchor, body, tail, count: genScenes.length };
+}
+
+function renderChecklist(s) {
+  const t = s.visual.tokens;
+  const lines = [];
+  lines.push(`# ${s.meta.name} — 原型图验收清单（每屏逐项勾选）`);
+  lines.push("");
+  const genScenes = s.framework.scenes.filter((x) => x.gen);
+  if (!genScenes.length) return "# 尚未启用任何「出原型」场景。\n\n请在左侧第 1 节勾选需要生成原型的场景。";
+  genScenes.forEach((sc, i) => {
+    lines.push(`## 屏 ${i + 1}：${sc.name}（${sc.type}）`);
+    lines.push(`- [ ] 场景类型与《场景清单》一致（${sc.type}），玩家任务 = ${sc.purpose || "—"}`);
+    lines.push(`- [ ] 色板严格使用契约值：背景 ${t.bg} / 表面 ${t.surface} / 主按钮 ${t.primary} / 强调 ${t.accent}`);
+    lines.push(`- [ ] 核心组件齐全：${sc.components.join("、") || "—"}`);
+    lines.push(`- [ ] 控件全部在安全区内，未压刘海/手势条（${s.layout.safeArea || "默认安全区"}）`);
+    lines.push(`- [ ] 无 emoji、无乱码文字、无水印（${s.visual.negatives.join("、") || "默认负面约束"}）`);
+    lines.push(`- [ ] 每屏只有一个主行动按钮（用 ${t.primary}），其余为次级控件`);
+    lines.push(`- [ ] 状态可辨识：${s.interaction.states.length ? s.interaction.states.join("/") : "默认/选中/禁用"} 至少各有一种表达`);
+    lines.push(`- [ ] HUD 信息齐全：${s.layout.hud.join("、") || "顶栏(返回/进度/计时)+操作区"}`);
+    lines.push(`- [ ] 与首屏锚定图风格一致，无逐屏漂移`);
+    lines.push("");
+  });
+  lines.push(`## 迭代回路（未通过时）`);
+  lines.push(`1. 复制该屏「逐屏 Prompt」。`);
+  lines.push(`2. 在其末尾追加【修改点】：逐条列出未通过项与期望差异。`);
+  lines.push(`3. 重新生成，直至该屏全部通过后再进入下一屏。`);
+  lines.push("");
+  lines.push(`## 整体验收`);
+  lines.push(`- [ ] 全部 ${genScenes.length} 屏通过，场景流程图成立：${sceneFlow(s)}`);
+  lines.push(`- [ ] 导航规则可闭环：${navLines(s).length ? navLines(s).join("；") : "（未填写）"}`);
+  lines.push(`- [ ] 视觉契约 JSON 与设计指引一致，可作为后续实现（Compose/Unity 等）的 DesignTokens 来源`);
+  return lines.join("\n");
+}
+
+/* ================= 渲染输出 ================= */
+let currentTab = "guide";
+
+function renderOutput() {
+  const s = collect();
+
+  $("stat-scenes").textContent = s.framework.scenes.length;
+  $("stat-gen").textContent = s.framework.scenes.filter((x) => x.gen).length;
+
+  const out = $("output");
+  out.innerHTML = "";
+
+  if (currentTab === "guide") {
+    out.appendChild(blkHead("设计指引", "人读版设计说明：框架结构 / 模式 / 风格 / 布局 / 交互 / 约束 / 工作流"));
+    const pre = document.createElement("pre");
+    pre.className = "code";
+    pre.textContent = renderGuide(s);
+    out.appendChild(pre);
+  } else if (currentTab === "contract") {
+    out.appendChild(blkHead("视觉契约", "机读版契约 JSON：锁定所有令牌与组件规格，是 AI 生图的锚、也是将来实现的 DesignTokens 来源"));
+    const pre = document.createElement("pre");
+    pre.className = "code";
+    pre.textContent = renderContract(s);
+    out.appendChild(pre);
+  } else if (currentTab === "prompts") {
+    const p = renderPrompts(s);
+    out.appendChild(blkHead("全局锚定段（首屏与每屏共用，先喂一次）", "每次生图前把这段发给 AI，建立契约上下文"));
+    const a = document.createElement("pre");
+    a.className = "code";
+    a.textContent = p.anchor;
+    out.appendChild(a);
+
+    out.appendChild(blkHead(`逐屏 Prompt（${p.count} 屏）`, "首屏精修锚定后，其余屏以首屏为风格参照逐屏生成"));
+    if (!p.count) {
+      const d = document.createElement("div");
+      d.className = "empty";
+      d.textContent = "尚未启用任何「出原型」场景 —— 回到左侧第 1 节勾选。";
+      out.appendChild(d);
+    } else {
+      s.framework.scenes.filter((x) => x.gen).forEach((sc, i) => {
+        const blk = document.createElement("div");
+        blk.className = "blk";
+        const head = document.createElement("div");
+        head.className = "blk-head";
+        head.innerHTML = `<span class="t">${esc(sc.name)}</span><span class="sub">${esc(sc.type)} · P${sc.priority}</span><span class="spacer"></span>`;
+        const btn = document.createElement("button");
+        btn.className = "btn small";
+        btn.textContent = "复制";
+        btn.addEventListener("click", () => copyText(anchorBlock(s) + "\n\n" + scenePrompt(s, sc, i + 1) + "\n\n" + p.tail, btn));
+        head.appendChild(btn);
+        const pre = document.createElement("pre");
+        pre.className = "code";
+        pre.textContent = scenePrompt(s, sc, i + 1);
+        blk.appendChild(head);
+        blk.appendChild(pre);
+        out.appendChild(blk);
+      });
+    }
+  } else if (currentTab === "checklist") {
+    out.appendChild(blkHead("验收清单", "每屏生成后逐项自检；不过则走迭代回路：复制 Prompt → 追加【修改点】→ 重生成"));
+    const pre = document.createElement("pre");
+    pre.className = "code";
+    pre.textContent = renderChecklist(s);
+    out.appendChild(pre);
+  }
+}
+
+function blkHead(title, sub) {
+  const d = document.createElement("div");
+  d.className = "blk-head";
+  d.innerHTML = `<span class="t">${esc(title)}</span><span class="sub">${esc(sub)}</span>`;
+  return d;
+}
+
+function copyText(text, btn) {
+  const done = () => {
+    if (btn) { const old = btn.textContent; btn.textContent = "已复制 ✓"; setTimeout(() => (btn.textContent = old), 1200); }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  document.body.removeChild(ta);
+  done();
+}
+
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ================= 持久化 ================= */
+function saveState() {
+  const s = collect();
+  const data = { scenes, version: 1, savedAt: Date.now() };
+  // 表单值
+  ["f-name", "f-tagline", "f-audience", "f-platform", "f-nav",
+   "f-sess-start", "f-sess-end", "f-sess-score", "f-sess-replay",
+   "f-style-preset", "f-mood", "f-radius", "f-weight", "f-chrome-extra", "f-negatives",
+   "f-orientation", "f-safearea", "f-feedback",
+   "f-engine", "f-resolution", "f-perf"].forEach((id) => (data[id] = $(id).value));
+  data.chips = {
+    modes: readChips("chips-modes"), inputs: readChips("chips-inputs"),
+    chrome: readChips("chips-chrome"), hud: readChips("chips-hud"),
+    gestures: readChips("chips-gestures"), states: readChips("chips-states"),
+    platforms: readChips("chips-platforms"), a11y: readChips("chips-a11y"),
+  };
+  data.tokens = {};
+  document.querySelectorAll("input[data-tokhex]").forEach((el) => (data.tokens[el.dataset.tokhex] = el.value));
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    $("stat-save").textContent = "已保存";
+  } catch (e) {
+    $("stat-save").textContent = "保存失败";
+  }
+}
+
+function loadState(data) {
+  if (!data) return;
+  if (Array.isArray(data.scenes) && data.scenes.length) {
+    scenes = data.scenes.map((sc) => ({ type: sc.type || "自定义", name: sc.name, purpose: sc.purpose || "", components: sc.components || "", enabled: sc.enabled !== false, priority: sc.priority || 3, gen: sc.gen !== false, custom: !!sc.custom }));
+    renderSceneList();
+  }
+  ["f-name", "f-tagline", "f-audience", "f-platform", "f-nav",
+   "f-sess-start", "f-sess-end", "f-sess-score", "f-sess-replay",
+   "f-style-preset", "f-mood", "f-radius", "f-weight", "f-chrome-extra", "f-negatives",
+   "f-orientation", "f-safearea", "f-feedback",
+   "f-engine", "f-resolution", "f-perf"].forEach((id) => { if (data[id] != null) $(id).value = data[id]; });
+  if (data.chips) {
+    buildChips("chips-modes", MODE_ARCHETYPES, data.chips.modes || []);
+    buildChips("chips-inputs", INPUT_OPTIONS, data.chips.inputs || []);
+    buildChips("chips-chrome", CHROME_RULES, data.chips.chrome || []);
+    buildChips("chips-hud", HUD_ZONES, data.chips.hud || []);
+    buildChips("chips-gestures", INPUT_OPTIONS, data.chips.gestures || []);
+    buildChips("chips-states", STATE_OPTIONS, data.chips.states || []);
+    buildChips("chips-platforms", PLATFORM_OPTIONS, data.chips.platforms || []);
+    buildChips("chips-a11y", A11Y_OPTIONS, data.chips.a11y || []);
+  }
+  if (data.tokens) {
+    document.querySelectorAll("input[data-tokhex]").forEach((el) => {
+      if (data.tokens[el.dataset.tokhex]) el.value = data.tokens[el.dataset.tokhex];
+    });
+    document.querySelectorAll("input[data-tok]").forEach((el) => {
+      const hex = document.querySelector(`input[data-tokhex="${el.dataset.tok}"]`);
+      if (hex && hex.value) el.value = hex.value;
+    });
+  }
+  applyPresetToHex($("f-style-preset").value, true);
+}
+
+/* ================= 风格预设 ================= */
+function applyPresetToHex(preset, keepExisting) {
+  const p = STYLE_PRESETS[preset];
+  if (!p) return;
+  document.querySelectorAll("input[data-tokhex]").forEach((el) => {
+    const key = el.dataset.tokhex;
+    if (keepExisting && el.value && el.value.trim()) return; // 载入已有配置时不覆盖
+    if (p.tokens[key]) el.value = p.tokens[key];
+  });
+  document.querySelectorAll("input[data-tok]").forEach((el) => {
+    const hex = document.querySelector(`input[data-tokhex="${el.dataset.tok}"]`);
+    if (hex && hex.value) el.value = hex.value;
+  });
+  $("f-mood").value = p.mood;
+  $("f-radius").value = p.radius;
+  $("f-weight").value = p.weight;
+  buildChips("chips-chrome", CHROME_RULES, p.chrome);
+}
+
+function onPresetChange() {
+  const preset = $("f-style-preset").value;
+  if (preset !== "自定义") applyPresetToHex(preset, false);
+  onAnyChange();
+}
+
+/* ================= 默认导航 ================= */
+function genDefaultNav() {
+  const s = collect();
+  const names = s.framework.scenes.map((x) => x.name);
+  const lines = [];
+  for (let i = 0; i < names.length - 1; i++) lines.push(`${names[i]} → ${names[i + 1]}`);
+  const has = (n) => names.includes(n);
+  const pair = (a, b, sep) => {
+    const line = `${a} ${sep} ${b}`;
+    if (has(a) && has(b) && !lines.includes(line) && !lines.includes(`${b} ${sep} ${a}`)) lines.push(line);
+  };
+  pair("主菜单", "设置", "⇄");
+  pair("游戏主场景", "暂停弹层", "⇄");
+  if (has("结算/完成页") && has("主菜单") && !lines.includes("结算/完成页 → 主菜单")) lines.push("结算/完成页 → 主菜单");
+  if (has("游戏主场景") && has("结算/完成页") && !lines.includes("游戏主场景 → 结算/完成页")) lines.push("游戏主场景 → 结算/完成页");
+  $("f-nav").value = lines.join("\n");
+  onAnyChange();
+}
+
+/* ================= 示例 ================= */
+function loadExample() {
+  const ex = {
+    "f-name": "儿童故事拼图", "f-tagline": "给孩子和休闲玩家的治愈系故事拼图游戏",
+    "f-audience": "3-8 岁儿童及家长", "f-platform": "移动竖屏 9:16",
+    "f-nav": "启动/加载页 → 主菜单\n主菜单 → 游戏主场景\n游戏主场景 ⇄ 暂停弹层\n游戏主场景 → 结算/完成页\n结算/完成页 → 主菜单\n主菜单 ⇄ 设置页",
+    "f-sess-start": "选择画面与片数（10-300 片）后点击开始",
+    "f-sess-end": "全部碎片归位，画面完整还原",
+    "f-sess-score": "用时与提示次数，儿童模式不施加失败惩罚",
+    "f-sess-replay": "再来一局（换片数）/ 换个画面 / 回主菜单",
+    "f-style-preset": "治愈扁平",
+    "f-mood": "安静、柔和、触感、圆润、童趣、高级感",
+    "f-radius": "24", "f-weight": "600",
+    "f-chrome-extra": "进度与完成装饰使用金色点缀\n棋盘边缘使用石质低对比描边",
+    "f-negatives": "emoji, 默认紫色, 文字乱码, 内容溢出安全区, 水印, 血腥, 恐怖元素",
+    "f-orientation": "竖屏 9:16（设计稿 1080×1920）",
+    "f-safearea": "顶部避开刘海/状态栏，底部避开手势条，棋盘与托盘居中",
+    "f-feedback": "轻柔缓动约 200ms；正确放置轻微「咔嗒」音与青绿高亮；完成时星星粒子庆祝；错误放置软提示「再试试」",
+    "f-engine": "Kotlin Multiplatform + Compose Multiplatform (Material 3)",
+    "f-resolution": "1080×1920 竖屏",
+    "f-perf": "片数超过 80 时候选托盘按可见项实时渲染；超过 180 关闭细网格仅保留目标高亮",
+    scenes: [
+      { type: "启动/加载",  name: "启动/加载页", purpose: "品牌展示与资源加载", components: "品牌 Logo, 加载进度, 版本号", enabled: true, priority: 5, gen: true },
+      { type: "主菜单",     name: "主菜单",     purpose: "像翻故事书一样横向选择画面，拖动滑杆选择片数", components: "品牌标题, 故事翻页卡片组, 片数滑杆(10-300), 开始按钮, 设置入口", enabled: true, priority: 1, gen: true },
+      { type: "游戏主场景", name: "游戏主场景", purpose: "在书本画布上拼装碎片", components: "顶栏(返回/进度/计时), 书本画布棋盘, 底部碎片托盘, 提示文字", enabled: true, priority: 2, gen: true },
+      { type: "暂停",       name: "暂停弹层",   purpose: "游戏中暂停：继续/重开/退出", components: "半透明遮罩, 继续, 重开, 退出, 设置", enabled: true, priority: 4, gen: true },
+      { type: "结算/完成",  name: "结算/完成页", purpose: "展示完成画面与成绩，引导再来一局", components: "完整画面(发光相框), 用时/片数/完成度, 再来一局, 换个画面", enabled: true, priority: 3, gen: true },
+      { type: "设置",       name: "设置页",     purpose: "音效/音乐/提示/无障碍/关于", components: "开关列表, 返回", enabled: true, priority: 5, gen: true },
+    ],
+    chips: {
+      modes: ["故事剧情", "单局闯关", "沙盒自由"], inputs: ["点击", "拖拽"],
+      chrome: ["避免 emoji 界面", "避免系统默认紫色", "避免重渐变/玻璃拟态滥用", "每屏仅一个主行动按钮", "低对比描边、柔和表面", "点击区不小于 48dp"],
+      hud: ["顶栏（返回/进度/计时）", "中央舞台区", "底部托盘/操作区"],
+      gestures: ["点击", "拖拽"],
+      states: ["默认", "选中", "禁用", "错误", "成功"],
+      platforms: ["Android", "iOS"],
+      a11y: ["点击区 ≥48dp", "文字对比度达标", "支持大字模式", "无音效也可完整游玩"],
+    },
+    tokens: { bg: "#F7F2EA", surface: "#FFF9F0", primary: "#E98166", accent: "#7CAEA5", success: "#5B9E8F", error: "#C76A5A" },
+  };
+  // 清空再载入
+  scenes = [];
+  buildChips("chips-modes", MODE_ARCHETYPES, []);
+  buildChips("chips-inputs", INPUT_OPTIONS, []);
+  buildChips("chips-chrome", CHROME_RULES, []);
+  buildChips("chips-hud", HUD_ZONES, []);
+  buildChips("chips-gestures", INPUT_OPTIONS, []);
+  buildChips("chips-states", STATE_OPTIONS, []);
+  buildChips("chips-platforms", PLATFORM_OPTIONS, []);
+  buildChips("chips-a11y", A11Y_OPTIONS, []);
+  loadState(ex);
+  onAnyChange();
+}
+
+function clearAll() {
+  scenes = [];
+  renderSceneList();
+  ["f-name", "f-tagline", "f-audience", "f-nav",
+   "f-sess-start", "f-sess-end", "f-sess-score", "f-sess-replay",
+   "f-mood", "f-chrome-extra", "f-negatives", "f-safearea", "f-feedback",
+   "f-engine", "f-resolution", "f-perf"].forEach((id) => ($(id).value = ""));
+  $("f-platform").value = "移动竖屏 9:16";
+  $("f-style-preset").value = "自定义";
+  $("f-radius").value = "24";
+  $("f-weight").value = "600";
+  $("f-orientation").value = "竖屏 9:16（设计稿 1080×1920）";
+  buildChips("chips-modes", MODE_ARCHETYPES, []);
+  buildChips("chips-inputs", INPUT_OPTIONS, []);
+  buildChips("chips-chrome", CHROME_RULES, []);
+  buildChips("chips-hud", HUD_ZONES, []);
+  buildChips("chips-gestures", INPUT_OPTIONS, []);
+  buildChips("chips-states", STATE_OPTIONS, []);
+  buildChips("chips-platforms", PLATFORM_OPTIONS, []);
+  buildChips("chips-a11y", A11Y_OPTIONS, []);
+  document.querySelectorAll("input[data-tokhex]").forEach((el) => (el.value = ""));
+  onAnyChange();
+}
+
+/* ================= 事件绑定与初始化 ================= */
+function onAnyChange() {
+  debouncedSave();
+  renderOutput();
+}
+const debouncedSave = debounce(saveState, 400);
+
+function bindInputs() {
+  const ids = ["f-name", "f-tagline", "f-audience", "f-platform", "f-nav",
+    "f-sess-start", "f-sess-end", "f-sess-score", "f-sess-replay",
+    "f-mood", "f-radius", "f-weight", "f-chrome-extra", "f-negatives",
+    "f-orientation", "f-safearea", "f-feedback",
+    "f-engine", "f-resolution", "f-perf"];
+  ids.forEach((id) => $(id).addEventListener("input", onAnyChange));
+  ids.forEach((id) => $(id).addEventListener("change", onAnyChange));
+
+  $("f-style-preset").addEventListener("change", onPresetChange);
+
+  document.querySelectorAll("input[data-tokhex]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const c = document.querySelector(`input[data-tok="${el.dataset.tokhex}"]`);
+      if (c && /^#[0-9a-fA-F]{6}$/.test(el.value)) c.value = el.value;
+      onAnyChange();
+    });
+  });
+  document.querySelectorAll("input[data-tok]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const h = document.querySelector(`input[data-tokhex="${el.dataset.tok}"]`);
+      if (h) h.value = el.value;
+      onAnyChange();
+    });
+  });
+
+  $("btn-add-scene").addEventListener("click", addCustomScene);
+  $("btn-nav-auto").addEventListener("click", genDefaultNav);
+  $("btn-example").addEventListener("click", loadExample);
+  $("btn-clear").addEventListener("click", clearAll);
+  $("btn-export").addEventListener("click", () => {
+    const s = collect();
+    const data = { scenes, version: 1, exportedAt: new Date().toISOString() };
+    ["f-name", "f-tagline", "f-audience", "f-platform", "f-nav",
+     "f-sess-start", "f-sess-end", "f-sess-score", "f-sess-replay",
+     "f-style-preset", "f-mood", "f-radius", "f-weight", "f-chrome-extra", "f-negatives",
+     "f-orientation", "f-safearea", "f-feedback", "f-engine", "f-resolution", "f-perf"].forEach((id) => (data[id] = $(id).value));
+    data.chips = {
+      modes: readChips("chips-modes"), inputs: readChips("chips-inputs"),
+      chrome: readChips("chips-chrome"), hud: readChips("chips-hud"),
+      gestures: readChips("chips-gestures"), states: readChips("chips-states"),
+      platforms: readChips("chips-platforms"), a11y: readChips("chips-a11y"),
+    };
+    data.tokens = {};
+    document.querySelectorAll("input[data-tokhex]").forEach((el) => (data.tokens[el.dataset.tokhex] = el.value));
+    downloadText("game-framework-config.json", JSON.stringify(data, null, 2));
+  });
+  $("btn-import").addEventListener("click", () => $("file-import").click());
+  $("file-import").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try { loadState(JSON.parse(reader.result)); onAnyChange(); $("stat-save").textContent = "已导入"; }
+      catch (err) { alert("配置文件解析失败：" + err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  document.querySelectorAll(".tab").forEach((tb) => {
+    tb.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((x) => x.classList.remove("active"));
+      tb.classList.add("active");
+      currentTab = tb.dataset.tab;
+      renderOutput();
+    });
+  });
+
+  $("btn-copy-tab").addEventListener("click", (e) => {
+    const text = $("output").innerText;
+    copyText(text, e.currentTarget);
+  });
+  $("btn-download-tab").addEventListener("click", () => {
+    const s = collect();
+    const name = s.meta.name.replace(/[\\/:*?"<>|]/g, "_") || "game";
+    const map = {
+      guide: { ext: "md", text: () => renderGuide(collect()) },
+      contract: { ext: "json", text: () => renderContract(collect()) },
+      prompts: { ext: "txt", text: () => { const p = renderPrompts(collect()); return p.anchor + "\n\n" + p.body + "\n\n" + p.tail; } },
+      checklist: { ext: "md", text: () => renderChecklist(collect()) },
+    };
+    const m = map[currentTab];
+    downloadText(`${name}-${currentTab}.${m.ext}`, m.text());
+  });
+}
+
+function init() {
+  // 构建选择器
+  const presetSel = $("f-style-preset");
+  Object.keys(STYLE_PRESETS).forEach((k) => {
+    const o = document.createElement("option");
+    o.value = k;
+    o.textContent = k;
+    presetSel.appendChild(o);
+  });
+
+  // 尝试恢复本地配置，否则载入示例
+  let restored = false;
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const data = JSON.parse(raw); if (data && data.version) { loadState(data); restored = true; } }
+  } catch (e) { /* ignore */ }
+
+  if (!restored) {
+    buildChips("chips-modes", MODE_ARCHETYPES, []);
+    buildChips("chips-inputs", INPUT_OPTIONS, []);
+    buildChips("chips-chrome", CHROME_RULES, []);
+    buildChips("chips-hud", HUD_ZONES, []);
+    buildChips("chips-gestures", INPUT_OPTIONS, []);
+    buildChips("chips-states", STATE_OPTIONS, []);
+    buildChips("chips-platforms", PLATFORM_OPTIONS, []);
+    buildChips("chips-a11y", A11Y_OPTIONS, []);
+    loadExample();
+  }
+
+  bindInputs();
+  renderOutput();
+  saveState();
+}
+
+init();
+</script>
+</body>
+</html>

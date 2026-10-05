@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.puzzle.game.analytics.PlatformAnalytics
+import com.puzzle.game.audio.SoundManagerFactory
 import com.puzzle.game.data.PreferencesFactory
 import com.puzzle.game.initCacheDir
 
@@ -12,6 +13,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         PreferencesFactory.init(this)
+        SoundManagerFactory.init(this)
         initCacheDir(this)
         PlatformAnalytics.initialize(this)
         super.onCreate(savedInstanceState)

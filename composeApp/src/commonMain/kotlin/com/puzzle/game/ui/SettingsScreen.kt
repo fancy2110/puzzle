@@ -44,12 +44,13 @@ import com.puzzle.game.ui.theme.PuzzleDimens
 fun SettingsScreen(
     preferences: Preferences,
     language: AppLanguage,
+    soundEnabled: Boolean,
+    onSoundEnabledChange: (Boolean) -> Unit,
     onLanguageChange: (AppLanguage) -> Unit,
     onBack: () -> Unit,
     onOpenImageSource: () -> Unit
 ) {
     val strings = LocalAppStrings.current
-    var soundEnabled by remember { mutableStateOf(preferences.isSoundEnabled()) }
     var referenceEnabled by remember { mutableStateOf(preferences.isReferenceEnabled()) }
 
     PuzzleBackground {
@@ -85,8 +86,7 @@ fun SettingsScreen(
                                         screen = AnalyticsScreen.Settings,
                                         properties = mapOf("enabled" to it)
                                     )
-                                    soundEnabled = it
-                                    preferences.setSoundEnabled(it)
+                                    onSoundEnabledChange(it)
                                 }
                             )
                         }

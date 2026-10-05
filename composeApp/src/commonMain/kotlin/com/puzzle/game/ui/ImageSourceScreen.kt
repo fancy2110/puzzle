@@ -2,17 +2,10 @@ package com.puzzle.game.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -24,21 +17,15 @@ import com.puzzle.game.ui.component.StoneSurface
 import com.puzzle.game.ui.component.StoryButton
 import com.puzzle.game.ui.component.StoryButtonTone
 import com.puzzle.game.ui.adaptive.AdaptiveContent
-import com.puzzle.game.ui.theme.PuzzleColors
-import com.puzzle.game.ui.theme.PuzzleDimens
 import com.puzzle.game.i18n.LocalAppStrings
 
 @Composable
 fun ImageSourceScreen(
     onBack: () -> Unit,
     onPickBuiltIn: () -> Unit,
-    onUseCurrent: () -> Unit,
-    onGenerateAi: (String, String) -> Unit
+    onUseCurrent: () -> Unit
 ) {
     val strings = LocalAppStrings.current
-    var prompt by remember(strings.defaultPrompt) {
-        mutableStateOf(strings.defaultPrompt)
-    }
 
     PuzzleBackground {
         AdaptiveContent { spec ->
@@ -68,47 +55,6 @@ fun ImageSourceScreen(
                 action = strings.use,
                 onClick = onUseCurrent
             )
-            ImageSourceCard(
-                title = strings.aiGenerate,
-                subtitle = strings.aiGenerateSubtitle,
-                action = strings.generate,
-                onClick = { onGenerateAi(prompt, "source_card") }
-            )
-
-            StoneSurface(modifier = Modifier.fillMaxWidth(), radius = 18.dp) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Text(
-                        text = strings.generationPrompt,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    OutlinedTextField(
-                        value = prompt,
-                        onValueChange = { prompt = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 3,
-                        maxLines = 5,
-                        shape = RoundedCornerShape(16.dp),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = PuzzleColors.Cloud.copy(alpha = 0.78f),
-                            unfocusedContainerColor = PuzzleColors.Cloud.copy(alpha = 0.62f),
-                            focusedIndicatorColor = PuzzleColors.TealDark,
-                            unfocusedIndicatorColor = PuzzleColors.Stone,
-                            cursorColor = PuzzleColors.TealDark
-                        )
-                    )
-                    StoryButton(
-                        text = strings.generatePuzzleFromPrompt,
-                        onClick = { onGenerateAi(prompt, "prompt_button") },
-                        modifier = Modifier.fillMaxWidth(),
-                        tone = StoryButtonTone.Primary
-                    )
-                }
-            }
 
             Spacer(modifier = Modifier.weight(1f))
 

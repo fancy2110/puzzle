@@ -24,6 +24,7 @@ kotlin {
     ).forEach { iosTarget ->
         iosTarget.binaries.framework {
             baseName = "ComposeApp"
+            binaryOption("bundleId", "com.fancy2110.game.puzzle.composeapp")
             isStatic = true
         }
         iosTarget.compilations.all {

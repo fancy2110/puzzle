@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>游戏框架 · 草图画布</title>
+<style>
+  :root {
+    --mist: #F7F2EA;
+    --cloud: #FFF9F0;
+    --stone: #D9CBB6;
+    --stone-dark: #7A6750;
+    --muted: #8F806E;
+    --teal: #7CAEA5;
+    --teal-dark: #356D6A;
+    --coral: #E98166;
+    --coral-dark: #B85B44;
+    --gold: #CDA45A;
+    --err: #C76A5A;
+    --radius: 16px;
+    --shadow: 0 2px 10px rgba(122, 103, 80, .14);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--mist);
+    color: var(--stone-dark);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.55;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 10px 16px; background: var(--cloud);
+    border-bottom: 1px solid var(--stone); flex: 0 0 auto;
+  }
+  header h1 { font-size: 16px; font-weight: 800; color: var(--teal-dark); }
+  header h1 span { color: var(--coral); }
+  header .spacer { flex: 1; }
+  .stat { font-size: 11.5px; color: var(--muted); background: var(--mist); border: 1px solid var(--stone); padding: 2px 9px; border-radius: 999px; }
+  .stat b { color: var(--teal-dark); }
+  .btn {
+    font: inherit; cursor: pointer; border-radius: 999px; padding: 5px 12px;
+    border: 1px solid var(--stone); background: var(--cloud); color: var(--stone-dark); font-weight: 600;
+    transition: transform .1s, box-shadow .1s; white-space: nowrap;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  .btn.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .btn.primary:hover { background: var(--coral-dark); }
+  .btn.small { padding: 3px 9px; font-size: 12px; }
+
+  .layout { flex: 1; display: grid; grid-template-columns: 236px 1fr 248px; min-height: 0; }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 220px 1fr; }
+    .right { display: none; }
+  }
+  .panel { background: var(--cloud); overflow-y: auto; min-height: 0; }
+  .left { border-right: 1px solid var(--stone); padding: 10px 12px 24px; }
+  .right { border-left: 1px solid var(--stone); padding: 10px 12px 24px; }
+
+  .sec { margin-bottom: 16px; }
+  .sec-title {
+    font-size: 11.5px; font-weight: 800; color: var(--teal-dark);
+    letter-spacing: .4px; margin: 0 0 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .sec-title .hint { color: var(--muted); font-weight: 500; }
+
+  /* 屏幕列表 */
+  .screen-list { display: flex; flex-direction: column; gap: 5px; }
+  .screen-item {
+    display: flex; align-items: center; gap: 6px; cursor: pointer;
+    border: 1px solid var(--stone); border-radius: 10px; padding: 5px 9px;
+    background: var(--mist); user-select: none;
+  }
+  .screen-item.active { border-color: var(--teal); background: #E4EFEC; }
+  .screen-item .nm { flex: 1; font-weight: 600; font-size: 13px; }
+  .screen-item .count { font-size: 10.5px; color: var(--muted); }
+  .screen-item .del { color: var(--err); cursor: pointer; border: none; background: none; font-size: 13px; padding: 0 2px; }
+  .screen-item input.nm-edit { flex: 1; font: inherit; border: 1px solid var(--teal); border-radius: 6px; padding: 2px 6px; background: #fff; }
+  .screen-item.add {
+    border-style: dashed; justify-content: center; color: var(--teal-dark);
+    background: transparent; font-weight: 700;
+  }
+
+  /* 工具 */
+  .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tool {
+    cursor: pointer; border: 1px solid var(--stone); border-radius: 10px;
+    background: var(--mist); padding: 7px 2px; text-align: center; font-size: 11px;
+    color: var(--stone-dark); user-select: none; font-weight: 600;
+  }
+  .tool .ic { display: block; font-size: 17px; line-height: 1.2; }
+  .tool.active { border-color: var(--teal); background: #E4EFEC; color: var(--teal-dark); }
+
+  .swatches { display: flex; gap: 5px; flex-wrap: wrap; }
+  .sw {
+    width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
+    border: 2px solid var(--cloud); box-shadow: 0 0 0 1px var(--stone);
+  }
+  .sw.active { box-shadow: 0 0 0 2px var(--teal); transform: scale(1.12); }
+  .sw-white { border-color: var(--stone); }
+
+  .widths { display: flex; gap: 6px; align-items: center; }
+  .widths .w {
+    cursor: pointer; border-radius: 50%; background: var(--stone-dark);
+    display: inline-block; border: 2px solid transparent;
+  }
+  .widths .w.active { border-color: var(--teal); background: var(--teal-dark); }
+
+  .toggles { display: flex; gap: 6px; }
+  .tg {
+    font: inherit; cursor: pointer; border-radius: 999px; padding: 3px 10px;
+    border: 1px solid var(--stone); background: var(--mist); color: var(--muted); font-size: 12px; font-weight: 600;
+  }
+  .tg.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+  /* 画布区 */
+  .center { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .canvas-wrap {
+    flex: 1; position: relative; overflow: hidden; display: flex;
+    align-items: center; justify-content: center; background: #EAE2D4;
+    background-image: radial-gradient(circle, #D8CDBA 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  #cv {
+    background: #fff; box-shadow: 0 4px 22px rgba(122, 103, 80, .28);
+    border-radius: 6px; touch-action: none; cursor: crosshair;
+  }
+  .text-overlay {
+    position: absolute; z-index: 5; font: 600 15px/1.3 -apple-system, "PingFang SC", sans-serif;
+    border: 2px solid var(--teal); border-radius: 6px; padding: 4px 6px;
+    background: rgba(255, 255, 255, .96); outline: none; min-width: 90px; color: #2B2B2B;
+  }
+  .statusbar {
+    flex: 0 0 auto; padding: 5px 14px; font-size: 11.5px; color: var(--muted);
+    border-top: 1px solid var(--stone); background: var(--cloud);
+    display: flex; gap: 14px; align-items: center;
+  }
+  .statusbar .kbd { border: 1px solid var(--stone); border-radius: 4px; padding: 0 4px; font-size: 10.5px; background: var(--mist); }
+
+  /* 右侧 */
+  .field { margin-bottom: 10px; }
+  .field label { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); margin-bottom: 3px; }
+  input[type=text], input[type=number], textarea, select {
+    width: 100%; font: inherit; color: var(--stone-dark); background: var(--mist);
+    border: 1px solid var(--stone); border-radius: 8px; padding: 5px 9px; outline: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--teal); }
+  textarea { resize: vertical; min-height: 54px; }
+  .tok-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+  .tok-row input[type=color] { width: 34px; height: 26px; padding: 1px; border: 1px solid var(--stone); border-radius: 6px; background: var(--mist); cursor: pointer; flex: 0 0 auto; }
+  .tok-row input[type=text] { flex: 1; font-size: 12px; }
+  .tok-row .tname { width: 52px; flex: 0 0 auto; font-size: 11px; color: var(--muted); font-weight: 700; }
+  .actions { display: flex; flex-direction: column; gap: 7px; }
+  .actions .btn { width: 100%; }
+  .help { font-size: 11px; color: var(--muted); border-top: 1px dashed var(--stone); padding-top: 8px; margin-top: 14px; }
+  .help div { margin-bottom: 3px; }
+  .help kbd { border: 1px solid var(--stone); border-radius: 4px; padding: 0 4px; font-size: 10.5px; background: var(--mist); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🎨 游戏框架 · <span>草图画布</span></h1>
+  <span class="stat">当前屏 <b id="st-screen">—</b></span>
+  <span class="stat">元素 <b id="st-elems">0</b></span>
+  <span class="stat">工具 <b id="st-tool">画笔</b></span>
+  <span class="stat">保存 <b id="st-save">—</b></span>
+  <span class="spacer"></span>
+  <button class="btn" id="btn-undo" title="撤销 (Ctrl+Z)">↶ 撤销</button>
+  <button class="btn" id="btn-redo" title="重做 (Ctrl+Shift+Z)">↷ 重做</button>
+  <button class="btn" id="btn-clear" title="清空当前屏">清空本屏</button>
+  <button class="btn primary" id="btn-export-png">导出 PNG</button>
+  <button class="btn" id="btn-export-json">导出 JSON</button>
+  <button class="btn" id="btn-guide">复制 AI 指引</button>
+</header>
+
+<div class="layout">
+  <!-- 左：屏幕 + 工具 -->
+  <aside class="panel left">
+    <div class="sec">
+      <div class="sec-title">场景 / 屏幕 <span class="hint">每屏一张草稿</span></div>
+      <div class="screen-list" id="screen-list"></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">工具 <span class="hint">快捷键</span></div>
+      <div class="tools" id="tools">
+        <div class="tool active" data-tool="pen"><span class="ic">✏️</span>画笔<br><small>P</small></div>
+        <div class="tool" data-tool="rect"><span class="ic">▭</span>矩形<br><small>R</small></div>
+        <div class="tool" data-tool="roundRect"><span class="ic">▢</span>圆角<br><small>U</small></div>
+        <div class="tool" data-tool="ellipse"><span class="ic">◯</span>椭圆<br><small>O</small></div>
+        <div class="tool" data-tool="line"><span class="ic">╱</span>直线<br><small>L</small></div>
+        <div class="tool" data-tool="arrow"><span class="ic">➜</span>箭头<br><small>A</small></div>
+        <div class="tool" data-tool="text"><span class="ic">T</span>文字<br><small>T</small></div>
+        <div class="tool" data-tool="select"><span class="ic">✥</span>选择<br><small>V</small></div>
+        <div class="tool" data-tool="eraser"><span class="ic">⌫</span>橡皮<br><small>E</small></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">画笔设置</div>
+      <div class="swatches" id="swatches"></div>
+      <div style="margin:8px 0 6px" class="sec-title">粗细</div>
+      <div class="widths" id="widths"></div>
+      <div style="margin:10px 0 6px" class="sec-title">选项</div>
+      <div class="toggles">
+        <button class="tg" id="tg-fill">填充</button>
+        <button class="tg" id="tg-dots">网格</button>
+      </div>
+      <div class="field" style="margin-top:10px" id="f-size-wrap">
+        <label>文字大小</label>
+        <input type="number" id="f-size" value="20" min="10" max="72" step="1">
+      </div>
+    </div>
+  </aside>
+
+  <!-- 中：画布 -->
+  <main class="center">
+    <div class="canvas-wrap" id="cv-wrap">
+      <canvas id="cv" width="900" height="1200"></canvas>
+    </div>
+    <div class="statusbar">
+      <span>草图为「布局蓝本」：AI 按图中组件位置与比例精修成高保真原型</span>
+      <span class="spacer" style="flex:1"></span>
+      <span><kbd>V</kbd> 选择 <kbd>P</kbd> 画笔 <kbd>R</kbd> 矩形 <kbd>T</kbd> 文字 <kbd>E</kbd> 橡皮 <kbd>Del</kbd> 删除选中 <kbd>Ctrl+Z</kbd> 撤销</span>
+    </div>
+  </main>
+
+  <!-- 右：备注 + 风格契约 + 导出 -->
+  <aside class="panel right">
+    <div class="sec">
+      <div class="sec-title">当前屏备注</div>
+      <div class="field"><textarea id="f-notes" placeholder="给 AI 的补充说明：本屏交互、动效、特殊要求…"></textarea></div>
+      <div class="field"><label>画布方向</label>
+        <select id="f-orientation">
+          <option value="竖屏 9:16（1080×1920）">竖屏 9:16（1080×1920）</option>
+          <option value="横屏 16:9（1920×1080）">横屏 16:9（1920×1080）</option>
+          <option value="桌面 16:9（1440×900）">桌面 16:9（1440×900）</option>
+        </select>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">风格契约 <span class="hint">写入 AI 指引</span></div>
+      <div class="tok-row"><span class="tname">背景</span><input type="color" data-tok="bg"><input type="text" data-tokhex="bg" value="#F7F2EA"></div>
+      <div class="tok-row"><span class="tname">表面</span><input type="color" data-tok="surface"><input type="text" data-tokhex="surface" value="#FFF9F0"></div>
+      <div class="tok-row"><span class="tname">主按钮</span><input type="color" data-tok="primary"><input type="text" data-tokhex="primary" value="#E98166"></div>
+      <div class="tok-row"><span class="tname">强调</span><input type="color" data-tok="accent"><input type="text" data-tokhex="accent" value="#7CAEA5"></div>
+      <div class="tok-row"><span class="tname">圆角</span><input type="number" id="f-radius" value="24" min="0" max="60" style="width:70px;flex:0 0 auto">
+        <span style="font-size:11px;color:var(--muted)">px</span></div>
+    </div>
+    <div class="sec">
+      <div class="sec-title">导出</div>
+      <div class="actions">
+        <button class="btn primary" id="btn-export-png2">导出本屏 PNG（草图）</button>
+        <button class="btn" id="btn-export-json2">导出全部草图 JSON</button>
+        <button class="btn" id="btn-guide2">复制本屏 AI 指引</button>
+        <button class="btn" id="btn-guide-all">复制全部屏 AI 指引</button>
+      </div>
+    </div>
+    <div class="help">
+      <div><b>用法：</b></div>
+      <div>1. 左列按场景建屏，逐屏草绘布局（框、线、箭头、文字标注）；</div>
+      <div>2. 右键列填备注与风格色板；</div>
+      <div>3. 「导出 PNG」得到草图，连同「AI 指引」一起喂给生图模型，AI 以草图为布局蓝本精修成高保真原型。</div>
+      <div>自动保存于本机浏览器。</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+/* ================= 常量与状态 ================= */
+const LS_KEY = "gfd-canvas-v1";
+const CW = 900, CH = 1200;
+const PALETTE = ["#2B2B2B", "#7A6750", "#E98166", "#7CAEA5", "#356D6A", "#CDA45A", "#C76A5A", "#FFFFFF"];
+const WIDTHS = [2, 4, 6];
+const TOOL_NAMES = { pen: "画笔", rect: "矩形", roundRect: "圆角矩形", ellipse: "椭圆", line: "直线", arrow: "箭头", text: "文字", select: "选择", eraser: "橡皮" };
+
+let screens = [];
+let cur = 0;
+let tool = "pen";
+let color = "#2B2B2B";
+let strokeW = 3;
+let fillOn = false;
+let gridOn = true;
+let fontSize = 20;
+let sidc = 0, eidc = 0;
+let drawing = null;   // 正在绘制的元素（预览）
+let selected = null;  // 选中元素 id
+let drag = null;      // {mode:'move'|'resize'|'endpoint', id, offX, offY, corner?, startX, startY}
+
+const $ = (id) => document.getElementById(id);
+const cv = $("cv");
+const ctx = cv.getContext("2d");
+
+function uid() { return "e" + (++eidc); }
+function screen() { return screens[cur]; }
+function elems() { return screen().elements; }
+function findEl(id) { return elems().find((e) => e.id === id); }
+
+function newScreen(name) {
+  return { id: "s" + (++sidc), name: name || "新屏幕", notes: "", elements: [], hist: [[]], hi: 0 };
+}
+
+/* ================= 撤销 / 重做 ================= */
+function resetHist() {
+  const s = screen();
+  s.hist = [JSON.parse(JSON.stringify(s.elements))];
+  s.hi = 0;
+}
+function pushHist() {
+  const s = screen();
+  s.hist = s.hist.slice(0, s.hi + 1);
+  s.hist.push(JSON.parse(JSON.stringify(s.elements)));
+  if (s.hist.length > 60) { s.hist.shift(); s.hi--; }
+  s.hi = s.hist.length - 1;
+}
+function undo() {
+  const s = screen();
+  if (s.hi <= 0) return;
+  s.hi--;
+  s.elements = JSON.parse(JSON.stringify(s.hist[s.hi]));
+  selected = null;
+  afterEdit();
+}
+function redo() {
+  const s = screen();
+  if (s.hi >= s.hist.length - 1) return;
+  s.hi++;
+  s.elements = JSON.parse(JSON.stringify(s.hist[s.hi]));
+  afterEdit();
+}
+
+/* ================= 绘制 ================= */
+function drawGrid() {
+  ctx.fillStyle = "#C9BFA9";
+  for (let x = 24; x < CW; x += 24)
+    for (let y = 24; y < CH; y += 24) {
+      ctx.beginPath(); ctx.arc(x, y, 1.1, 0, Math.PI * 2); ctx.fill();
+    }
+}
+
+function drawEl(e, isPreview) {
+  drawElOn(ctx, e, isPreview);
+}
+
+function drawElOn(g, e, isPreview) {
+  g.save();
+  g.strokeStyle = e.color;
+  g.fillStyle = e.color;
+  g.lineWidth = e.w || 2;
+  g.lineCap = "round";
+  g.lineJoin = "round";
+  if (isPreview) g.globalAlpha = 0.55;
+  switch (e.t) {
+    case "pen":
+      g.beginPath();
+      const pts = e.points;
+      if (pts.length) {
+        g.moveTo(pts[0][0], pts[0][1]);
+        for (let i = 1; i < pts.length - 1; i++) {
+          const mx = (pts[i][0] + pts[i + 1][0]) / 2, my = (pts[i][1] + pts[i + 1][1]) / 2;
+          g.quadraticCurveTo(pts[i][0], pts[i][1], mx, my);
+        }
+        if (pts.length > 1) { const p = pts[pts.length - 1]; g.lineTo(p[0], p[1]); }
+      }
+      g.stroke();
+      break;
+    case "rect":
+    case "roundRect":
+      if (e.fill) g.fillRect(e.x, e.y, e.w, e.h);
+      if (e.t === "rect") g.strokeRect(e.x, e.y, e.w, e.h);
+      else {
+        const r = Math.min(e.rx || 16, Math.abs(e.w) / 2, Math.abs(e.h) / 2);
+        g.beginPath();
+        if (g.roundRect) g.roundRect(e.x, e.y, e.w, e.h, r);
+        else g.rect(e.x, e.y, e.w, e.h);
+        if (e.fill) g.fill(); else g.stroke();
+      }
+      break;
+    case "ellipse":
+      g.beginPath();
+      g.ellipse(e.x + e.w / 2, e.y + e.h / 2, Math.abs(e.w) / 2, Math.abs(e.h) / 2, 0, 0, Math.PI * 2);
+      if (e.fill) g.fill(); else g.stroke();
+      break;
+    case "line":
+    case "arrow":
+      g.beginPath();
+      g.moveTo(e.x1, e.y1); g.lineTo(e.x2, e.y2);
+      g.stroke();
+      if (e.t === "arrow") {
+        const ang = Math.atan2(e.y2 - e.y1, e.x2 - e.x1);
+        const al = Math.max(10, e.w * 3.2);
+        g.beginPath();
+        g.moveTo(e.x2, e.y2);
+        g.lineTo(e.x2 - al * Math.cos(ang - 0.42), e.y2 - al * Math.sin(ang - 0.42));
+        g.moveTo(e.x2, e.y2);
+        g.lineTo(e.x2 - al * Math.cos(ang + 0.42), e.y2 - al * Math.sin(ang + 0.42));
+        g.stroke();
+      }
+      break;
+    case "text":
+      g.font = "600 " + (e.size || 20) + "px -apple-system, 'PingFang SC', sans-serif";
+      g.textBaseline = "top";
+      g.fillText(e.text, e.x, e.y);
+      break;
+  }
+  g.restore();
+}
+
+function drawHandles() {
+  const e = findEl(selected);
+  if (!e) return;
+  ctx.save();
+  ctx.strokeStyle = "#356D6A";
+  ctx.lineWidth = 1.4;
+  ctx.setLineDash([4, 3]);
+  if (e.t === "pen") {
+    const b = bbox(e);
+    ctx.strokeRect(b.x - 6, b.y - 6, b.w + 12, b.h + 12);
+  } else if (e.t === "line" || e.t === "arrow") {
+    handleDot(e.x1, e.y1); handleDot(e.x2, e.y2);
+  } else {
+    ctx.strokeRect(e.x, e.y, e.w, e.h);
+    handleDot(e.x, e.y); handleDot(e.x + e.w, e.y);
+    handleDot(e.x, e.y + e.h); handleDot(e.x + e.w, e.y + e.h);
+  }
+  ctx.restore();
+}
+function handleDot(x, y) {
+  ctx.fillStyle = "#fff"; ctx.strokeStyle = "#356D6A";
+  ctx.fillRect(x - 5, y - 5, 10, 10);
+  ctx.strokeRect(x - 5, y - 5, 10, 10);
+}
+
+function bbox(e) {
+  if (e.t === "pen") {
+    let minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9;
+    e.points.forEach((p) => { minX = Math.min(minX, p[0]); minY = Math.min(minY, p[1]); maxX = Math.max(maxX, p[0]); maxY = Math.max(maxY, p[1]); });
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+  if (e.t === "line" || e.t === "arrow") return { x: Math.min(e.x1, e.x2), y: Math.min(e.y1, e.y2), w: Math.abs(e.x2 - e.x1), h: Math.abs(e.y2 - e.y1) };
+  return { x: e.x, y: e.y, w: e.w, h: e.h };
+}
+
+function draw() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, CW, CH);
+  if (gridOn) drawGrid();
+  const els = elems();
+  for (const e of els) if (e.id !== selected) drawEl(e);
+  if (drawing) drawEl(drawing, true);
+  if (selected && findEl(selected)) drawHandles();
+  $("st-elems").textContent = String(els.length);
+  $("st-screen").textContent = screen().name;
+  $("st-tool").textContent = TOOL_NAMES[tool] || tool;
+}
+
+/* ================= 命中测试 ================= */
+function hitTest(x, y) {
+  const els = elems().slice().reverse();
+  for (const e of els) {
+    if (e.t === "pen") { const b = bbox(e); if (x >= b.x - 8 && x <= b.x + b.w + 8 && y >= b.y - 8 && y <= b.y + b.h + 8) return e; }
+    else if (e.t === "line" || e.t === "arrow") { if (distToSeg(x, y, e.x1, e.y1, e.x2, e.y2) < 10) return e; }
+    else if (e.t === "text") {
+      ctx.font = "600 " + (e.size || 20) + "px -apple-system, 'PingFang SC', sans-serif";
+      const w = ctx.measureText(e.text).width;
+      if (x >= e.x - 6 && x <= e.x + w + 6 && y >= e.y - 4 && y <= e.y + (e.size || 20) + 6) return e;
+    }
+    else { const p = 6; if (x >= e.x - p && x <= e.x + e.w + p && y >= e.y - p && y <= e.y + e.h + p) return e; }
+  }
+  return null;
+}
+function distToSeg(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1, dy = y2 - y1;
+  const L2 = dx * dx + dy * dy;
+  if (L2 === 0) return Math.hypot(px - x1, py - y1);
+  let t = ((px - x1) * dx + (py - y1) * dy) / L2;
+  t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+}
+function hitCorner(x, y, e) {
+  if (e.t === "line" || e.t === "arrow") {
+    if (Math.hypot(x - e.x1, y - e.y1) < 12) return "e1";
+    if (Math.hypot(x - e.x2, y - e.y2) < 12) return "e2";
+    return null;
+  }
+  const corners = [[e.x, e.y, "nw"], [e.x + e.w, e.y, "ne"], [e.x, e.y + e.h, "sw"], [e.x + e.w, e.y + e.h, "se"]];
+  for (const [cx, cy, c] of corners) if (Math.hypot(x - cx, y - cy) < 12) return c;
+  return null;
+}
+
+/* ================= 指针交互 ================= */
+function toLogical(clientX, clientY) {
+  const r = cv.getBoundingClientRect();
+  return { x: (clientX - r.left) * (CW / r.width), y: (clientY - r.top) * (CH / r.height) };
+}
+
+function onDown(e) {
+  const p = toLogical(e.clientX, e.clientY);
+  const s = screen();
+
+  if (tool === "select") {
+    const c = selected ? hitCorner(p.x, p.y, findEl(selected)) : null;
+    if (c) {
+      drag = { mode: c === "e1" || c === "e2" ? "endpoint" : "resize", id: selected, corner: c };
+      if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+      return;
+    }
+    const el = hitTest(p.x, p.y);
+    if (el) {
+      selected = el.id;
+      drag = { mode: "move", id: el.id, offX: p.x, offY: p.y };
+      if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+    } else selected = null;
+    draw();
+    return;
+  }
+
+  if (tool === "eraser") {
+    const el = hitTest(p.x, p.y);
+    if (el) {
+      s.elements = s.elements.filter((x) => x.id !== el.id);
+      if (selected === el.id) selected = null;
+      pushHist();
+      afterEdit();
+    }
+    return;
+  }
+
+  if (tool === "text") {
+    openTextOverlay(p.x, p.y);
+    return;
+  }
+
+  // 形状 / 画笔
+  const base = { color: color, w: strokeW };
+  if (tool === "pen") {
+    drawing = { id: uid(), t: "pen", points: [[p.x, p.y]], color: color, w: strokeW };
+  } else if (tool === "rect" || tool === "roundRect" || tool === "ellipse") {
+    drawing = { id: uid(), t: tool, x: p.x, y: p.y, w: 0, h: 0, rx: 18, fill: fillOn, color: color, w: strokeW };
+  } else { // line / arrow
+    drawing = { id: uid(), t: tool, x1: p.x, y1: p.y, x2: p.x, y2: p.y, color: color, w: strokeW };
+  }
+  drag = { mode: "draw" };
+  if (cv.setPointerCapture) cv.setPointerCapture(e.pointerId);
+  draw();
+}
+
+function onMove(e) {
+  if (!drag) return;
+  const p = toLogical(e.clientX, e.clientY);
+
+  if (drag.mode === "draw" && drawing) {
+    if (drawing.t === "pen") drawing.points.push([p.x, p.y]);
+    else if (drawing.t === "line" || drawing.t === "arrow") { drawing.x2 = p.x; drawing.y2 = p.y; }
+    else { drawing.w = p.x - drawing.x; drawing.h = p.y - drawing.y; }
+    draw();
+    return;
+  }
+  if (drag.mode === "move") {
+    const el = findEl(drag.id);
+    if (!el) return;
+    const dx = p.x - drag.offX, dy = p.y - drag.offY;
+    if (el.t === "pen") el.points = el.points.map(([x, y]) => [x + dx, y + dy]);
+    else if (el.t === "line" || el.t === "arrow") { el.x1 += dx; el.y1 += dy; el.x2 += dx; el.y2 += dy; }
+    else { el.x += dx; el.y += dy; }
+    drag.offX = p.x; drag.offY = p.y;
+    draw();
+    return;
+  }
+  if (drag.mode === "resize") {
+    const el = findEl(drag.id);
+    if (!el) return;
+    const c = drag.corner;
+    if (c === "se") { el.w = p.x - el.x; el.h = p.y - el.y; }
+    else if (c === "nw") { el.w = el.x + el.w - p.x; el.h = el.y + el.h - p.y; el.x = p.x; el.y = p.y; }
+    else if (c === "ne") { el.w = p.x - el.x; el.h = el.y + el.h - p.y; el.y = p.y; }
+    else if (c === "sw") { el.w = el.x + el.w - p.x; el.h = p.y - el.y; el.x = p.x; }
+    draw();
+    return;
+  }
+  if (drag.mode === "endpoint") {
+    const el = findEl(drag.id);
+    if (!el) return;
+    if (drag.corner === "e1") { el.x1 = p.x; el.y1 = p.y; }
+    else { el.x2 = p.x; el.y2 = p.y; }
+    draw();
+  }
+}
+
+function onUp() {
+  if (drag && drag.mode === "draw" && drawing) {
+    const d = drawing;
+    drawing = null;
+    if (d.t === "pen" && d.points.length < 2) return; // 误触
+    if ((d.t === "rect" || d.t === "roundRect" || d.t === "ellipse") && Math.abs(d.w) < 6 && Math.abs(d.h) < 6) return;
+    if ((d.t === "line" || d.t === "arrow") && Math.hypot(d.x2 - d.x1, d.y2 - d.y1) < 6) return;
+    screen().elements.push(d);
+    pushHist();
+    selected = d.id;
+    afterEdit();
+    return;
+  }
+  if (drag && (drag.mode === "move" || drag.mode === "resize" || drag.mode === "endpoint")) {
+    pushHist(); // 记录移动/缩放后的状态（覆盖上一条快照）
+    afterEdit();
+  }
+  drag = null;
+  draw();
+}
+
+function afterEdit() {
+  draw();
+  scheduleSave();
+}
+
+/* ================= 文字输入 ================= */
+let textOverlay = null;
+function openTextOverlay(lx, ly) {
+  closeTextOverlay();
+  const wrap = $("cv-wrap");
+  const r = cv.getBoundingClientRect();
+  const cssX = r.left + (lx / CW) * r.width;
+  const cssY = r.top + (ly / CH) * r.height;
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.className = "text-overlay";
+  inp.style.left = Math.max(4, cssX - wrap.getBoundingClientRect().left) + "px";
+  inp.style.top = Math.max(4, cssY - wrap.getBoundingClientRect().top) + "px";
+  inp.placeholder = "输入文字，回车确认";
+  wrap.appendChild(inp);
+  textOverlay = inp;
+  inp.focus();
+  inp.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter") { commitText(inp, lx, ly); }
+    if (ev.key === "Escape") closeTextOverlay();
+  });
+  inp.addEventListener("blur", () => commitText(inp, lx, ly));
+}
+function commitText(inp, lx, ly) {
+  const v = inp.value.trim();
+  const editId = textOverlay ? textOverlay._editId : null;
+  closeTextOverlay();
+  if (!v) return;
+  if (editId) {
+    const el = findEl(editId);
+    if (el) {
+      el.text = v;
+      pushHist();
+      afterEdit();
+      return;
+    }
+  }
+  screen().elements.push({ id: uid(), t: "text", x: lx, y: ly, text: v, color: color, size: fontSize, w: 2 });
+  pushHist();
+  selected = screen().elements[screen().elements.length - 1].id;
+  afterEdit();
+}
+function closeTextOverlay() {
+  if (textOverlay) { textOverlay.remove(); textOverlay = null; }
+}
+
+/* ================= 屏幕管理 ================= */
+function renderScreens() {
+  const box = $("screen-list");
+  box.innerHTML = "";
+  screens.forEach((s, i) => {
+    const item = document.createElement("div");
+    item.className = "screen-item" + (i === cur ? " active" : "");
+    item.innerHTML = `<span class="nm"></span><span class="count">${s.elements.length} 元素</span><button class="del">✕</button>`;
+    const nm = item.querySelector(".nm");
+    nm.textContent = s.name;
+    nm.title = "双击重命名";
+    nm.addEventListener("dblclick", () => {
+      const inp = document.createElement("input");
+      inp.type = "text";
+      inp.className = "nm-edit";
+      inp.value = s.name;
+      nm.replaceWith(inp);
+      inp.focus();
+      inp.select();
+      const done = () => {
+        const v = inp.value.trim() || "未命名";
+        s.name = v;
+        renderScreens();
+        draw();
+        scheduleSave();
+      };
+      inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") done(); if (ev.key === "Escape") renderScreens(); });
+      inp.addEventListener("blur", done);
+    });
+    item.addEventListener("click", (ev) => {
+      if (ev.target.classList.contains("del")) return;
+      closeTextOverlay();
+      cur = i;
+      selected = null;
+      drag = null;
+      drawing = null;
+      $("f-notes").value = s.notes;
+      renderScreens();
+      draw();
+      scheduleSave();
+    });
+    item.querySelector(".del").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      if (screens.length <= 1) return;
+      screens.splice(i, 1);
+      if (cur >= screens.length) cur = screens.length - 1;
+      if (cur >= i) cur = Math.max(0, cur - 1);
+      selected = null;
+      $("f-notes").value = screens[cur].notes;
+      renderScreens();
+      draw();
+      scheduleSave();
+    });
+    box.appendChild(item);
+  });
+  const add = document.createElement("div");
+  add.className = "screen-item add";
+  add.innerHTML = "＋ 添加屏幕";
+  add.addEventListener("click", () => {
+    screens.push(newScreen("新屏幕 " + (screens.length + 1)));
+    cur = screens.length - 1;
+    selected = null;
+    $("f-notes").value = "";
+    renderScreens();
+    draw();
+    scheduleSave();
+  });
+  box.appendChild(add);
+}
+
+/* ================= 导出 / AI 指引 ================= */
+function renderSketch(s, includeGrid) {
+  const c = document.createElement("canvas");
+  c.width = CW; c.height = CH;
+  const g = c.getContext("2d");
+  g.fillStyle = "#FFFFFF";
+  g.fillRect(0, 0, CW, CH);
+  if (includeGrid) {
+    g.fillStyle = "#C9BFA9";
+    for (let x = 24; x < CW; x += 24)
+      for (let y = 24; y < CH; y += 24) { g.beginPath(); g.arc(x, y, 1.1, 0, Math.PI * 2); g.fill(); }
+  }
+  s.elements.forEach((e) => drawElOn(g, e));
+  return c;
+}
+
+function download(filename, dataUrl) {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+function downloadText(filename, text) {
+  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+  download(filename, URL.createObjectURL(blob));
+}
+
+function tokVal(k) {
+  const t = document.querySelector(`input[data-tokhex="${k}"]`);
+  return (t && t.value.trim()) || "";
+}
+
+function buildGuide(s) {
+  const lines = [];
+  lines.push(`【场景】${s.name}`);
+  lines.push(`【方式】以随附草图为布局蓝本：严格保持草图中各组件的相对位置、大小比例与文字标注，仅做视觉精修，不得增删或挪动组件。`);
+  if (s.notes.trim()) lines.push(`【备注】${s.notes.trim()}`);
+  lines.push(`【画布】${$("f-orientation").value}。`);
+  lines.push(`【风格契约】背景 ${tokVal("bg")}；表面 ${tokVal("surface")}；主按钮 ${tokVal("primary")}（每屏仅一个主行动按钮）；强调/选中 ${tokVal("accent")}；圆角 ${$("f-radius").value}px。`);
+  lines.push(`【负面约束】禁止：emoji、默认紫色、重渐变、文字乱码、内容溢出安全区、水印。`);
+  lines.push(`【输出】单屏高保真 UI 原型，与画布方向一致，无文字乱码、无水印。`);
+  return lines.join("\n");
+}
+
+/* ================= 持久化 ================= */
+let saveTimer = null;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveState, 500);
+}
+function saveState() {
+  try {
+    const data = {
+      version: 1,
+      cur: cur,
+      tool: tool, color: color, strokeW: strokeW, fillOn: fillOn, gridOn: gridOn, fontSize: fontSize,
+      notes: $("f-notes").value,
+      orientation: $("f-orientation").value,
+      radius: $("f-radius").value,
+      tokens: { bg: tokVal("bg"), surface: tokVal("surface"), primary: tokVal("primary"), accent: tokVal("accent") },
+      screens: screens.map((s) => ({ id: s.id, name: s.name, notes: s.notes, elements: s.elements })), // 不含历史
+    };
+    localStorage.setItem(LS_KEY, JSON.stringify(data));
+    $("st-save").textContent = "已保存";
+  } catch (e) {
+    $("st-save").textContent = "保存失败";
+  }
+}
+function loadState(data) {
+  if (!data) return;
+  if (Array.isArray(data.screens) && data.screens.length) {
+    screens = data.screens.map((s) => ({ id: s.id || "s" + (++sidc), name: s.name, notes: s.notes || "", elements: s.elements || [], hist: [[]], hi: 0 }));
+    cur = Math.min(data.cur || 0, screens.length - 1);
+    screens.forEach((s) => { s.hist = [JSON.parse(JSON.stringify(s.elements))]; s.hi = 0; });
+  }
+  if (data.tool) tool = data.tool;
+  if (data.color) color = data.color;
+  if (data.strokeW) strokeW = data.strokeW;
+  if (data.fillOn != null) fillOn = data.fillOn;
+  if (data.gridOn != null) gridOn = data.gridOn;
+  if (data.fontSize) fontSize = data.fontSize;
+  if (data.notes != null) $("f-notes").value = data.notes;
+  if (data.orientation) $("f-orientation").value = data.orientation;
+  if (data.radius) $("f-radius").value = data.radius;
+  if (data.tokens) {
+    ["bg", "surface", "primary", "accent"].forEach((k) => {
+      const t = document.querySelector(`input[data-tokhex="${k}"]`);
+      const c = document.querySelector(`input[data-tok="${k}"]`);
+      if (data.tokens[k] && t) t.value = data.tokens[k];
+      if (c && t) c.value = t.value;
+    });
+  }
+  syncToolUI();
+}
+
+/* ================= 示例草稿 ================= */
+function demoElements() {
+  return [
+    { id: uid(), t: "rect", x: 60, y: 70, w: 780, h: 108, rx: 16, fill: false, color: "#356D6A", w: 4 },
+    { id: uid(), t: "text", x: 400, y: 102, text: "主菜单", color: "#356D6A", size: 30, w: 2 },
+    { id: uid(), t: "rect", x: 140, y: 250, w: 620, h: 560, rx: 18, fill: false, color: "#7A6750", w: 3 },
+    { id: uid(), t: "text", x: 400, y: 500, text: "画面预览区", color: "#8F806E", size: 24, w: 2 },
+    { id: uid(), t: "line", x1: 200, y1: 896, x2: 700, y2: 896, color: "#7A6750", w: 4 },
+    { id: uid(), t: "text", x: 390, y: 918, text: "片数滑杆 10-300", color: "#8F806E", size: 18, w: 2 },
+    { id: uid(), t: "roundRect", x: 240, y: 1000, w: 420, h: 112, rx: 56, fill: true, color: "#E98166", w: 3 },
+    { id: uid(), t: "text", x: 415, y: 1034, text: "开始拼图", color: "#FFFFFF", size: 26, w: 2 },
+    { id: uid(), t: "ellipse", x: 782, y: 98, w: 48, h: 48, rx: 0, fill: false, color: "#CDA45A", w: 3 },
+  ];
+}
+
+/* ================= UI 绑定 ================= */
+function syncToolUI() {
+  document.querySelectorAll(".tool").forEach((t) => t.classList.toggle("active", t.dataset.tool === tool));
+  document.querySelectorAll(".sw").forEach((s) => s.classList.toggle("active", s.dataset.c === color));
+  document.querySelectorAll(".widths .w").forEach((w) => w.classList.toggle("active", Number(w.dataset.w) === strokeW));
+  $("tg-fill").classList.toggle("on", fillOn);
+  $("tg-dots").classList.toggle("on", gridOn);
+  $("f-size").value = fontSize;
+}
+
+function bindUI() {
+  // 工具
+  document.querySelectorAll(".tool").forEach((t) => {
+    t.addEventListener("click", () => { tool = t.dataset.tool; closeTextOverlay(); syncToolUI(); scheduleSave(); });
+  });
+  // 颜色
+  const swBox = $("swatches");
+  PALETTE.forEach((c) => {
+    const s = document.createElement("div");
+    s.className = "sw" + (c === "#FFFFFF" ? " sw-white" : "");
+    s.dataset.c = c;
+    s.style.background = c;
+    s.title = c;
+    s.addEventListener("click", () => { color = c; syncToolUI(); });
+    swBox.appendChild(s);
+  });
+  // 粗细
+  const wBox = $("widths");
+  WIDTHS.forEach((w) => {
+    const d = document.createElement("div");
+    d.className = "w";
+    d.dataset.w = w;
+    d.style.width = d.style.height = (w * 2 + 6) + "px";
+    d.addEventListener("click", () => { strokeW = w; syncToolUI(); });
+    wBox.appendChild(d);
+  });
+  $("tg-fill").addEventListener("click", () => { fillOn = !fillOn; syncToolUI(); });
+  $("tg-dots").addEventListener("click", () => { gridOn = !gridOn; draw(); syncToolUI(); scheduleSave(); });
+  $("f-size").addEventListener("input", () => { fontSize = Number($("f-size").value) || 20; scheduleSave(); });
+  $("f-notes").addEventListener("input", () => { screen().notes = $("f-notes").value; scheduleSave(); });
+  $("f-orientation").addEventListener("change", scheduleSave);
+  $("f-radius").addEventListener("input", scheduleSave);
+  document.querySelectorAll("input[data-tokhex]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const c = document.querySelector(`input[data-tok="${el.dataset.tokhex}"]`);
+      if (c && /^#[0-9a-fA-F]{6}$/.test(el.value)) c.value = el.value;
+      scheduleSave();
+    });
+  });
+  document.querySelectorAll("input[data-tok]").forEach((el) => {
+    el.addEventListener("input", () => {
+      const h = document.querySelector(`input[data-tokhex="${el.dataset.tok}"]`);
+      if (h) h.value = el.value;
+      scheduleSave();
+    });
+  });
+
+  // 画布
+  cv.addEventListener("pointerdown", onDown);
+  cv.addEventListener("pointermove", onMove);
+  cv.addEventListener("pointerup", onUp);
+  cv.addEventListener("pointercancel", onUp);
+
+  // 快捷键
+  document.addEventListener("keydown", (e) => {
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    const k = e.key.toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && k === "z") { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+    if ((e.ctrlKey || e.metaKey) && k === "y") { e.preventDefault(); redo(); return; }
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (selected) {
+        screen().elements = screen().elements.filter((x) => x.id !== selected);
+        selected = null;
+        pushHist();
+        afterEdit();
+      }
+      return;
+    }
+    const map = { p: "pen", r: "rect", u: "roundRect", o: "ellipse", l: "line", a: "arrow", t: "text", v: "select", e: "eraser" };
+    if (map[k]) { tool = map[k]; closeTextOverlay(); syncToolUI(); scheduleSave(); }
+  });
+
+  // 双击编辑文字（选择模式）
+  cv.addEventListener("dblclick", (e) => {
+    if (tool !== "select") return;
+    const p = toLogical(e.clientX, e.clientY);
+    const el = hitTest(p.x, p.y);
+    if (el && el.t === "text") {
+      selected = el.id;
+      openTextOverlay(el.x, el.y);
+      textOverlay.value = el.text;
+      // 提交时更新而不是新建
+      textOverlay._editId = el.id;
+      draw();
+    }
+  });
+
+  // 顶栏按钮
+  $("btn-undo").addEventListener("click", undo);
+  $("btn-redo").addEventListener("click", redo);
+  $("btn-clear").addEventListener("click", () => {
+    if (!screen().elements.length) return;
+    if (!confirm("清空当前屏的全部草稿？")) return;
+    screen().elements = [];
+    selected = null;
+    pushHist();
+    afterEdit();
+  });
+  $("btn-export-png").addEventListener("click", exportPng);
+  $("btn-export-png2").addEventListener("click", exportPng);
+  $("btn-export-json").addEventListener("click", exportJson);
+  $("btn-export-json2").addEventListener("click", exportJson);
+  $("btn-guide").addEventListener("click", (e) => copyText(buildGuide(screen()), e.currentTarget));
+  $("btn-guide2").addEventListener("click", (e) => copyText(buildGuide(screen()), e.currentTarget));
+  $("btn-guide-all").addEventListener("click", (e) => {
+    const all = screens.map((s) => buildGuide(s)).join("\n\n---\n\n");
+    copyText(all, e.currentTarget);
+  });
+}
+
+function exportPng() {
+  const c = renderSketch(screen(), gridOn);
+  const name = screen().name.replace(/[\\/:*?"<>|]/g, "_") || "screen";
+  c.toBlob((blob) => {
+    if (!blob) { alert("导出失败：浏览器不支持 toBlob"); return; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `sketch-${name}.png`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, "image/png");
+}
+function exportJson() {
+  const data = { version: 1, exportedAt: new Date().toISOString(), screens: screens.map((s) => ({ id: s.id, name: s.name, notes: s.notes, elements: s.elements })) };
+  downloadText("game-sketch.json", JSON.stringify(data, null, 2));
+}
+
+function copyText(text, btn) {
+  const done = () => { if (btn) { const o = btn.textContent; btn.textContent = "已复制 ✓"; setTimeout(() => (btn.textContent = o), 1200); } };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  else fallbackCopy(text, done);
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.opacity = "0";
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand("copy"); } catch (err) {}
+  document.body.removeChild(ta);
+  done();
+}
+
+/* ================= 画布缩放适配 ================= */
+function fitCanvas() {
+  const wrap = $("cv-wrap");
+  const w = wrap.clientWidth - 32, h = wrap.clientHeight - 32;
+  if (w <= 0 || h <= 0) return;
+  const ratio = CW / CH;
+  let cw = w, ch = cw / ratio;
+  if (ch > h) { ch = h; cw = ch * ratio; }
+  cv.style.width = cw + "px";
+  cv.style.height = ch + "px";
+}
+window.addEventListener("resize", fitCanvas);
+
+/* ================= 初始化 ================= */
+function init() {
+  // 建默认屏
+  sidc = 0;
+  screens = [newScreen("主菜单"), newScreen("游戏主场景"), newScreen("结算页")];
+
+  let restored = false;
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (raw) { const d = JSON.parse(raw); if (d && d.version) { loadState(d); restored = true; } }
+  } catch (err) { /* ignore */ }
+
+  if (!restored) {
+    // 首访：给主菜单画一个示例草稿，展示草图语言
+    screens[0].elements = demoElements();
+    screens[0].notes = "竖屏手机布局：顶部标题栏，中部大图预览，底部主按钮；片数用滑杆调节";
+  }
+  screens.forEach((s) => { s.hist = [JSON.parse(JSON.stringify(s.elements))]; s.hi = 0; });
+
+  renderScreens();
+  $("f-notes").value = screen().notes;
+  syncToolUI();
+  bindUI();
+  fitCanvas();
+  draw();
+  scheduleSave();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -74,12 +74,16 @@ import com.puzzle.game.ui.theme.FragmaDimens
 import com.puzzle.game.ui.theme.PuzzleColors
 import com.puzzle.game.ui.theme.PuzzleDimens
 
+/** Whether the faded reference image is shown behind the pieces (set in Settings). */
+private val LocalReferenceEnabled = staticCompositionLocalOf { true }
+
 @Composable
 fun GameScreen(
     viewModel: GameViewModel,
     onGoToMenu: () -> Unit,
     onContinueStory: () -> Unit,
-    onChooseStory: () -> Unit
+    onChooseStory: () -> Unit,
+    referenceEnabled: Boolean
 ) {
     val state by viewModel.state.collectAsState()
     val strings = LocalAppStrings.current
@@ -93,58 +97,60 @@ fun GameScreen(
         }
     }
 
-    when (state.phase) {
-        GamePhase.GENERATING -> GeneratingScreen()
-        GamePhase.PLAYING -> PlayingScreen(
-            viewModel = viewModel,
-            onBack = {
-                Analytics.click("game_top_pause", AnalyticsScreen.Game)
-                viewModel.pause()
-            }
-        )
-        GamePhase.COMPLETED -> CompletedScreen(
-            viewModel = viewModel,
-            onContinueStory = onContinueStory,
-            onChooseStory = onChooseStory,
-            onBack = onGoToMenu
-        )
-        GamePhase.ERROR -> ErrorScreen(
-            message = strings.somethingWentWrong,
-            onRetry = {
-                Analytics.click("error_retry", AnalyticsScreen.Game)
-                viewModel.retryGame()
-            },
-            onGoToMenu = onGoToMenu
-        )
-        else -> {}
-    }
+    CompositionLocalProvider(LocalReferenceEnabled provides referenceEnabled) {
+        when (state.phase) {
+            GamePhase.GENERATING -> GeneratingScreen()
+            GamePhase.PLAYING -> PlayingScreen(
+                viewModel = viewModel,
+                onBack = {
+                    Analytics.click("game_top_pause", AnalyticsScreen.Game)
+                    viewModel.pause()
+                }
+            )
+            GamePhase.COMPLETED -> CompletedScreen(
+                viewModel = viewModel,
+                onContinueStory = onContinueStory,
+                onChooseStory = onChooseStory,
+                onBack = onGoToMenu
+            )
+            GamePhase.ERROR -> ErrorScreen(
+                message = strings.somethingWentWrong,
+                onRetry = {
+                    Analytics.click("error_retry", AnalyticsScreen.Game)
+                    viewModel.retryGame()
+                },
+                onGoToMenu = onGoToMenu
+            )
+            else -> {}
+        }
 
-    // Pause dialog must be drawn after the game content so it stays above the puzzle.
-    if (state.isPaused) {
-        PauseDialog(
-            onResume = {
-                Analytics.click("pause_resume", AnalyticsScreen.Game)
-                viewModel.resume()
-            },
-            onQuit = {
-                Analytics.click("pause_quit", AnalyticsScreen.Game)
-                onGoToMenu()
-            }
-        )
-    }
+        // Pause dialog must be drawn after the game content so it stays above the puzzle.
+        if (state.isPaused) {
+            PauseDialog(
+                onResume = {
+                    Analytics.click("pause_resume", AnalyticsScreen.Game)
+                    viewModel.resume()
+                },
+                onQuit = {
+                    Analytics.click("pause_quit", AnalyticsScreen.Game)
+                    onGoToMenu()
+                }
+            )
+        }
 
-    // Celebration overlay (shown on top of completed screen)
-    if (state.showCelebration) {
-        CelebrationOverlay(
-            pieceCount = state.pieces.size,
-            hasNextScene = viewModel.hasNextStoryPage(),
-            onDismiss = {
-                Analytics.click("celebration_dismiss", AnalyticsScreen.Game)
-                viewModel.dismissCelebration()
-            },
-            onContinueStory = onContinueStory,
-            onChooseStory = onChooseStory
-        )
+        // Celebration overlay (shown on top of completed screen)
+        if (state.showCelebration) {
+            CelebrationOverlay(
+                pieceCount = state.pieces.size,
+                hasNextScene = viewModel.hasNextStoryPage(),
+                onDismiss = {
+                    Analytics.click("celebration_dismiss", AnalyticsScreen.Game)
+                    viewModel.dismissCelebration()
+                },
+                onContinueStory = onContinueStory,
+                onChooseStory = onChooseStory
+            )
+        }
     }
 }
 
@@ -853,8 +859,8 @@ private fun GameBoardArea(
                             boardImageSize = coords.size
                         }
                 ) {
-                    // Ghost image
-                    if (puzzleBitmap != null) {
+                    // Ghost reference image (hidden when the reference-image setting is off).
+                    if (puzzleBitmap != null && LocalReferenceEnabled.current) {
                         androidx.compose.foundation.Image(
                             bitmap = puzzleBitmap,
                             contentDescription = strings.originalImage,
@@ -1316,76 +1322,194 @@ private fun CompletedScreen(
 
     PuzzleBackground {
         AdaptiveContent { spec ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(spec.pagePadding)
-                    .widthIn(max = spec.contentMaxWidth),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                FragmaIconButton(
-                    onClick = onBack,
-                    modifier = Modifier.size(54.dp)
-                ) {
-                    BackIcon(modifier = Modifier.size(25.dp))
-                }
-                Text(
-                    text = if (hasNextScene) strings.completedTitle else strings.storyComplete,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PuzzleColors.Gold
+            val isLandscape = spec.mode == AdaptiveLayoutMode.PhoneLandscape ||
+                spec.mode == AdaptiveLayoutMode.TabletLandscape
+            if (isLandscape) {
+                CompletedLandscapeLayout(
+                    spec = spec,
+                    hasNextScene = hasNextScene,
+                    completedBitmap = completedBitmap,
+                    themeName = theme?.name,
+                    elapsedText = formatTime(state.elapsedSeconds),
+                    piecesText = strings.pieceLabel(state.pieces.size),
+                    strings = strings,
+                    onBack = onBack,
+                    onContinueStory = onContinueStory,
+                    onChooseStory = onChooseStory
                 )
-                Spacer(modifier = Modifier.width(54.dp))
-            }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(spec.pagePadding)
+                        .widthIn(max = spec.contentMaxWidth),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    CompletedHeader(
+                        hasNextScene = hasNextScene,
+                        strings = strings,
+                        onBack = onBack
+                    )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-            StoneSurface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-            ) {
-                Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
-                    if (completedBitmap != null) {
-                        Image(
-                            bitmap = completedBitmap,
-                            contentDescription = strings.completedImage,
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(theme?.name ?: "Puzzle", fontSize = 26.sp, color = PuzzleColors.StoneDark)
+                    CompletedImageCard(
+                        completedBitmap = completedBitmap,
+                        themeName = theme?.name,
+                        contentDescription = strings.completedImage,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    )
+
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    CompletedStatsCard(
+                        elapsedText = formatTime(state.elapsedSeconds),
+                        piecesText = strings.pieceLabel(state.pieces.size),
+                        completeLabel = strings.complete,
+                        timeLabel = strings.timeUsed,
+                        piecesLabel = strings.pieces
+                    )
+
+                    Spacer(modifier = Modifier.height(22.dp))
+                    CoralButton(
+                        text = if (hasNextScene) strings.nextScene else strings.chooseAnotherStory,
+                        onClick = if (hasNextScene) onContinueStory else onChooseStory,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (hasNextScene) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        CloudButton(strings.chooseAnotherStory, onChooseStory, modifier = Modifier.fillMaxWidth())
                     }
                 }
             }
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(18.dp))
-
-            StoneSurface(modifier = Modifier.fillMaxWidth(), radius = PuzzleDimens.CardRadius) {
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    StatItem(value = formatTime(state.elapsedSeconds), label = strings.timeUsed)
-                    StatItem(value = strings.pieceLabel(state.pieces.size), label = strings.pieces)
-                    StatItem(value = "100%", label = strings.complete)
-                }
-            }
-
-            Spacer(modifier = Modifier.height(22.dp))
+@Composable
+private fun CompletedLandscapeLayout(
+    spec: AdaptiveSpec,
+    hasNextScene: Boolean,
+    completedBitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    themeName: String?,
+    elapsedText: String,
+    piecesText: String,
+    strings: com.puzzle.game.i18n.AppStrings,
+    onBack: () -> Unit,
+    onContinueStory: () -> Unit,
+    onChooseStory: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(spec.pagePadding),
+        horizontalArrangement = Arrangement.spacedBy(spec.paneGap)
+    ) {
+        CompletedImageCard(
+            completedBitmap = completedBitmap,
+            themeName = themeName,
+            contentDescription = strings.completedImage,
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+        )
+        Column(
+            modifier = Modifier
+                .width(if (spec.mode == AdaptiveLayoutMode.TabletLandscape) 340.dp else 300.dp)
+                .fillMaxHeight(),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            CompletedHeader(
+                hasNextScene = hasNextScene,
+                strings = strings,
+                onBack = onBack
+            )
+            CompletedStatsCard(
+                elapsedText = elapsedText,
+                piecesText = piecesText,
+                completeLabel = strings.complete,
+                timeLabel = strings.timeUsed,
+                piecesLabel = strings.pieces
+            )
+            Spacer(modifier = Modifier.weight(1f))
             CoralButton(
                 text = if (hasNextScene) strings.nextScene else strings.chooseAnotherStory,
                 onClick = if (hasNextScene) onContinueStory else onChooseStory,
                 modifier = Modifier.fillMaxWidth()
             )
             if (hasNextScene) {
-                Spacer(modifier = Modifier.height(12.dp))
                 CloudButton(strings.chooseAnotherStory, onChooseStory, modifier = Modifier.fillMaxWidth())
             }
+        }
+    }
+}
+
+@Composable
+private fun CompletedHeader(
+    hasNextScene: Boolean,
+    strings: com.puzzle.game.i18n.AppStrings,
+    onBack: () -> Unit
+) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        FragmaIconButton(
+            onClick = onBack,
+            modifier = Modifier.size(54.dp)
+        ) {
+            BackIcon(modifier = Modifier.size(25.dp))
+        }
+        Text(
+            text = if (hasNextScene) strings.completedTitle else strings.storyComplete,
+            modifier = Modifier.weight(1f),
+            textAlign = TextAlign.Center,
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = PuzzleColors.Gold
+        )
+        Spacer(modifier = Modifier.width(54.dp))
+    }
+}
+
+@Composable
+private fun CompletedImageCard(
+    completedBitmap: androidx.compose.ui.graphics.ImageBitmap?,
+    themeName: String?,
+    contentDescription: String,
+    modifier: Modifier = Modifier
+) {
+    StoneSurface(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
+            if (completedBitmap != null) {
+                Image(
+                    bitmap = completedBitmap,
+                    contentDescription = contentDescription,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                Text(themeName ?: "Puzzle", fontSize = 26.sp, color = PuzzleColors.StoneDark)
             }
+        }
+    }
+}
+
+@Composable
+private fun CompletedStatsCard(
+    elapsedText: String,
+    piecesText: String,
+    completeLabel: String,
+    timeLabel: String,
+    piecesLabel: String
+) {
+    StoneSurface(modifier = Modifier.fillMaxWidth(), radius = PuzzleDimens.CardRadius) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 18.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            StatItem(value = elapsedText, label = timeLabel)
+            StatItem(value = piecesText, label = piecesLabel)
+            StatItem(value = "100%", label = completeLabel)
         }
     }
 }

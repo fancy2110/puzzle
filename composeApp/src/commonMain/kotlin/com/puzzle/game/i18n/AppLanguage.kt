@@ -92,7 +92,8 @@ data class AppStrings(
     val consentDeclineTitle: String,
     val consentDeclineMessage: String,
     val consentDeclineBack: String,
-    val consentDeclineQuit: String
+    val consentDeclineQuit: String,
+    val continueStoryScene: String
 ) {
     fun pieceLabel(count: Int): String = when (this) {
         EnglishStrings -> if (count == 1) "$count piece" else "$count pieces"
@@ -114,6 +115,9 @@ data class AppStrings(
 
     fun completionMessage(pieceCount: Int): String = completedMessage
         .replace("{count}", pieceCount.toString())
+
+    fun continueStoryLabel(scene: Int): String =
+        continueStoryScene.replace("{scene}", scene.toString())
 }
 
 private val SimplifiedChineseStrings = AppStrings(
@@ -193,7 +197,8 @@ private val SimplifiedChineseStrings = AppStrings(
     consentDeclineTitle = "需要监护人同意",
     consentDeclineMessage = "如果不同意，本应用将无法继续使用。拼图功能本身不需要收集信息，统计分析仅在同意后开启。",
     consentDeclineBack = "再想想",
-    consentDeclineQuit = "仍要退出"
+    consentDeclineQuit = "仍要退出",
+    continueStoryScene = "继续 · 第{scene}幕"
 )
 
 private val EnglishStrings = AppStrings(
@@ -273,7 +278,8 @@ private val EnglishStrings = AppStrings(
     consentDeclineTitle = "Guardian Consent Required",
     consentDeclineMessage = "Without consent the App cannot continue. The puzzle itself collects no information; analytics is enabled only after consent.",
     consentDeclineBack = "Go Back",
-    consentDeclineQuit = "Quit Anyway"
+    consentDeclineQuit = "Quit Anyway",
+    continueStoryScene = "Continue · Scene {scene}"
 )
 
 private val JapaneseStrings = AppStrings(
@@ -353,7 +359,8 @@ private val JapaneseStrings = AppStrings(
     consentDeclineTitle = "保護者の同意が必要です",
     consentDeclineMessage = "同意がない場合、アプリをご利用いただけません。パズル機能自体は情報を収集せず、分析は同意後にのみ開始されます。",
     consentDeclineBack = "戻る",
-    consentDeclineQuit = "終了する"
+    consentDeclineQuit = "終了する",
+    continueStoryScene = "続き · 第{scene}幕"
 )
 
 private val TraditionalChineseStrings = AppStrings(
@@ -433,7 +440,8 @@ private val TraditionalChineseStrings = AppStrings(
     consentDeclineTitle = "需要監護人同意",
     consentDeclineMessage = "如果不同意，本應用將無法繼續使用。拼圖功能本身不需要收集資訊，統計分析僅在同意後開啟。",
     consentDeclineBack = "再想想",
-    consentDeclineQuit = "仍要退出"
+    consentDeclineQuit = "仍要退出",
+    continueStoryScene = "繼續 · 第{scene}幕"
 )
 
 val LocalAppLanguage = staticCompositionLocalOf { AppLanguage.SimplifiedChinese }

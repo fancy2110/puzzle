@@ -12,6 +12,7 @@ import com.puzzle.logger.PuzzleLog
 import com.puzzle.game.data.BuiltinStoryImageSet
 import com.puzzle.game.data.PuzzlePictureGenerator
 import com.puzzle.game.data.StoryPresets
+import com.puzzle.game.data.StoryProgressStore
 import com.puzzle.game.data.ThemeData
 import com.puzzle.game.data.ThemePresets
 import com.puzzle.game.decodeToImageBitmap
@@ -37,12 +38,18 @@ import io.ktor.client.request.get
 import kotlin.time.TimeMark
 import kotlin.time.TimeSource
 
-class GameViewModel : ViewModel() {
+class GameViewModel(
+    private val progressStore: StoryProgressStore? = null
+) : ViewModel() {
     private val blockSize = PuzzleConfig.PIXEL_BLOCK_SIZE
     private val maxEagerPieceBitmaps = 120
 
     private val _state = MutableStateFlow(GameState())
     val state: StateFlow<GameState> = _state
+
+    private val _storyProgress =
+        MutableStateFlow(progressStore?.getCompletedSceneCounts().orEmpty())
+    val storyProgress: StateFlow<Map<String, Int>> = _storyProgress
 
     private val _sfxEvents = MutableSharedFlow<Sfx>(extraBufferCapacity = 6)
     val sfxEvents: SharedFlow<Sfx> = _sfxEvents.asSharedFlow()
@@ -166,6 +173,37 @@ class GameViewModel : ViewModel() {
         selectStoryPage(nextIndex)
         startGame()
         return true
+    }
+
+    /** Number of scenes already finished for the currently selected story. */
+    fun completedSceneCount(): Int =
+        _storyProgress.value[_state.value.selectedStoryId] ?: 0
+
+    /**
+     * True when the current story has partial progress and at least one unfinished scene,
+     * so the home screen can offer a Continue entry.
+     */
+    fun canContinueStory(): Boolean {
+        val count = completedSceneCount()
+        return count in 1 until storyPages.size
+    }
+
+    /**
+     * Jump to the first unfinished scene of the current story and start it.
+     * No-op when there is nothing to continue.
+     */
+    fun continueStory(): Boolean {
+        val count = completedSceneCount()
+        if (count !in 1 until storyPages.size) return false
+        selectStoryPage(count.coerceAtMost(storyPages.lastIndex))
+        startGame()
+        return true
+    }
+
+    private fun recordStoryProgress(storyId: String, pageIndex: Int) {
+        val completedCount = maxOf(pageIndex + 1, _storyProgress.value[storyId] ?: 0)
+        _storyProgress.update { it + (storyId to completedCount) }
+        progressStore?.recordCompletedScenes(storyId, completedCount)
     }
 
     /**
@@ -631,6 +669,10 @@ class GameViewModel : ViewModel() {
                 if (before.selectedStoryPageIndex == storyPages.lastIndex) {
                     Analytics.track(AnalyticsEvent.StoryComplete, completionProperties)
                 }
+                recordStoryProgress(
+                    storyId = before.selectedStoryId,
+                    pageIndex = before.selectedStoryPageIndex
+                )
                 _sfxEvents.tryEmit(Sfx.Complete)
             }
         } else {

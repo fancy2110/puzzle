@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -21,7 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
@@ -61,6 +64,7 @@ import com.puzzle.game.i18n.LocalAppStrings
 import com.puzzle.game.i18n.LocalAppLanguage
 import com.puzzle.game.i18n.StoryLocalization
 import com.puzzle.game.ui.component.BrandMark
+import com.puzzle.game.ui.component.CheckIcon
 import com.puzzle.game.ui.component.CloudButton
 import com.puzzle.game.ui.component.CoralButton
 import com.puzzle.game.ui.component.PuzzleBackground
@@ -82,9 +86,11 @@ fun MenuScreen(
     onStartGame: () -> Unit,
     onPickTheme: () -> Unit,
     onPickImage: () -> Unit,
-    onOpenSettings: () -> Unit
+    onOpenSettings: () -> Unit,
+    onContinueStory: () -> Unit
 ) {
     val state by viewModel.state.collectAsState()
+    val progress by viewModel.storyProgress.collectAsState()
     val language = LocalAppLanguage.current
     val sourceStoryPages = viewModel.storyPages
     val storyPages = remember(sourceStoryPages, language) {
@@ -103,6 +109,11 @@ fun MenuScreen(
     }
     val pagerState = rememberPagerState(initialPage = pageIndex, pageCount = { storyPages.size })
 
+    val strings = LocalAppStrings.current
+    val completedCount = progress[state.selectedStoryId] ?: 0
+    val canContinue = completedCount in 1 until storyPages.size
+    val continueLabel = strings.continueStoryLabel(completedCount + 1)
+
     LaunchedEffect(pageIndex) {
         if (pagerState.currentPage != pageIndex) {
             pagerState.animateScrollToPage(pageIndex)
@@ -119,7 +130,9 @@ fun MenuScreen(
 
     PuzzleBackground {
         AdaptiveContent { spec ->
-            val isCompactHeight = spec.mode == AdaptiveLayoutMode.Constrained
+            val isCompactHeight = spec.heightClass == com.puzzle.game.ui.adaptive.WindowSizeClass.Compact
+            val isSideBySide = spec.mode == AdaptiveLayoutMode.TabletLandscape ||
+                spec.mode == AdaptiveLayoutMode.PhoneLandscape
             val verticalGap = if (isCompactHeight) 9.dp else 13.dp
 
             Box(
@@ -137,7 +150,7 @@ fun MenuScreen(
                 ) {
                     HomeTopBar(onOpenSettings = onOpenSettings, compact = isCompactHeight)
 
-                    if (spec.mode == AdaptiveLayoutMode.TabletLandscape) {
+                    if (isSideBySide) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -150,10 +163,11 @@ fun MenuScreen(
                                 previews = previews,
                                 pageIndex = pageIndex,
                                 pagerState = pagerState,
-                                compact = false,
+                                completedCount = completedCount,
+                                compact = isCompactHeight,
                                 modifier = Modifier
                                     .weight(1f)
-                                    .heightIn(min = 460.dp, max = 620.dp)
+                                    .fillMaxHeight()
                             )
                             HomeActionPanel(
                                 pieceCount = state.pieceCount,
@@ -161,7 +175,13 @@ fun MenuScreen(
                                 onStartGame = onStartGame,
                                 onPickTheme = onPickTheme,
                                 onPickImage = onPickImage,
-                                modifier = Modifier.width(340.dp)
+                                canContinue = canContinue,
+                                continueLabel = continueLabel,
+                                onContinue = onContinueStory,
+                                compact = isCompactHeight,
+                                modifier = Modifier.width(
+                                    if (spec.mode == AdaptiveLayoutMode.TabletLandscape) 340.dp else 300.dp
+                                )
                             )
                         }
                     } else {
@@ -170,10 +190,11 @@ fun MenuScreen(
                             previews = previews,
                             pageIndex = pageIndex,
                             pagerState = pagerState,
+                            completedCount = completedCount,
                             compact = isCompactHeight,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .heightIn(min = if (isCompactHeight) 310.dp else 390.dp, max = 560.dp)
+                                .heightIn(min = if (isCompactHeight) 220.dp else 390.dp, max = 560.dp)
                                 .weight(1f)
                         )
 
@@ -182,7 +203,11 @@ fun MenuScreen(
                             onPieceCountChange = viewModel::selectPieceCount,
                             onStartGame = onStartGame,
                             onPickTheme = onPickTheme,
-                            onPickImage = onPickImage
+                            onPickImage = onPickImage,
+                            canContinue = canContinue,
+                            continueLabel = continueLabel,
+                            onContinue = onContinueStory,
+                            compact = isCompactHeight
                         )
                     }
                 }
@@ -198,23 +223,47 @@ private fun HomeActionPanel(
     onStartGame: () -> Unit,
     onPickTheme: () -> Unit,
     onPickImage: () -> Unit,
+    canContinue: Boolean,
+    continueLabel: String,
+    onContinue: () -> Unit,
+    compact: Boolean,
     modifier: Modifier = Modifier
 ) {
     val strings = LocalAppStrings.current
     Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(13.dp)
+        modifier = modifier
+            .fillMaxWidth()
+            // Landscape phones are too short to guarantee all controls fit; the
+            // scroll keeps every button at its full height instead of compressing.
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(if (compact) 9.dp else 13.dp)
     ) {
         PieceCountSlider(
             pieceCount = pieceCount,
-            onPieceCountChange = onPieceCountChange
+            onPieceCountChange = onPieceCountChange,
+            compact = compact
         )
 
-        CoralButton(
-            text = strings.startPuzzle,
-            onClick = onStartGame,
-            modifier = Modifier.fillMaxWidth()
-        )
+        if (canContinue) {
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                CoralButton(
+                    text = continueLabel,
+                    onClick = onContinue,
+                    modifier = Modifier.weight(1f)
+                )
+                CloudButton(
+                    text = strings.startPuzzle,
+                    onClick = onStartGame,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        } else {
+            CoralButton(
+                text = strings.startPuzzle,
+                onClick = onStartGame,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             CloudButton(
@@ -282,6 +331,7 @@ private fun StoryPagerCard(
     previews: Map<String, ImageBitmap>,
     pageIndex: Int,
     pagerState: androidx.compose.foundation.pager.PagerState,
+    completedCount: Int,
     compact: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -296,11 +346,13 @@ private fun StoryPagerCard(
             val storyPage = pages[index]
             val preview = previews[storyPage.id]
             val isActive = index == pagerState.currentPage
+            val isCompleted = index < completedCount
 
             StoryPageCard(
                 storyPage = storyPage,
                 preview = preview,
                 isActive = isActive,
+                isCompleted = isCompleted,
                 compact = compact,
                 modifier = Modifier
                     .fillMaxSize()
@@ -330,9 +382,11 @@ private fun StoryPageCard(
     storyPage: StoryPageData,
     preview: ImageBitmap?,
     isActive: Boolean,
+    isCompleted: Boolean,
     compact: Boolean,
     modifier: Modifier = Modifier
 ) {
+    val strings = LocalAppStrings.current
     StoneSurface(
         modifier = modifier
             .graphicsLayer {
@@ -377,6 +431,15 @@ private fun StoryPageCard(
                     )
                 }
                 CornerGlyphs(modifier = Modifier.matchParentSize())
+
+                if (isCompleted) {
+                    CompletedBadge(
+                        text = strings.complete,
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp)
+                    )
+                }
             }
 
             StoryIntroPanel(storyPage = storyPage, compact = compact)
@@ -454,12 +517,16 @@ private fun StoryTitleRule(text: String) {
 @Composable
 private fun PieceCountSlider(
     pieceCount: Int,
-    onPieceCountChange: (Int) -> Unit
+    onPieceCountChange: (Int) -> Unit,
+    compact: Boolean
 ) {
     val strings = LocalAppStrings.current
     StoneSurface(modifier = Modifier.fillMaxWidth(), radius = FragmaDimens.SliderPanelRadius) {
         Column(
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
+            modifier = Modifier.padding(
+                horizontal = if (compact) 14.dp else 18.dp,
+                vertical = if (compact) 8.dp else 12.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
             Row(
@@ -498,6 +565,8 @@ private fun PieceCountSlider(
                 value = pieceCount.toFloat(),
                 onValueChange = { onPieceCountChange(it.roundToInt()) },
                 valueRange = 10f..300f,
+                // 28 intermediate stops → snap to 10, 20, …, 300 so labels and values agree.
+                steps = 28,
                 colors = SliderDefaults.colors(
                     thumbColor = PuzzleColors.Coral,
                     activeTrackColor = PuzzleColors.Teal,
@@ -515,6 +584,30 @@ private fun PieceCountSlider(
                 Text("220", color = PuzzleColors.Muted, fontSize = 12.sp)
                 Text("300", color = PuzzleColors.Muted, fontSize = 12.sp)
             }
+        }
+    }
+}
+
+@Composable
+private fun CompletedBadge(text: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = PuzzleColors.Gold
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            CheckIcon(modifier = Modifier.size(12.dp), color = Color.White)
+            Text(
+                text,
+                color = Color.White,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1
+            )
         }
     }
 }

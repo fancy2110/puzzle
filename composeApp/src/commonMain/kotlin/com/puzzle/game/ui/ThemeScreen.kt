@@ -49,6 +49,7 @@ fun ThemeScreen(
 ) {
     val strings = LocalAppStrings.current
     val state by viewModel.state.collectAsState()
+    val progress by viewModel.storyProgress.collectAsState()
     val stories = viewModel.storySets
 
     PuzzleBackground {
@@ -95,9 +96,11 @@ fun ThemeScreen(
         ) {
             items(stories, key = { it.id }) { story ->
                 val isSelected = state.selectedStoryId == story.id
+                val completedCount = progress[story.id] ?: 0
                 StoryPickerCard(
                     story = story,
                     isSelected = isSelected,
+                    completedCount = completedCount,
                     onClick = {
                         Analytics.click(
                             target = "select_story",
@@ -133,6 +136,7 @@ fun ThemeScreen(
 private fun StoryPickerCard(
     story: BuiltinStoryImageSet,
     isSelected: Boolean,
+    completedCount: Int,
     onClick: () -> Unit
 ) {
     val strings = LocalAppStrings.current
@@ -209,22 +213,32 @@ private fun StoryPickerCard(
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(8.dp))
+            val isStoryComplete = completedCount >= story.pages.size
+            val pillColor = when {
+                isStoryComplete -> PuzzleColors.Gold
+                isSelected -> PuzzleColors.Coral
+                else -> PuzzleColors.Stone.copy(alpha = 0.45f)
+            }
+            val pillText = when {
+                completedCount > 0 && !isStoryComplete -> "${completedCount}/${story.pages.size}"
+                else -> strings.actLabel(story.pages.size)
+            }
             Surface(
                 shape = RoundedCornerShape(50),
-                color = if (isSelected) PuzzleColors.Coral else PuzzleColors.Stone.copy(alpha = 0.45f)
+                color = pillColor
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 5.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
-                    if (isSelected) {
+                    if (isSelected || isStoryComplete) {
                         CheckIcon(modifier = Modifier.size(13.dp), color = Color.White)
                     }
                     Text(
-                        text = strings.actLabel(story.pages.size),
+                        text = pillText,
                         fontSize = 13.sp,
-                        color = if (isSelected) Color.White else PuzzleColors.Muted,
+                        color = if (isSelected || isStoryComplete) Color.White else PuzzleColors.Muted,
                         fontWeight = FontWeight.Bold
                     )
                 }

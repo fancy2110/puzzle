@@ -115,7 +115,8 @@ fun StoryButton(
                     text,
                     fontSize = if (height >= FragmaDimens.PrimaryActionHeight) 20.sp else 16.sp,
                     fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
         }
@@ -136,7 +137,8 @@ fun StoryButton(
                     text,
                     fontSize = if (height >= FragmaDimens.SecondaryActionHeight) 16.sp else 14.sp,
                     fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
                 )
             }
         }

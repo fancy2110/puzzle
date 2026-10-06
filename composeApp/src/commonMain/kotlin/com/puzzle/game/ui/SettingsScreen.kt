@@ -2,6 +2,8 @@ package com.puzzle.game.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -65,7 +67,8 @@ fun SettingsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .widthIn(max = 640.dp),
+                        .widthIn(max = 640.dp)
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
             SettingsTopBar(onBack = onBack)
@@ -121,7 +124,7 @@ fun SettingsScreen(
                                 onClick = onOpenImageSource,
                                 tone = StoryButtonTone.Secondary,
                                 height = 42.dp,
-                                modifier = Modifier.width(82.dp)
+                                modifier = Modifier.widthIn(min = 96.dp)
                             )
                         }
                     )
@@ -146,7 +149,7 @@ fun SettingsScreen(
                                 onClick = onOpenPrivacyPolicy,
                                 tone = StoryButtonTone.Secondary,
                                 height = 42.dp,
-                                modifier = Modifier.width(82.dp)
+                                modifier = Modifier.widthIn(min = 96.dp)
                             )
                         }
                     )
@@ -172,7 +175,7 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }

@@ -57,7 +57,10 @@ fun rememberAdaptiveSpec(maxWidth: Dp, maxHeight: Dp): AdaptiveSpec {
     val heightClass = maxHeight.toWindowSizeClass()
     val isLandscape = maxWidth > maxHeight
     val isTabletLike = widthClass != WindowSizeClass.Compact || maxHeight >= 900.dp
-    val isConstrained = maxWidth < 420.dp || maxHeight < 620.dp
+    // Normal phones in landscape are only ~360–480 dp tall, so the threshold must
+    // reserve the landscape layouts for them; Constrained is for genuinely cramped
+    // windows (split-screen slivers / watch-sized panes) only.
+    val isConstrained = maxWidth < 320.dp || maxHeight < 340.dp
 
     val mode = when {
         isConstrained -> AdaptiveLayoutMode.Constrained

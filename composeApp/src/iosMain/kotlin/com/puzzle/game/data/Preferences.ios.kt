@@ -67,4 +67,14 @@ actual class Preferences {
     actual fun setPrivacyConsentVersion(version: String) {
         defaults.setObject(version, forKey = "privacy_consent_version")
     }
+
+    actual fun getStoryProgress(): Map<String, Int> =
+        decodeStoryProgress(defaults.stringForKey("story_progress"))
+
+    actual fun setStoryProgress(storyId: String, completedSceneCount: Int) {
+        val merged = getStoryProgress().toMutableMap().apply {
+            put(storyId, maxOf(get(storyId) ?: 0, completedSceneCount))
+        }
+        defaults.setObject(encodeStoryProgress(merged), forKey = "story_progress")
+    }
 }

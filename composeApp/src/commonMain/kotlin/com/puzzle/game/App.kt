@@ -23,6 +23,7 @@ import com.puzzle.game.audio.Sfx
 import com.puzzle.game.audio.SfxPlayer
 import com.puzzle.game.audio.SoundManagerFactory
 import com.puzzle.game.data.PreferencesFactory
+import com.puzzle.game.data.PreferencesStoryProgressStore
 import com.puzzle.game.game.GameViewModel
 import com.puzzle.game.i18n.AppLanguage
 import com.puzzle.game.i18n.LocalAppLanguage
@@ -47,8 +48,9 @@ import kotlin.time.TimeSource
 fun App() {
     PuzzleGameTheme {
         val navViewModel = remember { NavigationViewModel() }
-        val gameViewModel: GameViewModel = viewModel { GameViewModel() }
         val preferences = remember { PreferencesFactory.create() }
+        val progressStore = remember { PreferencesStoryProgressStore(preferences) }
+        val gameViewModel: GameViewModel = viewModel { GameViewModel(progressStore) }
         val soundManager = remember { SoundManagerFactory.create() }
         var soundEnabled by remember { mutableStateOf(preferences.isSoundEnabled()) }
         var language by remember {
@@ -185,6 +187,11 @@ fun App() {
                             onOpenSettings = {
                                 Analytics.click("open_settings", AnalyticsScreen.Menu)
                                 navViewModel.navigateTo(Screen.Settings)
+                            },
+                            onContinueStory = {
+                                Analytics.click("continue_story", AnalyticsScreen.Menu)
+                                gameViewModel.continueStory()
+                                navViewModel.navigateTo(Screen.Game)
                             }
                         )
                     }
@@ -282,7 +289,8 @@ fun App() {
                                 gameViewModel.goToMenu()
                                 navViewModel.replaceWith(Screen.Menu)
                                 navViewModel.navigateTo(Screen.ThemePicker)
-                            }
+                            },
+                            referenceEnabled = preferences.isReferenceEnabled()
                         )
                     }
 
